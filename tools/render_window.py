@@ -14,11 +14,13 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ.setdefault("QT_QPA_FONTDIR", os.path.join(os.environ.get("WINDIR", "C:/Windows"), "Fonts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtGui import QColor, QPainter, QPixmap  # noqa: E402
+from PySide6.QtWidgets import QApplication, QMenu  # noqa: E402
 
 from lc_helper import app as ui  # noqa: E402
 from lc_helper import events, vision  # noqa: E402
 from lc_helper.battle import FOREVER, Phase, Pick, Plan, Status  # noqa: E402
+from lc_helper.device import PC, Target  # noqa: E402
 from sync_maalc import maalc_dir  # noqa: E402
 
 
@@ -46,6 +48,22 @@ def shot(window, out, name):
     print(path)
 
 
+def menus(window, out, name):
+    """The ⋯ menu with its PC submenu beside it, side by side in one PNG."""
+    menu = next(m for m in window.findChildren(QMenu) if m.title() == "")
+    sub = next(m for m in window.findChildren(QMenu) if m.title() == "PC 版點擊方式")
+    pics = [m.grab() for m in (menu, sub)]
+    sheet = QPixmap(sum(p.width() for p in pics) + 8, max(p.height() for p in pics))
+    sheet.fill(QColor("#0b0a09"))
+    painter = QPainter(sheet)
+    painter.drawPixmap(0, 0, pics[0])
+    painter.drawPixmap(pics[0].width() + 8, 0, pics[1])
+    painter.end()
+    path = out / name
+    sheet.save(str(path))
+    print(path)
+
+
 def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent / ".local/evidence"
     out.mkdir(parents=True, exist_ok=True)
@@ -56,6 +74,15 @@ def main():
     w.show()
     w.on_device("connected", "MuMuPlayer12 127.0.0.1:16384")
     shot(w, out, "window-idle.png")
+    found = [Target("MuMuPlayer12", "127.0.0.1:16384"), Target("Limbus PC", PC)]
+    w.settings["address"] = PC
+    w.on_targets(found)
+    w.on_device("connected", "Limbus PC（合成觸控）")
+    shot(w, out, "window-pc.png")
+    menus(w, out, "window-menu.png")
+    w.settings["address"] = "127.0.0.1:16384"
+    w.on_targets(found)
+    w.on_device("connected", "MuMuPlayer12 127.0.0.1:16384")
     w.on_battle(Status(Phase.GUARDING, Plan(Pick.DAMAGE, 2), 3))
     shot(w, out, "window-guarding.png")
     w.on_battle(Status(Phase.PLAYING, Plan(Pick.WIN_RATE, FOREVER), 7))

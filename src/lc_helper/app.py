@@ -12,19 +12,20 @@ from ctypes import wintypes
 from pathlib import Path
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QFont
+from PySide6.QtGui import QAction, QActionGroup, QFont
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QFrame, QHBoxLayout, QLabel,
                                QLayout, QLineEdit, QListWidget, QListWidgetItem, QMenu, QPushButton, QSpinBox,
                                QTextBrowser, QToolButton, QVBoxLayout, QWidget)
 
+from . import device as devices
 from . import events
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SETTINGS = ROOT / ".local/settings.json"
-DEFAULTS = {"address": None, "pick": "win_rate", "guard": 0, "forever": False, "hold": True, "watch": False,
-            "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
+DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard": 0, "forever": False,
+            "hold": True, "watch": False, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 
 STYLE = """
@@ -211,7 +212,14 @@ class Window(QWidget):
         self.hold_action = QAction("回合播放時按住畫面（加快 E.G.O 動畫）", menu, checkable=True, checked=s["hold"])
         self.hold_action.toggled.connect(self.set_hold)
         menu.addAction(self.hold_action)
-        menu.addAction("重新尋找模擬器", lambda: self.worker.send("scan"))
+        pc_menu = menu.addMenu("PC 版點擊方式")
+        group = QActionGroup(pc_menu)
+        for key, (name, cost, _, can_hold) in devices.PC_INPUTS.items():
+            text = f"{name}（{cost}{'' if can_hold else '，回合播放時不按住'}）"
+            action = QAction(text, group, checkable=True, checked=key == s["pc_input"])
+            action.triggered.connect(lambda _, key=key: self.set_pc_input(key))
+            pc_menu.addAction(action)
+        menu.addAction("重新尋找模擬器與 PC 版", lambda: self.worker.send("scan"))
         more.setMenu(menu)
         h.addWidget(more)
         self.fold = QToolButton(objectName="flat", text="▸" if s["compact"] else "▾", clicked=self.toggle_compact)
@@ -327,6 +335,10 @@ class Window(QWidget):
         self.settings["hold"] = on
         self.worker.send("set_hold", on)
 
+    def set_pc_input(self, key):
+        self.settings["pc_input"] = key
+        self.worker.send("set_pc_input", key)
+
     def set_watch(self, on):
         self.settings["watch"] = on
         self.worker.send("set_watch", on)
@@ -355,7 +367,8 @@ class Window(QWidget):
         self.device_box.clear()
         self.device_box.addItem("自動偵測", None)
         for t in targets:
-            self.device_box.addItem(f"{t.name} {t.address.rsplit(':', 1)[-1]}", t.address)
+            self.device_box.addItem(t.name if t.address == devices.PC else f"{t.name} {t.address.rsplit(':', 1)[-1]}",
+                                    t.address)
         if current and self.device_box.findData(current) < 0:
             self.device_box.addItem(f"{current}（沒找到）", current)  # the worker still aims at it: say so
         self.device_box.setCurrentIndex(max(self.device_box.findData(current), 0))
@@ -430,6 +443,7 @@ def main(worker_factory=Worker):
     window.worker.start()
     window.worker.send("scan")
     window.worker.send("set_address", window.settings["address"])
+    window.worker.send("set_pc_input", window.settings["pc_input"])
     window.worker.send("warm")
     if window.settings["watch"]:
         window.worker.send("set_watch", True)
