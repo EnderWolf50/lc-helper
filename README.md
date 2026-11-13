@@ -35,7 +35,7 @@ uv run lc-helper
 
 PC 版：齒輪設定頁「裝置」區的裝置選單選「PC 版」。遊戲視窗要 16:9（1280×720 或 1920×1080），不能縮到最小，可以被別的視窗蓋住。點擊方式在同一區的「PC 點擊」：觸控（合成觸控）、移視窗、借游標、前景，滑過去會說明各自的代價。預設「觸控」不動滑鼠；遊戲不吃觸控的話改「移視窗」，再不行改「借游標」。小工具不要擋在遊戲視窗上面：合成觸控點到被蓋住的地方時，會把遊戲視窗暫時提到最上層。
 
-`tools/sync_maalc.py` 從 maalc 的資料夾讀資料：預設是本 repo 旁邊的 `../maalc`，不在那裡就把路徑寫進 `.local/maalc_dir`。事件的完整英文故事要 maalc 的 `.local/unpack`。中文取遊戲裡裝的都市零漢化（LLC）：先看 `.local/llc_dir` 寫的遊戲資料夾（`Limbus Company` 那一層），沒有這個檔就到每個 Steam 資料庫找 Limbus Company；都沒裝才用 maalc `.local/llc` 裡最新的 zip。用的是哪一份、哪個版本，寫在 `assets/events.json` 與 `assets/gifts.json` 的 `note`。簡體原文留在 `_cn` 欄位（飾品是 `cn`），給漢化版畫面比對用；顯示的繁體是 OpenCC s2twp 轉的。
+`tools/sync_maalc.py` 從 maalc 的資料夾讀資料：預設是本 repo 旁邊的 `../maalc`，不在那裡就把路徑寫進 `.local/maalc_dir`。事件的完整英文故事要 maalc 的 `.local/unpack`。中文取遊戲裡裝的都市零漢化（LLC）：先看 `.local/llc_dir` 寫的遊戲資料夾（`Limbus Company` 那一層），沒有這個檔就到每個 Steam 資料庫找 Limbus Company；都沒裝才用 maalc `.local/llc` 裡最新的 zip。用的是哪一份、哪個版本，寫在 `assets/events.json` 與 `assets/gifts.json` 的 `note`。簡體原文留在 `_cn` 欄位（飾品是 `cn`），給漢化版畫面比對用；顯示的繁體是 OpenCC s2twp 轉的。體系圖示（`assets/keywords`）是 maalc 收的遊戲圖示，從 webp 轉成 PNG，Qt 不必靠 webp 外掛就讀得到。
 
 ## 打包（免安裝資料夾）
 

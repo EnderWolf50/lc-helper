@@ -1,9 +1,13 @@
-"""The window's icons, drawn on a 24-unit grid in one stroke weight, as pixmaps for the screen's pixel ratio."""
+"""The window's icons, drawn on a 24-unit grid in one stroke weight, and the game's keyword icons, as pixmaps for the
+screen's pixel ratio."""
 
+from functools import cache
 from math import cos, pi, sin
 
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap
+
+from .paths import ASSETS
 
 GRID = 24
 STROKE = 2  # grid units: a twelfth of the icon's side
@@ -142,3 +146,22 @@ def pixmap(name, color, side, ratio):
 
 def icon(name, color, side, ratio):
     return QIcon(pixmap(name, color, side, ratio))
+
+
+@cache
+def game_icon(keyword):
+    """The game's picture for keyword (assets/keywords, tools/sync_maalc.py), at the size it comes in."""
+    return QImage(str(ASSETS / "keywords" / f"{keyword}.png"))
+
+
+def keyword(name, side, ratio):
+    """The game's icon for keyword name, fitted whole and centred in a square side logical pixels across, with ratio
+    device pixels to each."""
+    pix = QPixmap(round(side * ratio), round(side * ratio))
+    pix.fill(Qt.transparent)
+    fitted = game_icon(name).scaled(pix.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    p = QPainter(pix)
+    p.drawImage((pix.width() - fitted.width()) // 2, (pix.height() - fitted.height()) // 2, fitted)
+    p.end()
+    pix.setDevicePixelRatio(ratio)  # after painting: the painter worked in device pixels
+    return pix

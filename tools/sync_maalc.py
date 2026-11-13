@@ -8,6 +8,8 @@ updates its event table or templates (a new season); it overwrites everything it
 Writes:
 - assets/templates/*.png: maalc's battle and event templates (assets/resource/base/image, data/stagger_word.png).
 - assets/maa/model/ocr/: maalc's ppocr_v6 model (gitignored; tools/fetch_ocr.py in maalc downloads it).
+- assets/keywords/*.png: the game's keyword icons (maalc's assets/resource/base/data/keyword_icons), as PNG: Qt reads
+  maalc's webp only through its qwebp image format plugin, and PNG through none.
 - assets/events.json: maalc's event table (assets/resource/base/data/event_table.json), joined by event id with
   the full English story and option text (maalc's .local/unpack/out/events-md8.json), their Chinese text from
   Localize Limbus Company (llc_source: the Simplified original in the _cn fields, converted with OpenCC s2twp in the
@@ -24,6 +26,8 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
+import cv2
+import numpy as np
 import opencc
 
 REPO = Path(__file__).resolve().parent.parent
@@ -81,6 +85,14 @@ def copy_assets(maalc):
         shutil.copytree(model, REPO / "assets/maa/model/ocr", dirs_exist_ok=True)
     else:
         print(f"no OCR model in {model}: run `uv run python tools/fetch_ocr.py` in maalc, then this again")
+
+
+def copy_keyword_icons(maalc):
+    out = REPO / "assets/keywords"
+    out.mkdir(parents=True, exist_ok=True)
+    for src in sorted((maalc / "assets/resource/base/data/keyword_icons").glob("*.webp")):
+        image = cv2.imdecode(np.fromfile(src, np.uint8), cv2.IMREAD_UNCHANGED)  # imread fails on a non-ASCII path
+        cv2.imencode(".png", image)[1].tofile(out / f"{src.stem}.png")
 
 
 @dataclass(frozen=True)
@@ -290,6 +302,7 @@ def build(maalc, llc):
 def main():
     maalc = maalc_dir()
     copy_assets(maalc)
+    copy_keyword_icons(maalc)
     llc = llc_source(maalc)
     print(f"Localize Limbus Company {llc.version} from {llc.source}")
     data, missing_zh = build(maalc, llc)

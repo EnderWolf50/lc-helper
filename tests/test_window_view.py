@@ -127,6 +127,16 @@ def test_an_icon_is_drawn_with_the_pixels_of_a_150_percent_screen():
         assert any(image.pixelColor(x, y).alpha() for x in range(27) for y in range(27)), f"{name} draws nothing"
 
 
+def test_every_keyword_a_team_is_built_on_has_the_games_icon_with_the_pixels_of_a_150_percent_screen():
+    QApplication.instance() or QApplication([])
+    for keyword in ui.recommend.CHOICES:
+        pix = icons.keyword(keyword, 18, 1.5)
+        assert (pix.width(), pix.height(), pix.devicePixelRatio()) == (27, 27, 1.5), keyword
+        image = pix.toImage()
+        inked = {image.pixelColor(x, y).rgb() for x in range(27) for y in range(27) if image.pixelColor(x, y).alpha()}
+        assert len(inked) > 20, f"{keyword}: the game's picture, not a flat mark"
+
+
 GLYPHS = set("★∞•")  # text characters that once stood in for drawn icons
 
 
