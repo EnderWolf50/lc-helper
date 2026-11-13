@@ -64,6 +64,11 @@ def test_a_simplified_name_misread_by_one_character_is_still_its_gift():
     assert gifts.by_name("怀表：Type L")["id"] == 9728  # more Latin letters than Chinese
 
 
+def test_a_simplified_read_that_fits_several_gifts_is_none_of_them():
+    assert gifts.by_name("品德 - 仁")["id"] == 9824
+    assert gifts.by_name("品德") is None  # 品德 - 智, 品德 - 勇 and 品德 - 仁 with their last character cut
+
+
 @pytest.mark.parametrize("name", SHOWN)
 def test_the_gifts_on_a_screen_painted_in_llc_chinese_are_read(screen, name):
     painted = llc_screen.gift_screen(screen(name))

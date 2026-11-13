@@ -22,9 +22,10 @@ GIFT_CARDS = (100, 150, 1080, 410)  # every card's text on the gift choice (maal
 GIFT_GET_HEADER = (520, 160, 240, 40)  # "Gift GET" (maalc GiftGet node)
 GET_NAME = (320, 405, 180, 80)  # the GET! window's name plate (maalc GET_NAME)
 NAME_MATCH = 88  # an OCR'd line against a whole name, 0-100 (maalc run_start.match_name takes 0.9)
-# The same against a Simplified name: a character weighs what several letters do. With one character misread, 1925 of
-# the 2187 misreads find their own gift at 75 and 8 another, where 88 finds 153 (English at 88: 6864 of 7072, 5
-# another); no piece of LLC's effect text reads as a name at either (15413 pieces; 2026-11-14, LLC 2026110501).
+# The same against a Simplified name: a character weighs what several letters do. With one character misread, 1920 of
+# 2187 reads find their own gift at 75 and 153 at 88; with one dropped, 2050 of 2186 at 75. None finds another gift,
+# as a read several names fit is refused (cn_name). English at 88: 6864 of 7072 misread and 7048 dropped find their
+# own, 5 and 5 another. No piece of LLC's effect text reads as a name (15413 pieces; 2026-11-14, LLC 2026110501).
 CN_NAME_MATCH = 75
 
 
@@ -66,9 +67,16 @@ def by_name(text):
     if len(q := plain(text)) >= 4:
         hits.append(process.extractOne(q, en, scorer=fuzz.ratio, score_cutoff=NAME_MATCH))
     if has_cjk(text):
-        hits.append(process.extractOne(key_cn(text), cn, scorer=fuzz.ratio, score_cutoff=CN_NAME_MATCH))
+        hits.append(cn_name(key_cn(text), cn))
     hit = max(filter(None, hits), key=lambda h: h[1], default=None)
     return gifts[hit[2]] if hit else None
+
+
+def cn_name(q, names):
+    """The Simplified name q reads as, unless another reads as well: 品德 is as near 品德 - 智, 品德 - 勇 and 品德 - 仁,
+    and a name the game wraps or OCR cuts must not pick one of them."""
+    hits = process.extract(q, names, scorer=fuzz.ratio, score_cutoff=CN_NAME_MATCH, limit=2)
+    return hits[0] if hits and (len(hits) == 1 or hits[1][1] < hits[0][1]) else None
 
 
 def label(g):
