@@ -177,6 +177,14 @@ def test_a_new_window_draws_the_pane_icons_at_its_text_size_from_the_start(tmp_p
     assert star() == first
 
 
+def test_a_new_window_draws_the_search_icon_at_its_text_size_from_the_start(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch, text_size="large")
+    drawn = lambda: [size.toTuple() for size in w.event_search.go.icon().availableSizes()]  # noqa: E731
+    first = drawn()
+    w.set_text_size("large")
+    assert drawn() == first
+
+
 def painted(w, widget, x, y):
     """The colour the window shows at (x, y) inside widget."""
     QApplication.processEvents()

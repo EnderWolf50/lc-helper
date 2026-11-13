@@ -147,6 +147,11 @@ def style(base, line):
                             arrow=control_height(line) // 2, chip=(line + 6) // 2)
 
 
+def field_icon_side(font):
+    """The side of the icons inside a search field (the search icon, the clear button) for text in font."""
+    return round(QFontMetrics(font).height() * 0.8)
+
+
 def glyph_side(font):
     """The side of a square icon set beside text in font: as tall as a Chinese glyph's ink (國)."""
     return round(QFontMetricsF(font).tightBoundingRect("國").height())
@@ -606,8 +611,8 @@ class Look(QProxyStyle):
     def pixelMetric(self, metric, option=None, widget=None):
         if metric in (QStyle.PM_IndicatorWidth, QStyle.PM_IndicatorHeight) and widget is not None:
             return round(widget.fontMetrics().height() * 0.85)
-        if metric == QStyle.PM_LineEditIconSize and widget is not None:  # the search icon and the clear button
-            return round(widget.fontMetrics().height() * 0.8)
+        if metric == QStyle.PM_LineEditIconSize and widget is not None:
+            return field_icon_side(widget.font())
         if metric == QStyle.PM_SmallIconSize and isinstance(widget, QMenu):  # the keyword icons in ＋ 體系
             return glyph_side(widget.font())
         return super().pixelMetric(metric, option, widget)
@@ -947,8 +952,8 @@ class Window(QWidget):
             button.setIconSize(QSize(side, side))
         self.pin.setToolTip(pin_tip)
         self.dot.setPixmap(icons.pixmap("dot", DOT[self.dot.property("state")], side // 2, ratio))
+        inside = field_icon_side(self.text_font())  # the field's own font is Qt's default until the window shows
         for box in (self.event_search, self.gift_search):
-            inside = box.field.style().pixelMetric(QStyle.PM_LineEditIconSize, None, box.field)
             box.go.setIcon(icons.icon("search", ICON, inside, ratio))
         beside = glyph_side(self.text_font())
         self.gift_search.list.popup().setIconSize(QSize(beside, beside))
