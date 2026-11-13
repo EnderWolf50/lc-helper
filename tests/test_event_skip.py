@@ -3,7 +3,7 @@ import time
 import llc_screen
 import pytest
 
-from lc_helper import ocr
+from lc_helper import event_skip, ocr
 from lc_helper.device import Target
 from lc_helper.event_skip import EVENT_BUTTON, EVENT_CARD, EVENT_NEUTRAL, Skipper
 from lc_helper.worker import Callbacks, Worker
@@ -93,3 +93,42 @@ def test_the_worker_skips_only_while_asked(screen):
     assert story.taps and set(story.taps) == {EVENT_BUTTON}
     assert choices.taps == []
     assert "到選項頁了，請你選" in said
+
+
+def lines_shown(image):
+    """image with one more line of story text in the story box: what a corner tap on a running text shows."""
+    shown = image.copy()
+    shown[505:525, 77:560] = 230
+    return shown
+
+
+def test_corner_taps_stop_once_the_screen_stops_answering_them_and_go_on_when_it_changes(screen):
+    """An event page the skipper does not recognise (LLC's Choices page before 选项 was known) took a corner tap
+    every look for good, and on the PC client each synthetic touch hid the mouse pointer."""
+    skipper, text = Skipper(read), screen("LuxEventText.png")
+    looks = [skipper.step(text, t) for t in range(5)]
+    assert [point for _, point in looks] == [EVENT_NEUTRAL] * 3 + [None] * 2
+    assert looks[-1][0] == event_skip.WAITING
+    assert skipper.step(lines_shown(text), 5) == ("text", EVENT_NEUTRAL), "the screen changed: tap again"
+
+
+def test_a_screen_that_answers_each_tap_keeps_getting_taps(screen):
+    skipper, image = Skipper(read), screen("LuxEventText.png")
+    for t in range(5):
+        image = image.copy()
+        image[350 + 22 * t:368 + 22 * t, 77:560] = 200 - 20 * t
+        assert skipper.step(image, t) == ("text", EVENT_NEUTRAL), t
+
+
+def test_the_worker_stops_tapping_a_screen_that_never_changes_and_says_so(screen):
+    stuck = Recorder(screen("LuxEventText.png"))
+    said = []
+    w = Worker(Callbacks(skip=said.append), connect=lambda address, **_: (stuck, Target("fake", "x")), find=lambda: [])
+    w.start()
+    w.send("set_skip", True)
+    time.sleep(2.5)
+    assert stuck.taps == [EVENT_NEUTRAL] * 3 and said[-1] == event_skip.WAITING
+    stuck.image = lines_shown(stuck.image)
+    time.sleep(1.0)
+    w.shutdown()
+    assert stuck.taps[3:4] == [EVENT_NEUTRAL], "taps go on once the screen changes"

@@ -255,7 +255,7 @@ class Worker(threading.Thread):
             self.watch_tick()
 
     def do_set_skip(self, on):
-        self.skip, self.skipper.pressed, self.skip_said = on, None, None
+        self.skip, self.skipper, self.skip_said = on, event_skip.Skipper(self.read_text), None
         if on:
             self.ready()
 
