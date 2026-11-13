@@ -1395,8 +1395,10 @@ def self_test():
     cv2.putText(image, "What will you do?", (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (255, 255, 255), 3)
     hits = events.search("螺旋")
     found = gifts.search("地獄蝶")
+    table = trials.book()["trials"]
     lines = [f"search 螺旋: {len(hits)} events, first {hits[0]['id'] if hits else None}",
              f"gift 地獄蝶: {found[0]['en'] if found else None}",
+             f"trials: {len(table)}, 強韌V: {trials.read_trial('强韧V', '', table)[0]}",
              f"ocr: {[text for text, _ in ocr.lines(image, (60, 60, 700, 100))]}"]
     LOCAL.mkdir(parents=True, exist_ok=True)
     (LOCAL / "self-test.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
