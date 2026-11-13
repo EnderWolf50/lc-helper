@@ -80,6 +80,12 @@ def main():
     w.on_device("connected", "Limbus PC（合成觸控）")
     shot(w, out, "window-pc.png")
     menus(w, out, "window-menu.png")
+    dialog = ui.HotkeyDialog({"battle": "F8", "read": "F8"}, w)
+    dialog.show()
+    shot(dialog, out, "window-hotkeys-clash.png")
+    dialog.edits["read"].setKeySequence("Ctrl+Shift+Q")
+    shot(dialog, out, "window-hotkeys.png")
+    dialog.close()
     w.settings["address"] = "127.0.0.1:16384"
     w.on_targets(found)
     w.on_device("connected", "MuMuPlayer12 127.0.0.1:16384")

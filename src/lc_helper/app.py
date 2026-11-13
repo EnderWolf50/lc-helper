@@ -12,10 +12,11 @@ from ctypes import wintypes
 from pathlib import Path
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QActionGroup, QFont
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QFrame, QHBoxLayout, QLabel,
-                               QLayout, QLineEdit, QListWidget, QListWidgetItem, QMenu, QPushButton, QSpinBox,
-                               QTextBrowser, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtGui import QAction, QActionGroup, QFont, QKeySequence
+from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+                               QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout, QLineEdit,
+                               QListWidget, QListWidgetItem, QMenu, QPushButton, QSpinBox, QTextBrowser, QToolButton,
+                               QVBoxLayout, QWidget)
 
 from . import device as devices
 from . import events
@@ -41,6 +42,7 @@ QLabel#dot[state="error"] { color: #d9534f; } QLabel#dot[state="idle"] { color: 
 QPushButton, QToolButton { background: #2c2219; border: 1px solid #5b4527; border-radius: 6px; padding: 5px 10px; }
 QPushButton:hover, QToolButton:hover { background: #3a2c1f; }
 QPushButton:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
+QPushButton:disabled { background: #1d1711; border-color: #3e2f1d; color: #6b6152; }
 QPushButton#primary { background: #9e2b22; border-color: #d65a45; color: #fff; font-weight: bold; padding: 8px; }
 QPushButton#primary:hover { background: #b8352a; }
 QPushButton#primary[running="true"] { background: #3d4a2a; border-color: #8fb35a; }
@@ -54,6 +56,8 @@ QListWidget::item { padding: 4px; } QListWidget::item:selected { background: #4a
 QTextBrowser { background: #0f0c09; border: 1px solid #3e2f1d; border-radius: 6px; padding: 4px; }
 QCheckBox { color: #b9ab93; font-size: 9pt; }
 QMenu { background: #1d1711; border: 1px solid #5b4527; } QMenu::item:selected { background: #4a3417; }
+QDialog { background: #17130f; }
+QKeySequenceEdit QLineEdit { min-width: 140px; }
 """
 
 
@@ -132,8 +136,26 @@ class Bridge(QObject):
                          event=self.event.emit, error=self.error.emit)
 
 
-VK = {f"F{i}": 0x6F + i for i in range(1, 13)}
 WM_HOTKEY, MOD_NOREPEAT = 0x0312, 0x4000
+# Qt's portable key names (QKeySequence.toString) to Windows virtual-key codes and RegisterHotKey modifiers.
+VK = ({f"F{i}": 0x6F + i for i in range(1, 25)} | {c: ord(c) for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"}
+      | {"SPACE": 0x20, "PGUP": 0x21, "PGDOWN": 0x22, "END": 0x23, "HOME": 0x24, "LEFT": 0x25, "UP": 0x26,
+         "RIGHT": 0x27, "DOWN": 0x28, "INS": 0x2D, "DEL": 0x2E, "PAUSE": 0x13, "SCROLLLOCK": 0x91,
+         "`": 0xC0, "-": 0xBD, "=": 0xBB, "[": 0xDB, "]": 0xDD, "\\": 0xDC, ";": 0xBA, "'": 0xDE, ",": 0xBC,
+         ".": 0xBE, "/": 0xBF})
+MODS = {"ALT": 0x1, "CTRL": 0x2, "SHIFT": 0x4, "META": 0x8}
+HOTKEY_IDS = {"battle": 1, "read": 2}  # tools/launch_check.py posts WM_HOTKEY with these ids
+
+
+def parse_hotkey(text):
+    """(modifiers, virtual key) of a hotkey such as "F8" or "Ctrl+Shift+Q", or None when it is not one key."""
+    *mods, key = [p.strip().upper() for p in (text or "").split("+")]
+    if key not in VK or any(m not in MODS for m in mods):
+        return None
+    flags = 0
+    for m in mods:
+        flags |= MODS[m]
+    return flags, VK[key]
 
 
 class Hotkeys(QAbstractNativeEventFilter):
@@ -143,10 +165,10 @@ class Hotkeys(QAbstractNativeEventFilter):
         super().__init__()
         self.actions = {}
 
-    def add(self, name, action):
-        vk = VK.get(name.upper())
-        hid = len(self.actions) + 1
-        if vk is None or not ctypes.windll.user32.RegisterHotKey(None, hid, MOD_NOREPEAT, vk):
+    def add(self, hid, text, action):
+        """Register text under id hid: whether Windows gave it (another program may hold it)."""
+        parsed = parse_hotkey(text)
+        if parsed is None or not ctypes.windll.user32.RegisterHotKey(None, hid, parsed[0] | MOD_NOREPEAT, parsed[1]):
             return False
         self.actions[hid] = action
         return True
@@ -165,11 +187,49 @@ class Hotkeys(QAbstractNativeEventFilter):
         return False, 0
 
 
+class HotkeyDialog(QDialog):
+    """Press a key (with Ctrl, Alt or Shift if wanted) for each action; OK only when both are distinct hotkeys."""
+
+    NAMES = {"battle": "開始／停止自動戰鬥", "read": "讀取畫面上的事件"}
+
+    def __init__(self, keys, parent=None):
+        super().__init__(parent, Qt.Dialog | Qt.WindowStaysOnTopHint)
+        self.setWindowTitle("熱鍵設定")
+        form = QFormLayout(self)
+        self.edits = {}
+        for name, label in self.NAMES.items():
+            edit = QKeySequenceEdit(QKeySequence(keys[name]))
+            edit.setMaximumSequenceLength(1)
+            edit.keySequenceChanged.connect(self.check)
+            form.addRow(label, edit)
+            self.edits[name] = edit
+        self.problem = QLabel(objectName="status")
+        form.addRow(self.problem)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        form.addRow(self.buttons)
+        self.check()
+
+    def keys(self):
+        return {name: edit.keySequence().toString(QKeySequence.PortableText) for name, edit in self.edits.items()}
+
+    def check(self, *_):
+        keys = self.keys()
+        bad = [self.NAMES[n] for n, k in keys.items() if parse_hotkey(k) is None]
+        problem = (f"{'、'.join(bad)}：請按一個按鍵（F1～F24、字母、數字，可加 Ctrl／Alt／Shift）" if bad
+                   else "兩個動作不能用同一個熱鍵" if len(set(keys.values())) < len(keys) else "")
+        self.problem.setText(problem)
+        self.buttons.button(QDialogButtonBox.Ok).setEnabled(not problem)
+
+
 class Window(QWidget):
-    def __init__(self, worker_factory=Worker):
+    def __init__(self, worker_factory=Worker, hotkeys=None):
         super().__init__(None, Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.settings = load_settings()
+        self.hotkeys = hotkeys if hotkeys is not None else Hotkeys()
+        self.hotkeys_taken = []
         self.running = False
         self.drag_from: QPoint | None = None
         self.bridge = Bridge()
@@ -220,6 +280,7 @@ class Window(QWidget):
             action.triggered.connect(lambda _, key=key: self.set_pc_input(key))
             pc_menu.addAction(action)
         menu.addAction("重新尋找模擬器與 PC 版", lambda: self.worker.send("scan"))
+        menu.addAction("熱鍵設定…", self.edit_hotkeys)
         more.setMenu(menu)
         h.addWidget(more)
         self.fold = QToolButton(objectName="flat", text="▸" if s["compact"] else "▾", clicked=self.toggle_compact)
@@ -302,6 +363,25 @@ class Window(QWidget):
         keys = self.settings["hotkeys"]
         self.read_button.setText(f"讀取畫面  {keys['read']}")
         self.start.setToolTip(f"全域熱鍵 {keys['battle']}")
+
+    def apply_hotkeys(self):
+        """Register the hotkeys in settings (again): the ones Windows refused, which another program holds."""
+        keys = self.settings["hotkeys"]
+        actions = {"battle": self.toggle_battle, "read": lambda: self.worker.send("read_event")}
+        self.hotkeys.clear()
+        self.hotkeys_taken = [keys[n] for n, a in actions.items() if not self.hotkeys.add(HOTKEY_IDS[n], keys[n], a)]
+        self.apply_hotkey_labels()
+        self.update_start()
+        if self.hotkeys_taken:
+            self.status.setText(f"熱鍵 {', '.join(self.hotkeys_taken)} 被其他程式佔用，請在「⋯」→「熱鍵設定」換一個")
+        return self.hotkeys_taken
+
+    def edit_hotkeys(self):
+        dialog = HotkeyDialog(self.settings["hotkeys"], self)
+        if dialog.exec() == QDialog.Accepted:
+            self.settings["hotkeys"] = dialog.keys()
+            if not self.apply_hotkeys():
+                self.status.setText("熱鍵已更新")
 
     def plan(self):
         pick = Pick(self.picks.checkedButton().property("pick"))
@@ -433,12 +513,10 @@ def main(worker_factory=Worker):
     app = QApplication(sys.argv)
     app.setStyleSheet(STYLE)
     app.setFont(QFont("Microsoft JhengHei UI", 10))
-    window = Window(worker_factory)
     hotkeys = Hotkeys()
     app.installNativeEventFilter(hotkeys)
-    keys = window.settings["hotkeys"]
-    taken = [k for k, action in ((keys["battle"], window.toggle_battle),
-                                 (keys["read"], lambda: window.worker.send("read_event"))) if not hotkeys.add(k, action)]
+    window = Window(worker_factory, hotkeys)
+    window.apply_hotkeys()
     window.show()
     window.worker.start()
     window.worker.send("scan")
@@ -446,9 +524,6 @@ def main(worker_factory=Worker):
     window.worker.send("set_pc_input", window.settings["pc_input"])
     if window.settings["watch"]:  # auto read loads the OCR model now; otherwise the first event read does
         window.worker.send("set_watch", True)
-    window.hotkeys_taken = taken
-    if taken:
-        window.status.setText(f"熱鍵 {', '.join(taken)} 被其他程式佔用，請改 .local/settings.json 的 hotkeys")
     code = app.exec()
     hotkeys.clear()
     sys.stdout.flush()
