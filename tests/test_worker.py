@@ -1,0 +1,135 @@
+import threading
+import time
+
+from lc_helper.battle import Phase, Pick, Plan
+from lc_helper.device import Clock, Target
+from lc_helper.worker import Callbacks, Worker
+from fake_game import FakeBattle
+
+
+class Still:
+    """A device that always shows one screen and takes taps without effect."""
+
+    def __init__(self, image):
+        self.image = image
+
+    def screenshot(self):
+        return self.image
+
+    def __getattr__(self, name):
+        return lambda *a: None
+
+
+def started(device, **callbacks):
+    w = Worker(Callbacks(**callbacks), connect=lambda address: (device, Target("fake", "127.0.0.1:1")),
+               find=lambda: [])
+    w.start()
+    w.send("connect", None)
+    return w
+
+
+def wait_for(predicate, timeout=20):
+    end = time.monotonic() + timeout
+    while not predicate():
+        assert time.monotonic() < end, "timed out"
+        time.sleep(0.05)
+
+
+def test_a_battle_runs_until_stopped_and_reports_each_turn(screen):
+    fake = FakeBattle(screen, Clock(), turns=2, play_s=1.0)
+    statuses = []
+    w = started(fake, battle=statuses.append)
+    w.send("start_battle", Plan(Pick.DAMAGE), False)
+    assert fake.stop.wait(20), "the fake battle reached VICTORY"
+    w.stop_battle()
+    wait_for(lambda: statuses and statuses[-1].phase is Phase.STOPPED)
+    assert fake.starts() == ["damage", "damage"]
+    assert statuses[-1].turns == 2
+    w.send("quit")
+    w.join(3)
+    assert not w.is_alive()
+
+
+def test_read_event_reads_the_page_on_screen(screen):
+    readings = []
+    w = started(Still(screen("EventChoices.png")), event=readings.append)
+    w.send("read_event")
+    wait_for(lambda: readings)
+    assert readings[0].event["id"] == 901069
+
+
+def test_auto_read_shows_a_page_once_not_on_every_look(screen):
+    readings = []
+    w = started(Still(screen("EventChoices.png")), event=readings.append)
+    w.send("set_watch", True)
+    wait_for(lambda: readings)
+    time.sleep(2.5)  # two more looks at the same page
+    assert len(readings) == 1
+
+
+def test_auto_read_ignores_screens_that_are_no_event_page(screen):
+    readings, looked = [], threading.Event()
+
+    class Map(Still):
+        def screenshot(self):
+            looked.set()
+            return self.image
+
+    started(Map(screen("MirrorMap.png")), event=readings.append).send("set_watch", True)
+    assert looked.wait(5)
+    time.sleep(1.5)
+    assert readings == []
+
+
+def test_a_battle_queued_before_closing_never_starts(screen):
+    """The hotkey started a battle while the emulator was still connecting, then the window closed."""
+    fake = FakeBattle(screen, Clock(), turns=2, play_s=0.3)
+    statuses = []
+
+    def slow_connect(address):
+        time.sleep(0.5)
+        return fake, Target("fake", "x")
+
+    w = Worker(Callbacks(battle=statuses.append), connect=slow_connect, find=lambda: [])
+    w.start()
+    w.send("connect", None)
+    w.send("start_battle", Plan(), False)
+    time.sleep(0.1)
+    w.shutdown()
+    w.join(3)
+    assert not w.is_alive()
+    assert fake.taps == [] and statuses == []
+
+
+def test_opening_the_window_does_not_reach_the_emulator_until_first_use(screen):
+    calls = []
+    readings = []
+
+    def connect(address):
+        calls.append(address)
+        return Still(screen("EventChoices.png")), Target("fake", address)
+
+    w = Worker(Callbacks(event=readings.append), connect=connect, find=lambda: [])
+    w.start()
+    for command in (("scan",), ("set_address", "127.0.0.1:16416")):
+        w.send(*command)
+    time.sleep(0.5)
+    assert calls == []
+    w.send("read_event")
+    wait_for(lambda: readings)
+    assert calls == ["127.0.0.1:16416"]
+
+
+def test_a_failed_read_is_reported_and_the_worker_goes_on(screen):
+    errors, statuses = [], []
+
+    class Closed(Still):
+        def screenshot(self):
+            raise RuntimeError("模擬器截圖失敗，可能已關閉或斷線")
+
+    w = started(Closed(None), error=errors.append, battle=statuses.append)
+    w.send("read_event")
+    wait_for(lambda: errors)
+    w.send("start_battle", Plan(), False)
+    wait_for(lambda: statuses)
+    assert w.is_alive() and "截圖失敗" in errors[0]
