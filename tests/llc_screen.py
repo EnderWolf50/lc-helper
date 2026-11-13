@@ -18,7 +18,7 @@ from PySide6.QtCore import QPointF  # noqa: E402
 from PySide6.QtGui import QColor, QGlyphRun, QImage, QPainter, QRawFont  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from lc_helper import events, ocr, vision  # noqa: E402
+from lc_helper import events, gifts, ocr, vision  # noqa: E402
 
 FONT = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / "msyh.ttc"  # Simplified Chinese
 STORY_SIZE = 18  # px: the English story text's height on maalc's captures
@@ -142,4 +142,31 @@ def choices_page(image, event=None):
         under = [b for _, b in shown.lines if box[1] < b[1] < below]
         if under and option["hint_cn"]:
             jobs.append(line(under[0], option["hint_cn"], right))
+    return draw(image, jobs)
+
+
+def read(image, roi, only_rec):
+    return [t for t, _ in ocr.lines(image, roi, only_rec=only_rec)]
+
+
+def gift_screen(image):
+    """image, a gift choice or E.G.O Gift GET! capture, as LLC shows it: the Refuse Gift button or the window's title,
+    each card's Acquire E.G.O Gift tag (LLC writes it as the GET! title, without the ！), and each gift's name (a
+    card's title, the GET! name plate) in Simplified. The cards' effect text stays English: no line of LLC's own
+    effect text reads as a gift's name (measured on LLC 2026110501), and Chinese here would only be this helper's
+    guess at the game's wrapping."""
+    page = gifts.gift_page(image, read)
+    shown = gifts.read_gifts(image, page, ocr.lines).gifts
+    jobs = []
+    if page == "choice":
+        jobs += [line(box, "拒绝饰品", box[0] + box[2] + 20) for _, box in ocr.lines(image, gifts.GIFT_CHOICE_HEADER)]
+        jobs += [line(box, "获得E.G.O饰品", box[0] + box[2]) for text, box in ocr.lines(image, gifts.GIFT_CARDS)
+                 if "acquire" in text.lower()]
+        jobs += [line(box, g["cn"], box[0] + max(box[2], 150)) for g, box in shown]
+    elif page == "get":
+        jobs += [line(box, "获得E.G.O饰品！", box[0] + box[2] + 20) for _, box in ocr.lines(image, gifts.GIFT_GET_HEADER)]
+        plate = [box for _, box in ocr.lines(image, gifts.GET_NAME)]
+        jobs += [(box, [], 10) for box in plate]
+        x, y, w, h = union(plate)
+        jobs.append(line((x, y, w, plate[0][3]), shown[0][0]["cn"], x + max(w, 160)))
     return draw(image, jobs)

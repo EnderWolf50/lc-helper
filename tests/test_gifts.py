@@ -1,6 +1,7 @@
 import re
 import time
 
+import llc_screen
 import pytest
 
 from lc_helper import gifts, ocr
@@ -49,6 +50,26 @@ def test_the_gifts_on_screen_are_read(screen, name):
 @pytest.mark.parametrize("name", ["EventChoices.png", "BattleTurn.png", "MirrorMap.png", "Victory.png"])
 def test_other_screens_are_no_gift_screen(screen, name):
     assert gifts.gift_page(screen(name), read) is None
+
+
+def test_every_gift_is_found_by_its_simplified_name():
+    for g in gifts.book().values():
+        assert gifts.by_name(g["cn"]) is g, (g["id"], g["cn"])
+
+
+def test_a_simplified_name_misread_by_one_character_is_still_its_gift():
+    assert gifts.by_name("地狱媒之梦")["id"] == 9001
+    assert gifts.by_name("便携式急教包")["id"] == 9076
+    assert gifts.by_name("当") is None  # 富 (Wealth) with its one character misread
+    assert gifts.by_name("怀表：Type L")["id"] == 9728  # more Latin letters than Chinese
+
+
+@pytest.mark.parametrize("name", SHOWN)
+def test_the_gifts_on_a_screen_painted_in_llc_chinese_are_read(screen, name):
+    painted = llc_screen.gift_screen(screen(name))
+    page = gifts.gift_page(painted, read)
+    reading = gifts.read_gifts(painted, page, ocr.lines)
+    assert (page, [g["en"] for g, _ in reading.gifts]) == SHOWN[name]
 
 
 class Still:

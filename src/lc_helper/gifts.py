@@ -2,7 +2,8 @@
 
 The data is assets/gifts.json (tools/sync_maalc.py build_gifts). Two screens are read, both by OCR in maalc's
 regions (agent/actions.py): the gift choice after a battle (its "Refuse Gift" button; the cards' titles) and the
-"E.G.O Gift GET!" window (its name plate). A line is a gift when it reads as a gift's whole English name.
+"E.G.O Gift GET!" window (its name plate). A line is a gift when it reads as a gift's whole English name, or as
+LLC's whole Simplified name (cn) on a client with LLC installed.
 """
 
 import json
@@ -12,7 +13,8 @@ from functools import cache
 
 from rapidfuzz import fuzz, process
 
-from .events import KEYWORDS, ROMAN, has_cjk
+from . import labels
+from .events import KEYWORDS, ROMAN, has_cjk, key_cn
 from .paths import ASSETS
 
 GIFT_CHOICE_HEADER = (870, 560, 160, 40)  # "Refuse Gift" (maalc GiftChoice node)
@@ -20,6 +22,10 @@ GIFT_CARDS = (100, 150, 1080, 410)  # every card's text on the gift choice (maal
 GIFT_GET_HEADER = (520, 160, 240, 40)  # "Gift GET" (maalc GiftGet node)
 GET_NAME = (320, 405, 180, 80)  # the GET! window's name plate (maalc GET_NAME)
 NAME_MATCH = 88  # an OCR'd line against a whole name, 0-100 (maalc run_start.match_name takes 0.9)
+# The same against a Simplified name: a character weighs what several letters do. With one character misread, 1925 of
+# the 2187 misreads find their own gift at 75 and 8 another, where 88 finds 153 (English at 88: 6864 of 7072, 5
+# another); no piece of LLC's effect text reads as a name at either (15413 pieces; 2026-11-14, LLC 2026110501).
+CN_NAME_MATCH = 75
 
 
 @cache
@@ -35,7 +41,7 @@ def plain(text):
 @cache
 def _names():
     gifts = list(book().values())
-    return gifts, [plain(g["en"]) for g in gifts], [g["zh"] or "" for g in gifts]
+    return gifts, [plain(g["en"]) for g in gifts], [g["zh"] or "" for g in gifts], [key_cn(g["cn"]) for g in gifts]
 
 
 def search(query, limit=8):
@@ -43,7 +49,7 @@ def search(query, limit=8):
     query = query.strip()
     if len(query) < 2:
         return []
-    gifts, en, zh = _names()
+    gifts, en, zh, _ = _names()
     hay, q = (zh, query) if has_cjk(query) else (en, plain(query))
     if not q:
         return []
@@ -52,12 +58,16 @@ def search(query, limit=8):
 
 
 def by_name(text):
-    """The gift whose English name text reads as, or None."""
-    gifts, en, _ = _names()
-    q = plain(text)
-    if len(q) < 4:
-        return None
-    hit = process.extractOne(q, en, scorer=fuzz.ratio, score_cutoff=NAME_MATCH)
+    """The gift whose English name text reads as, or None. A line with a Chinese character is also read against
+    LLC's Simplified names, and the closer name wins: some mix scripts (怀表：Type L), and OCR slips a stray Chinese
+    character into some English lines."""
+    gifts, en, _, cn = _names()
+    hits = []
+    if len(q := plain(text)) >= 4:
+        hits.append(process.extractOne(q, en, scorer=fuzz.ratio, score_cutoff=NAME_MATCH))
+    if has_cjk(text):
+        hits.append(process.extractOne(key_cn(text), cn, scorer=fuzz.ratio, score_cutoff=CN_NAME_MATCH))
+    hit = max(filter(None, hits), key=lambda h: h[1], default=None)
     return gifts[hit[2]] if hit else None
 
 
@@ -76,10 +86,11 @@ class GiftReading:
 
 
 def gift_page(image, read):
-    """Which gift screen image is ("choice", "get"), or None. read(image, roi, only_rec) gives OCR lines."""
-    if any("refuse" in t.lower() for t in read(image, GIFT_CHOICE_HEADER, True)):
+    """Which gift screen image is ("choice", "get"), or None, in English or LLC's Chinese. read(image, roi, only_rec)
+    gives OCR lines."""
+    if labels.shows(read(image, GIFT_CHOICE_HEADER, True), "refuse"):
         return "choice"
-    if any("get" in t.lower() for t in read(image, GIFT_GET_HEADER, True)):
+    if labels.shows(read(image, GIFT_GET_HEADER, True), "get"):
         return "get"
     return None
 
