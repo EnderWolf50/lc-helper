@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import pytest
 
+from lc_helper import vision
 from sweep_screens import sweep
 
 # Every capture in maalc's tests/screens that shows a turn waiting for input (with the battle menu over it for the
@@ -49,3 +52,29 @@ def test_the_end_of_a_battle_shows_on_its_own_captures_only(readings):
     likely = {n for n, r in readings.items() if r["victory"]}  # a filter before OCR: menus may pass, battles not
     assert "Victory.png" in likely and not likely & (TURN_SCREENS | {"BattlePause.png"})
     assert {n for n, r in readings.items() if r["wiped"]} == {"WipeDialog.png"}
+
+
+LLC_SCREENS = Path(__file__).resolve().parent / "screens_llc"
+
+
+def llc(name):
+    return vision.imread(LLC_SCREENS / name)
+
+
+def test_an_llc_client_turn_is_found_where_its_chinese_label_sits():
+    """The PC client with LLC writes 胜率 where maalc's template reads Win Rate; with 6 and 8 slots the label moves."""
+    assert vision.battle_turn(llc("LlcBattleTurn6.png")) == (946, 531, 40, 29)
+    assert vision.battle_turn(llc("LlcBattleTurn8.png")) == (1022, 531, 40, 29)
+    for name in ("LlcBattleTurn6.png", "LlcBattleTurn8.png"):
+        assert vision.turn_page(llc(name)), name
+
+
+def test_an_llc_client_mid_turn_is_no_turn_to_play():
+    assert vision.battle_turn(llc("LlcBattlePlaying.png")) is None and vision.turn_playing(llc("LlcBattlePlaying.png"))
+    assert vision.battle_turn(llc("LlcBattleMoves.png")) is None
+
+
+def test_the_slots_of_an_llc_turn_are_where_their_portraits_are():
+    """The slot count follows the label's x as on maalc's captures: 6 and 8 portraits on these two."""
+    assert len(vision.slot_xs(vision.battle_turn(llc("LlcBattleTurn6.png"))[0])) == 6
+    assert len(vision.slot_xs(vision.battle_turn(llc("LlcBattleTurn8.png"))[0])) == 8

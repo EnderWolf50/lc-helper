@@ -96,15 +96,20 @@ def find(image, name, roi, threshold=MATCH, masked=False):
     return (max(roi[0], 0) + x, max(roi[1], 0) + y, t.shape[1], t.shape[0])
 
 
+# The Win Rate label's looks: (template, pressed). The LLC client writes 胜率 on the same plate, at the same place
+# (tools/make_templates.py cuts it so), so every tap offset from the label holds in both languages.
+TURN_LABELS = (("battle_turn.png", False), ("battle_turn_pressed.png", True), ("battle_turn_llc.png", False))
+
+
 def battle_turn(image):
     """The Win Rate label's box when a turn waits for input, else None."""
-    return find(image, "battle_turn.png", BATTLE_TURN_ROI) or find(image, "battle_turn_pressed.png", BATTLE_TURN_ROI)
+    return next(filter(None, (find(image, name, BATTLE_TURN_ROI) for name, _ in TURN_LABELS)), None)
 
 
 def win_rate_on(image, box):
     """Whether the Win Rate label at box shows pressed: its two templates match each other at only 0.70."""
     x, y = box[0], box[1]
-    return find(image, "battle_turn_pressed.png", (x - 10, y - 10, 60, 49)) is not None
+    return any(find(image, name, (x - 10, y - 10, 60, 49)) is not None for name, pressed in TURN_LABELS if pressed)
 
 
 def turn_playing(image):
