@@ -2,9 +2,9 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt  # noqa: E402
+from PySide6.QtCore import QEvent, QPoint, Qt  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
-from PySide6.QtWidgets import QApplication, QToolButton  # noqa: E402
+from PySide6.QtWidgets import QAbstractButton, QApplication, QLabel, QToolButton  # noqa: E402
 
 from lc_helper import app as ui  # noqa: E402
 from lc_helper import events  # noqa: E402
@@ -46,8 +46,7 @@ def test_no_keyword_no_star_and_a_new_keyword_ranks_again(tmp_path, monkeypatch,
     w = window(tmp_path, monkeypatch, keywords=[], overlay=True)
     w.on_event(events.read_screen(screen("EventChoices.png")))
     assert "icon:star" not in w.detail.toHtml() and not any(item.recommended for item in w.overlay.items)
-    w.keyword_box.setCurrentIndex(w.keyword_box.findData("Charge"))
-    w.set_keyword(w.keyword_box.currentIndex())
+    choose(button(w, "＋ 體系"), "充能  Charge")
     assert "推薦" in w.detail.toPlainText() and "icon:star" in w.detail.toHtml()
     assert any(item.recommended for item in w.overlay.items)
     w.overlay.hide_labels()
@@ -176,3 +175,68 @@ def test_a_gift_screen_read_shows_in_the_gift_pane_and_leaves_the_event_shown(tm
     assert w.gift_detail.toPlainText().startswith("畫面上可以選的飾品")
     assert all(gifts.label(g) in w.gift_detail.toPlainText() for g, _ in reading.gifts)
     assert w.detail.toPlainText() == event_text
+
+
+def button(w, text):
+    return next(b for b in w.findChildren(QAbstractButton) if b.text() == text)
+
+
+def choose(chip, text):
+    """Pick text from the menu of a chip or of ＋ 體系, and let the window show the new chips."""
+    next(a for a in chip.menu().actions() if a.text() == text).trigger()
+    QApplication.sendPostedEvents(None, QEvent.DeferredDelete)  # what the event loop does with the old chips
+    QApplication.processEvents()
+
+
+def chips(w):
+    """The recommendation row as shown: each keyword chip's text, then ＋ 體系 if it shows."""
+    body = w.sections["event"].body
+    row = [b for b in body.findChildren(QToolButton) if b.objectName() in ("chip", "chipAdd")]
+    return [b.text() for b in sorted(row, key=lambda b: b.mapTo(w, QPoint()).x()) if b.isVisibleTo(body)]
+
+
+def starred(w):
+    """The option the event pane stars."""
+    return next(line for line in w.detail.toHtml().split("<p") if "icon:star" in line)
+
+
+DRAW_SWORD = 971014  # a Bleed gift for 做出拔劍的姿勢, a Poise gift for 拔劍後垂在身側, both direct
+
+
+def test_keywords_show_as_chips_in_their_order_and_the_order_decides_the_star(tmp_path, monkeypatch):
+    w = shown(tmp_path, monkeypatch, keywords=["Bleed", "Poise"])
+    w.show_event(events.by_id()[DRAW_SWORD])
+    assert chips(w) == ["1 流血", "2 呼吸", "＋ 體系"]
+    assert "做出拔劍的姿勢" in starred(w)
+    choose(button(w, "2 呼吸"), "往前移")
+    assert chips(w) == ["1 呼吸", "2 流血", "＋ 體系"] and w.settings["keywords"] == ["Poise", "Bleed"]
+    assert "拔劍後垂在身側" in starred(w)
+    choose(button(w, "1 呼吸"), "往後移")
+    assert w.settings["keywords"] == ["Bleed", "Poise"] and "做出拔劍的姿勢" in starred(w)
+
+
+def test_a_chip_can_be_removed_and_the_first_and_last_cannot_move_further(tmp_path, monkeypatch):
+    w = shown(tmp_path, monkeypatch, keywords=["Bleed", "Poise", "Burn"])
+    first, last = button(w, "1 流血"), button(w, "3 燒傷")
+    enabled = lambda chip: {a.text(): a.isEnabled() for a in chip.menu().actions()}  # noqa: E731
+    assert enabled(first) == {"往前移": False, "往後移": True, "移除": True}
+    assert enabled(last) == {"往前移": True, "往後移": False, "移除": True}
+    choose(button(w, "2 呼吸"), "移除")
+    assert chips(w) == ["1 流血", "2 燒傷", "＋ 體系"] and w.settings["keywords"] == ["Bleed", "Burn"]
+
+
+def test_add_offers_the_keywords_not_chosen_and_goes_away_at_four(tmp_path, monkeypatch):
+    w = shown(tmp_path, monkeypatch, keywords=["Bleed"], open_sections=[])
+    offered = [a.text() for a in button(w, "＋ 體系").menu().actions()]
+    assert offered == [f"{events.KEYWORDS[k]}  {k}" for k in ui.recommend.CHOICES if k != "Bleed"]
+    for text in ("燒傷  Burn", "震顫  Tremor", "破裂  Rupture"):
+        choose(button(w, "＋ 體系"), text)
+    assert chips(w) == ["1 流血", "2 燒傷", "3 震顫", "4 破裂"], "four at most: no ＋ 體系"
+    assert w.sections["event"].summary.text() == "推薦 流血 › 燒傷 › 震顫 › 破裂"
+
+
+def test_no_keyword_says_what_adding_one_does(tmp_path, monkeypatch):
+    w = shown(tmp_path, monkeypatch, keywords=[])
+    assert chips(w) == ["＋ 體系"]
+    row = w.sections["event"].body.findChildren(QLabel)
+    assert any(label.text() == "加入後標出建議的選項" and label.isVisible() for label in row)

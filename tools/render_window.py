@@ -156,8 +156,7 @@ def main():
     shot(w, out, "window-battle-running.png")
     w.on_battle(Status(Phase.PLAYING, Plan(Pick.WIN_RATE, FOREVER), 7))
     image = vision.imread(maalc_dir() / "tests/screens/EventChoices.png")
-    w.settings["keywords"] = ["Charge"]
-    w.keyword_box.setCurrentIndex(w.keyword_box.findData("Charge"))
+    w.set_keywords(["Charge", "Bleed"])
     w.on_event(events.read_screen(image))
     w.overlay.hide_labels()
     shot(w, out, "window-event-read.png")

@@ -21,7 +21,7 @@ from PySide6.QtGui import (QColor, QFont, QFontMetrics, QFontMetricsF, QIcon, QK
                            QStandardItem, QStandardItemModel, QTextDocument)
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QCompleter, QDialog,
                                QDialogButtonBox, QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout,
-                               QLineEdit, QListWidget, QProxyStyle, QPushButton, QSizePolicy, QSpinBox, QStyle,
+                               QLineEdit, QListWidget, QMenu, QProxyStyle, QPushButton, QSizePolicy, QSpinBox, QStyle,
                                QSystemTrayIcon, QTextBrowser, QToolButton, QVBoxLayout, QWidget)
 
 from . import device as devices
@@ -57,8 +57,9 @@ PIN = {True: (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool, "pin",
 # The settings whose value must be one of a set (load_settings): the keys of each table, or the listed values.
 SETTING_CHOICES = {"text_size": TEXT_SIZES, "pc_input": devices.PC_INPUTS, "pin": PIN, "guard_mode": GUARD_MODES,
                    "guard": range(1, 100)}
-# The settings that are a list of distinct values from a set, in the user's order.
-LIST_CHOICES = {"keywords": recommend.CHOICES, "open_sections": list(SECTIONS)}
+MAX_KEYWORDS = 4  # the chips that fit on one row at every text size
+# The settings that are a list of distinct values from a set, in the user's order: the set, and how many at most.
+LIST_CHOICES = {"keywords": (recommend.CHOICES, MAX_KEYWORDS), "open_sections": (list(SECTIONS), len(SECTIONS))}
 ICON, ICON_ON, HEAD_ICON = "#b9ab93", "#e7b45a", "#c9a165"
 # The detail pane's icons, set in its text as images: <img src='icon:NAME'>, in these colours.
 PANE_ICONS = {"star": "#f0c674", "bullet": "#eadcc4"}
@@ -113,6 +114,15 @@ QTextBrowser { background: #0f0c09; border: 1px solid #3e2f1d; border-radius: 6p
 QPushButton#pill { background: transparent; color: #b9ab93; border-radius: ${pill}px; padding: 0 12px; }
 QPushButton#pill:hover { background: #3a2c1f; }
 QPushButton#pill:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
+QToolButton#chip { border-radius: ${chip}px; padding: 2px 10px; }
+QToolButton#chip:hover { border-color: #e7b45a; }
+QToolButton#chipAdd { background: transparent; color: #b9ab93; border: 1px dashed #5b4527; border-radius: ${chip}px;
+                      padding: 2px 10px; }
+QToolButton#chipAdd:hover { background: #3a2c1f; color: #eadcc4; }
+QToolButton#chip::menu-indicator, QToolButton#chipAdd::menu-indicator { image: none; width: 0; }
+QMenu { background: #1d1711; border: 1px solid #5b4527; padding: 4px 0; }
+QMenu::item { padding: 4px 16px; } QMenu::item:selected { background: #4a3417; }
+QMenu::item:disabled { color: #6b6152; }
 QDialog { background: #17130f; }
 QToolTip { color: #eadcc4; background: #231b13; border: 1px solid #5b4527; padding: 4px 6px; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px 1px 2px 0; }
@@ -134,7 +144,7 @@ def style(base, line):
     """The style sheet for body text of base points and line pixels: secondary text a step smaller, the title and START
     a step bigger. A pill's ends are round with half its height: Qt draws square corners for a radius over that."""
     return STYLE.substitute(body=base, small=base - 1.5, big=base + 1.5, pill=control_height(line) // 2,
-                            arrow=control_height(line) // 2)
+                            arrow=control_height(line) // 2, chip=(line + 6) // 2)
 
 
 def scaled(px, base):
@@ -184,9 +194,9 @@ def load_settings():
     for key, allowed in SETTING_CHOICES.items():
         if settings[key] not in allowed:
             settings[key] = DEFAULTS[key]
-    for key, allowed in LIST_CHOICES.items():
+    for key, (allowed, most) in LIST_CHOICES.items():
         value = settings[key]
-        settings[key] = list(dict.fromkeys(v for v in value if v in allowed)) if isinstance(value, list) \
+        settings[key] = list(dict.fromkeys(v for v in value if v in allowed))[:most] if isinstance(value, list) \
             else DEFAULTS[key]
     return settings
 
@@ -744,13 +754,10 @@ class Window(QWidget):
         self.detail.setHtml(EVENT_PLACEHOLDER)
         ev.addWidget(self.detail)
         ev.addWidget(QLabel("推薦體系（依順序）", objectName="section"))
-        self.keyword_box = self.control(QComboBox())
-        self.keyword_box.addItem("不推薦", None)
-        for k in recommend.CHOICES:
-            self.keyword_box.addItem(f"{events.KEYWORDS.get(k, k)}  {k}", k)
-        self.keyword_box.setCurrentIndex(max(self.keyword_box.findData((s["keywords"] or [None])[0]), 0))
-        self.keyword_box.activated.connect(self.set_keyword)
-        ev.addWidget(self.keyword_box)
+        self.keyword_row = QHBoxLayout()
+        self.keyword_row.setSpacing(6)
+        ev.addLayout(self.keyword_row)
+        self.show_keywords()
         ev.addWidget(QLabel("輔助", objectName="section"))
         row = QHBoxLayout()
         row.setSpacing(6)
@@ -1088,10 +1095,50 @@ class Window(QWidget):
         self.skip_state.setVisible(bool(text) and self.skip_box.isChecked())
         QTimer.singleShot(0, self.adjustSize)
 
-    def set_keyword(self, index):
-        """A new main keyword: the event shown is ranked again."""
-        keyword = self.keyword_box.itemData(index)
-        self.settings["keywords"] = [keyword] if keyword else []
+    def show_keywords(self):
+        """The recommended keywords as chips in their order, each with a menu to move it or remove it, then ＋ 體系
+        while there is room for one more, or what adding one does while there is none."""
+        while self.keyword_row.count():
+            if widget := self.keyword_row.takeAt(0).widget():
+                widget.hide()
+                widget.deleteLater()  # later: the menu that asked for this may belong to it
+        keywords = self.settings["keywords"]
+        for i, keyword in enumerate(keywords):
+            name = events.KEYWORDS[keyword]
+            chip = QToolButton(objectName="chip", text=f"{i + 1} {name}", popupMode=QToolButton.InstantPopup,
+                               accessibleName=f"推薦體系第 {i + 1} 位：{name}", toolTip="調整順序或移除")
+            menu = QMenu(chip)
+            for text, j in (("往前移", i - 1), ("往後移", i + 1)):
+                order = list(keywords)
+                if 0 <= j < len(order):
+                    order[i], order[j] = order[j], order[i]
+                self.keyword_action(menu, text, order).setEnabled(0 <= j < len(order))
+            self.keyword_action(menu, "移除", [k for k in keywords if k != keyword])
+            chip.setMenu(menu)
+            self.keyword_row.addWidget(chip)
+        if len(keywords) < MAX_KEYWORDS:
+            add = QToolButton(objectName="chipAdd", text="＋ 體系", popupMode=QToolButton.InstantPopup,
+                              toolTip="加入一個體系，排在最後")
+            menu = QMenu(add)
+            for keyword in recommend.CHOICES:
+                if keyword not in keywords:
+                    self.keyword_action(menu, f"{events.KEYWORDS[keyword]}  {keyword}", [*keywords, keyword])
+            add.setMenu(menu)
+            self.keyword_row.addWidget(add)
+        if not keywords:
+            self.keyword_row.addWidget(QLabel("加入後標出建議的選項", objectName="status"))
+        self.keyword_row.addStretch()
+
+    def keyword_action(self, menu, text, keywords):
+        """A menu item that sets keywords."""
+        action = menu.addAction(text)
+        action.triggered.connect(lambda: self.set_keywords(keywords))
+        return action
+
+    def set_keywords(self, keywords):
+        """New keywords or a new order: the chips, the folded summary and the event shown follow."""
+        self.settings["keywords"] = keywords
+        self.show_keywords()
         self.show_event_summary()
         if self.last_reading is not None:
             self.shown_event = None

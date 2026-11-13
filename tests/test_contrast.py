@@ -35,6 +35,17 @@ SHEET_PAIRS = [
     (("QPushButton#start", "color"), ('QPushButton#start[running="true"]:hover', "background")),
     (("QPushButton#link", "color"), ("QWidget#root", "background")),
     (("QPushButton#link:hover", "color"), ("QWidget#root", "background")),
+    (("QPushButton#read", "color"), ("QPushButton#read", "background")),
+    (("QPushButton#read", "color"), ("QPushButton#read:hover", "background")),
+    (("QWidget", "color"), ("QListView#hits", "background")),
+    (("QListView#hits::item:selected", "color"), ("QListView#hits::item:selected", "background")),
+    (("QListView#hits::item:disabled", "color"), ("QListView#hits", "background")),  # the no-hit row says why
+    (("QWidget", "color"), ("QToolButton", "background")),  # a keyword chip
+    (("QWidget", "color"), ("QToolButton:hover", "background")),
+    (("QToolButton#chipAdd", "color"), ("QWidget#root", "background")),
+    (("QToolButton#chipAdd:hover", "color"), ("QToolButton#chipAdd:hover", "background")),
+    (("QWidget", "color"), ("QMenu", "background")),
+    (("QWidget", "color"), ("QMenu::item:selected", "background")),
     (("QPushButton#pill", "color"), ("QWidget#root", "background")),
     (("QPushButton#pill", "color"), ("QPushButton#pill:hover", "background")),
     (("QPushButton#pill:checked", "color"), ("QPushButton#pill:checked", "background")),

@@ -57,3 +57,8 @@ def test_a_fresh_window_guards_nothing_recommends_nothing_and_opens_the_event_se
     monkeypatch.setattr(ui, "SETTINGS", tmp_path / "settings.json")
     settings = ui.load_settings()
     assert (settings["guard_mode"], settings["keywords"], settings["open_sections"]) == ("none", [], ["event"])
+
+
+def test_more_keywords_than_the_row_holds_keep_the_first_four(tmp_path, monkeypatch):
+    saved = ["Burn", "Bleed", "Tremor", "Rupture", "Sinking"]
+    assert load(tmp_path, monkeypatch, {"keywords": saved})["keywords"] == saved[:4]
