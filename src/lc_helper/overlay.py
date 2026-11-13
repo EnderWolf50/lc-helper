@@ -1,6 +1,7 @@
 """Each option's effects drawn on the game itself, beside the option on its Choices page.
 
-The overlay is a click-through, always-on-top window laid exactly over the game's picture: MuMu's render area
+The overlay is a click-through window, just above the game's in the z-order (follow.py), laid exactly over the game's
+picture: MuMu's render area
 (the nemudisplay child of its device window) or the PC client's client area. Labels sit left of the option list,
 over the story box, at each option's height; positions are the OCR boxes, in the game's 1280x720 pixels.
 """
@@ -11,11 +12,11 @@ from ctypes import wintypes
 from dataclasses import dataclass
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
-from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QGuiApplication, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
 from . import device as devices
-from . import events, icons
+from . import events, follow, icons
 
 GAME_W, GAME_H = 1280, 720
 LABEL_RIGHT = 712  # labels end here, just left of the option list (OCR boxes start at x ~730)
@@ -123,29 +124,45 @@ def _rect(hwnd, client=False) -> Rect | None:
     return r.left, r.top, r.right - r.left, r.bottom - r.top
 
 
+def game_picture(source):
+    """The window that shows the game for the device read from (None when not found), and whether the picture is its
+    client area: the PC client's window, or MuMu's render area."""
+    if source == devices.PC:
+        return next((w.hwnd for w in _windows() if w.cls == devices.PC_CLASS and w.title == devices.PC_TITLE),
+                    None), True
+    return pick_mumu_display(_windows(), _windows, mumu_index(source)), False
+
+
 def game_rect(source) -> Rect | None:
     """Where the game's 1280x720 picture is on screen, in physical pixels, for the device read from; None when its
     window is not found or is minimised."""
-    if source == devices.PC:
-        hwnd = next((w.hwnd for w in _windows() if w.cls == devices.PC_CLASS and w.title == devices.PC_TITLE), None)
-        rect = _rect(hwnd, client=True) if hwnd and not user32.IsIconic(hwnd) else None
-    else:
-        hwnd = pick_mumu_display(_windows(), _windows, mumu_index(source))
-        rect = _rect(hwnd) if hwnd else None
+    hwnd, client = game_picture(source)
+    rect = _rect(hwnd, client) if hwnd and not (client and user32.IsIconic(hwnd)) else None
     return fit_16_9(rect) if rect and rect[2] > 0 and rect[3] > 0 else None
+
+
+def game_window(source):
+    """The game's top-level window for the device read from, the one that comes to the foreground; None when not
+    found."""
+    return follow.root(game_picture(source)[0])
+
+
+def lifts():
+    """Whether windows are native Windows ones whose z-order follow can set: not under the offscreen platform the
+    tests run on, whose window ids are no window handles."""
+    return QGuiApplication.platformName() == "windows"
 
 
 class Overlay(QWidget):
     """The labels, laid over the game. show_labels places it; it follows the game window while shown."""
 
-    def __init__(self, locate=game_rect):
-        flags = (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool | Qt.WindowTransparentForInput
-                 | Qt.WindowDoesNotAcceptFocus)
+    def __init__(self, locate=game_rect, window_of=game_window):
+        flags = Qt.FramelessWindowHint | Qt.Tool | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
         super().__init__(None, flags)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
-        self.locate = locate
+        self.locate, self.window_of = locate, window_of
         self.items: list[Label] = []
         self.source = None
         self.follow = QTimer(self, interval=500, timeout=self.place)
@@ -178,7 +195,13 @@ class Overlay(QWidget):
         if not self.isVisible():
             self.show()
         user32.SetWindowPos(int(self.winId()), None, *rect, 0x0010 | 0x0004)  # SWP_NOACTIVATE | SWP_NOZORDER
+        self.lift()
         return True
+
+    def lift(self):
+        """Just above the game's window: over the game, under every window in front of it."""
+        if lifts() and (game := self.window_of(self.source)):
+            follow.place_above(int(self.winId()), game)
 
     def paintEvent(self, _):
         if not self.items:

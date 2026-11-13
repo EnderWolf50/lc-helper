@@ -26,8 +26,8 @@ from PySide6.QtWidgets import (QAbstractButton, QApplication, QButtonGroup, QChe
 
 from . import device as devices
 from .paths import LOCAL
-from . import events, fights, gifts, icons, recommend
-from .overlay import SHOW_FOR_MS, Overlay, labels
+from . import events, fights, follow, gifts, icons, recommend
+from .overlay import SHOW_FOR_MS, Overlay, game_window, labels, lifts
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
 
@@ -49,11 +49,11 @@ DEVICE_STATES = {"idle": "未連線", "connecting": "連線中", "error": "連�
 REFERENCE_PT = 10  # the window's pixel sizes were set for text of this size
 PANE_LINES = 3  # the detail pane's least height in lines of text, which is also its height with nothing to show
 SCREEN_GAP = 8  # px kept free between the window's bottom and the screen's
-# pin: window flags, the pin button's icon and tooltip. A Qt.Tool window has no taskbar entry, so the unpinned window
-# is a normal one: when it falls behind the game, the taskbar and Alt+Tab still find it.
-PIN = {True: (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool, "pin",
-              "置頂中：點一下取消置頂，視窗改成一般視窗，被蓋住時從工作列或 Alt+Tab 叫回"),
-       False: (Qt.FramelessWindowHint | Qt.Window, "unpinned", "沒有置頂：點一下讓視窗固定在最上層")}
+# pin: whether the window follows the game (on top of it whenever it comes to the front, follow.py); the pin button's
+# icon and tooltip. Either way it is a normal window: once behind other windows, the taskbar and Alt+Tab find it.
+WINDOW_FLAGS = Qt.FramelessWindowHint | Qt.Window
+PIN = {True: ("pin", "跟著遊戲：遊戲到最前面時，視窗也到遊戲上面；切到別的程式時，和遊戲一起被蓋住。點一下改成一般視窗"),
+       False: ("unpinned", "一般視窗：點遊戲時會被遊戲蓋住。點一下讓視窗跟著遊戲")}
 # The settings whose value must be one of a set (load_settings): the keys of each table, or the listed values.
 SETTING_CHOICES = {"text_size": TEXT_SIZES, "pc_input": devices.PC_INPUTS, "pc_size": devices.PC_SIZES, "pin": PIN, "guard_mode": GUARD_MODES,
                    "guard": range(1, 100)}
@@ -219,7 +219,7 @@ def save_settings(settings):
 
 
 def logo():
-    """The app's icon, on the taskbar entry of the unpinned window and on the notifications."""
+    """The app's icon, on the window's taskbar entry and on the notifications."""
     pix = QPixmap(64, 64)
     pix.fill(Qt.transparent)
     painter = QPainter(pix)
@@ -623,7 +623,7 @@ class Look(QProxyStyle):
 class Window(QWidget):
     def __init__(self, worker_factory=Worker, hotkeys=None):
         settings = load_settings()
-        super().__init__(None, PIN[settings["pin"]][0])
+        super().__init__(None, WINDOW_FLAGS)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowTitle("LC Helper")
         self.setWindowIcon(logo())
@@ -655,6 +655,19 @@ class Window(QWidget):
         self.bridge.gifts.connect(self.on_gifts)
         self.bridge.skip.connect(lambda what: self.say_skip(f"自動跳過：{what}"))
         self.bridge.error.connect(self.say)
+        self.foreground = follow.Foreground(self.on_foreground) if lifts() else None
+
+    def on_foreground(self, hwnd):
+        """Another program's window came to the front: the game's, and the window follows it, so the window goes
+        just above it, with the hints over the game under the window."""
+        if not (self.settings["pin"] and self.isVisible()):
+            return
+        game = game_window(self.settings["address"])
+        if game and follow.root(hwnd) == game:
+            hints = (int(self.overlay.winId()),) if self.overlay.isVisible() else ()
+            follow.place_above(int(self.winId()), game, ours=hints)
+            if hints:
+                self.overlay.lift()
 
     def control(self, widget):
         """widget, as tall as every other control on a row."""
@@ -710,7 +723,7 @@ class Window(QWidget):
             part.setToolTip("還沒連線：第一次開始戰鬥或讀取事件時才連")
         self.gear = QToolButton(objectName="gear", checkable=True, accessibleName="設定", toolTip="設定")
         self.gear.toggled.connect(self.show_settings)
-        self.pin = QToolButton(objectName="flat", checkable=True, checked=self.settings["pin"], accessibleName="置頂")
+        self.pin = QToolButton(objectName="flat", checkable=True, checked=self.settings["pin"], accessibleName="跟著遊戲")
         self.pin.toggled.connect(self.set_pin)
         self.close_button = QToolButton(objectName="flat", accessibleName="關閉", toolTip="關閉 LC Helper",
                                         clicked=self.close)
@@ -952,7 +965,7 @@ class Window(QWidget):
         """The icons for the states they show, at the text's size, drawn for the screen's pixel ratio."""
         side, ratio = scaled(15, TEXT_SIZES[self.settings["text_size"]][1]), self.devicePixelRatioF()
         pinned = self.settings["pin"]
-        _, pin_icon, pin_tip = PIN[pinned]
+        pin_icon, pin_tip = PIN[pinned]
         for button, name, color in ((self.gear, "gear", ICON_ON if self.gear.isChecked() else ICON),
                                     (self.pin, pin_icon, ICON_ON if pinned else ICON),
                                     (self.close_button, "close", ICON),
@@ -1035,13 +1048,9 @@ class Window(QWidget):
         self.sections["event"].set_summary(event_summary(self.settings))
 
     def set_pin(self, on):
-        """Keep the window on top of the game, or make it a normal window, where it is."""
+        """Let the window follow the game, or leave it a normal window."""
         self.settings["pin"] = on
         self.apply_icons()
-        pos = self.pos()
-        self.setWindowFlags(PIN[on][0])  # Qt makes a new native window, hidden
-        self.move(pos)
-        self.show()
         save_settings(self.settings)
 
     def set_text_size(self, key):
@@ -1344,12 +1353,14 @@ class Window(QWidget):
         self.settings["pos"] = [self.x(), self.y()]
         save_settings(self.settings)
         self.overlay.close()
+        if self.foreground is not None:
+            self.foreground.close()
         if self.tray is not None:
             self.tray.hide()
         self.worker.shutdown()
         self.worker.join(timeout=3)
         super().closeEvent(e)
-        QApplication.quit()  # a Qt.Tool window does not count as the last window: closing it alone quits nothing
+        QApplication.quit()  # closing the window ends lc-helper, whatever dialog is still open
 
 
 def offline_worker(callbacks):

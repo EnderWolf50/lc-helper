@@ -73,30 +73,46 @@ def on_top(w):
     return bool(w.windowFlags() & Qt.WindowStaysOnTopHint)
 
 
-def test_unpinning_makes_a_normal_window_where_it_was_and_is_kept(tmp_path, monkeypatch):
+def followed(monkeypatch, w):
+    """The places the window was put above the game (42) when a window came to the front."""
+    placed = []
+    monkeypatch.setattr(ui, "game_window", lambda address: 42)
+    monkeypatch.setattr(ui.follow, "root", lambda hwnd: hwnd)
+    monkeypatch.setattr(ui.follow, "place_above", lambda hwnd, game, ours=(): placed.append((hwnd, game, ours)))
+    return placed
+
+
+def test_the_window_follows_the_game_to_the_front_and_is_never_always_on_top(tmp_path, monkeypatch):
     w = window(tmp_path, monkeypatch)
-    w.move(200, 150)
-    assert w.pin.isChecked() and on_top(w) and w.windowType() == Qt.Tool
+    w.show()
+    placed = followed(monkeypatch, w)
+    assert w.pin.isChecked() and not on_top(w) and w.windowType() == Qt.Window, "a taskbar entry finds it"
+    w.on_foreground(7)  # another program
+    assert placed == []
+    w.on_foreground(42)
+    assert placed == [(int(w.winId()), 42, ())]
     pinned_tip = w.pin.toolTip()
     w.pin.click()
-    assert not on_top(w) and w.windowType() == Qt.Window, "a taskbar entry finds it behind the game"
-    assert w.isVisible() and w.pos().toTuple() == (200, 150)
-    assert w.pin.toolTip() != pinned_tip
+    w.on_foreground(42)
+    assert len(placed) == 1, "a normal window stays where the game's coming to the front leaves it"
+    assert w.pin.toolTip() != pinned_tip and not on_top(w) and w.isVisible()
     assert ui.load_settings()["pin"] is False
     w.pin.click()
-    assert on_top(w) and w.windowType() == Qt.Tool and w.isVisible()
     assert ui.load_settings()["pin"] is True
 
 
-def test_a_window_left_unpinned_opens_unpinned(tmp_path, monkeypatch):
+def test_a_window_left_unfollowing_opens_unfollowing(tmp_path, monkeypatch):
     w = window(tmp_path, monkeypatch, pin=False)
-    assert not w.pin.isChecked() and not on_top(w) and w.windowType() == Qt.Window
+    w.show()
+    placed = followed(monkeypatch, w)
+    w.on_foreground(42)
+    assert not w.pin.isChecked() and not on_top(w) and placed == []
 
 
 def test_the_title_bar_holds_the_device_and_three_drawn_buttons_a_screen_reader_can_name(tmp_path, monkeypatch):
     w = window(tmp_path, monkeypatch)
     buttons = w.header.findChildren(QToolButton)
-    assert [b.accessibleName() for b in buttons] == ["設定", "置頂", "關閉"]
+    assert [b.accessibleName() for b in buttons] == ["設定", "跟著遊戲", "關閉"]
     for b in buttons:
         assert b.text() == "" and not b.icon().isNull() and b.toolTip(), b.accessibleName()
     assert w.dot.text() == "" and not w.dot.pixmap().isNull() and w.dot.accessibleName()

@@ -4,7 +4,7 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPoint  # noqa: E402
+from PySide6.QtCore import QPoint, Qt  # noqa: E402
 from PySide6.QtGui import QColor, QImage, QRegion  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
@@ -106,4 +106,18 @@ def test_the_overlay_shows_only_while_the_game_is_on_screen(qt):
     where["rect"] = (0, 0, 1280, 720)
     o.show_labels([], "127.0.0.1:16384")  # a page with no option found
     assert not o.isVisible()
+    o.close()
+
+
+def test_the_overlay_is_kept_just_above_the_game_and_never_always_on_top(qt, monkeypatch):
+    """Over the game while it is in front, under any window in front of it (follow.place_above)."""
+    placed = []
+    monkeypatch.setattr(overlay, "lifts", lambda: True)
+    monkeypatch.setattr(overlay.follow, "place_above", lambda hwnd, game: placed.append((hwnd, game)))
+    o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720), window_of={"127.0.0.1:16384": 42}.get)
+    assert not o.windowFlags() & Qt.WindowStaysOnTopHint
+    o.show_labels([overlay.Label((730, 327, 191, 22), "x")], "127.0.0.1:16384")
+    assert placed == [(int(o.winId()), 42)]
+    o.place()  # the follow timer's look
+    assert len(placed) == 2
     o.close()
