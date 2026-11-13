@@ -9,17 +9,19 @@ Writes:
 - assets/templates/*.png: maalc's battle and event templates (assets/resource/base/image, data/stagger_word.png).
 - assets/maa/model/ocr/: maalc's ppocr_v6 model (gitignored; tools/fetch_ocr.py in maalc downloads it).
 - assets/events.json: maalc's event table (assets/resource/base/data/event_table.json), joined by event id with
-  the full English story and option text (maalc's .local/unpack/out/events-md8.json), their Chinese text from the
-  newest Localize Limbus Company zip in maalc's .local/llc/ (Simplified, converted with OpenCC s2twp), and the
-  name, keyword and tier of every gift an option gives (maalc's .local/unpack static data and localization).
+  the full English story and option text (maalc's .local/unpack/out/events-md8.json), their Chinese text from
+  Localize Limbus Company (llc_source: the Simplified original in the _cn fields, converted with OpenCC s2twp in the
+  _zh ones), and the name, keyword and tier of every gift an option gives (maalc's .local/unpack static data and
+  localization).
 - assets/gifts.json: every gift in maalc's gift search and fusion recipes (and the event table), with its effect in
-  English and Chinese, its enhanced effect, and its fusion recipe (build_gifts).
+  English and Chinese, its enhanced effect, its fusion recipe, and its Simplified name, cn (build_gifts).
 """
 
 import json
 import re
 import shutil
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import opencc
@@ -81,21 +83,88 @@ def copy_assets(maalc):
         print(f"no OCR model in {model}: run `uv run python tools/fetch_ocr.py` in maalc, then this again")
 
 
-def llc_zip(maalc):
+@dataclass(frozen=True)
+class Llc:
+    """One Localize Limbus Company release: the json files of its LLC_zh-CN folder by name, and where it came from."""
+
+    read: dict  # file name -> () -> its bytes
+    version: str  # Info/version.json
+    source: str  # for the data's note: the game's folder, or the zip's name
+
+    def names(self, prefix):
+        return sorted(n for n in self.read if n.startswith(prefix))
+
+    def rows(self, name):
+        data = json.loads(self.read[name]().decode("utf-8-sig")) if name in self.read else {}
+        return {r["id"]: r for r in (data.get("dataList") or [] if isinstance(data, dict) else [])}
+
+
+def llc_folder(path):
+    for d in (path / LLC_LANG, path):
+        if (d / "Info/version.json").is_file():
+            return d
+    return None
+
+
+def steam_games():
+    """The Limbus Company folder in each Steam library on this machine (Steam's libraryfolders.vdf)."""
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as k:
+            steam = Path(winreg.QueryValueEx(k, "SteamPath")[0])
+    except (ImportError, OSError):
+        return []
+    vdf = steam / "steamapps/libraryfolders.vdf"
+    libs = [steam] + ([Path(p.replace("\\\\", "\\")) for p in re.findall(r'"path"\s+"([^"]+)"', vdf.read_text("utf-8"))]
+                      if vdf.is_file() else [])
+    return [lib / "steamapps/common/Limbus Company" for lib in libs]
+
+
+def installed_llc(folder):
+    read = {p.name: p.read_bytes for p in folder.glob("*.json")}
+    version = json.loads((folder / "Info/version.json").read_text("utf-8-sig"))["version"]
+    return Llc(read, str(version), "the LLC_zh-CN folder installed in the game")
+
+
+def zipped_llc(path):
+    z = zipfile.ZipFile(path)
+    names = [n for n in z.namelist() if n.startswith(LLC_LANG) and "/" not in n[len(LLC_LANG):]]
+    read = {n[len(LLC_LANG):]: (lambda n=n: z.read(n)) for n in names}
+    version = json.loads(z.read(LLC_LANG + "Info/version.json").decode("utf-8-sig"))["version"]
+    return Llc(read, str(version), f"maalc's {path.name}")
+
+
+def llc_source(maalc):
+    """The LLC text to read: the folder installed in the game (the game's folder in .local/llc_dir, else Limbus
+    Company in any Steam library), else the newest zip in maalc's .local/llc."""
+    local = REPO / ".local/llc_dir"
+    if local.is_file():
+        game = Path(local.read_text(encoding="utf-8").strip())
+        if not (folder := llc_folder(game)):
+            raise SystemExit(f"no {LLC_LANG}Info/version.json in {game}, the folder .local/llc_dir names")
+    else:
+        folder = next(filter(None, map(llc_folder, steam_games())), None)
+    if folder:
+        return installed_llc(folder)
     zips = sorted((maalc / ".local/llc").glob("*.zip"))
     if not zips:
-        raise SystemExit("no Localize Limbus Company zip in maalc's .local/llc: run maalc's tools/llc_text.py once")
-    return zips[-1]
+        raise SystemExit("no Localize Limbus Company: install it in the game, write the game's folder into "
+                         ".local/llc_dir, or run maalc's tools/llc_text.py once for a zip in maalc's .local/llc")
+    return zipped_llc(zips[-1])
 
 
-def llc_rows(z, name):
-    try:
-        return {r["id"]: r for r in json.loads(z.read(LLC_LANG + name).decode("utf-8-sig"))["dataList"]}
-    except KeyError:
-        return {}
+def cn_names(llc, prefix):
+    """id -> the Simplified name in LLC's files whose names start with prefix (the first file naming an id)."""
+    names = {}
+    for name in llc.names(prefix):
+        for i, row in llc.rows(name).items():
+            if text := plain(row.get("name")):
+                names.setdefault(i, text)
+    return names
 
 
-def gift_info(maalc, z, ids):
+def gift_info(maalc, llc, ids):
     """gift id -> {en, zh, keyword, tier} for the ids options give."""
     static = maalc / STATIC
     info = {i: {"en": "", "zh": "", "keyword": "Keywordless", "tier": None} for i in ids}
@@ -113,23 +182,19 @@ def gift_info(maalc, z, ids):
         for g in load(f).get("dataList") or []:
             if g.get("id") in info and not info[g["id"]]["en"]:
                 info[g["id"]]["en"] = plain(g.get("name")).replace("’", "'")
-    for name in sorted(n[len(LLC_LANG):] for n in z.namelist() if n.startswith(LLC_LANG + "EGOgift_")):
-        for i, g in llc_rows(z, name).items():
-            if i in info and not info[i]["zh"]:
-                info[i]["zh"] = zh(g.get("name"))
+    for i, name in cn_names(llc, "EGOgift_").items():
+        if i in info and not info[i]["zh"]:
+            info[i]["zh"] = zh(name)
     return info
 
 
-def buff_names(maalc, z):
+def buff_names(maalc, llc):
     """The game's buff ids ([Combustion] in gift text) -> (English name, Chinese name)."""
-    en, zh_names = {}, {}
+    en = {}
     for f in sorted((maalc / LOCALIZE_EN).glob("EN_Bufs*.json")):
         for b in load(f).get("dataList") or []:
             en.setdefault(b.get("id"), plain(b.get("name")))
-    for name in sorted(n[len(LLC_LANG):] for n in z.namelist() if n.startswith(LLC_LANG + "Bufs")):
-        for i, b in llc_rows(z, name).items():
-            zh_names.setdefault(i, zh(b.get("name")))
-    return en, zh_names
+    return en, {i: zh(name) for i, name in cn_names(llc, "Bufs").items()}
 
 
 def gift_text(s, names):
@@ -138,9 +203,10 @@ def gift_text(s, names):
     return re.sub(r"\n{3,}", "\n\n", s.replace("\r", "")).strip()
 
 
-def build_gifts(maalc, z, event_ids):
+def build_gifts(maalc, llc, event_ids):
     """assets/gifts.json: every gift maalc's gift search, fusion recipes and the event table name, with its effect in
-    English and Chinese, the effect once enhanced (the gift id + 10000), and the gifts it is fused from."""
+    English and Chinese, the effect once enhanced (the gift id + 10000), the gifts it is fused from, and its
+    Simplified name as LLC shows it (cn)."""
     data = maalc / "assets/resource/base/data"
     search = load(data / "gift_search.json")["gifts"]
     recipes = load(data / "gift_recipes.json")
@@ -149,44 +215,49 @@ def build_gifts(maalc, z, event_ids):
     for g in recipes["gifts"]:
         # recipes: any one list of gift ids fuses it; groups: need of each group's ids (maalc gift_recipes.json note)
         rows[g["id"]]["recipe"] = {k: g[k] for k in ("recipes", "groups") if k in g}
-    for i, g in gift_info(maalc, z, set(event_ids) - set(rows)).items():
+    for i, g in gift_info(maalc, llc, set(event_ids) - set(rows)).items():
         rows[i] = dict(g)
-    en_buffs, zh_buffs = buff_names(maalc, z)
+    en_buffs, zh_buffs = buff_names(maalc, llc)
     desc_en, desc_zh = {}, {}
     for f in sorted((maalc / LOCALIZE_EN).glob("EN_EGOgift*.json")):
         for g in load(f).get("dataList") or []:
             desc_en.setdefault(g.get("id"), gift_text(g.get("desc"), en_buffs))
-    for name in sorted(n[len(LLC_LANG):] for n in z.namelist() if n.startswith(LLC_LANG + "EGOgift_")):
-        for i, g in llc_rows(z, name).items():
+    for name in llc.names("EGOgift_"):
+        for i, g in llc.rows(name).items():
             desc_zh.setdefault(i, zh(gift_text(g.get("desc"), zh_buffs)))
+    cn = cn_names(llc, "EGOgift_")
     for i, row in rows.items():
         row["en"] = (row.get("en") or "").replace("’", "'")
-        row.update(desc_en=desc_en.get(i, ""), desc_zh=desc_zh.get(i, ""),
+        row.update(cn=cn.get(i, ""), desc_en=desc_en.get(i, ""), desc_zh=desc_zh.get(i, ""),
                    plus_en=desc_en.get(i + 10000, ""), plus_zh=desc_zh.get(i + 10000, ""))
     note = ("E.G.O gifts for lc-helper, written by tools/sync_maalc.py from maalc's gift search and recipe data and "
-            f"the unpacked game text. Chinese: Localize Limbus Company {Path(z.filename).stem} (CC BY-NC-SA 4.0), "
-            "OpenCC s2twp; names from maalc's data where it has them. Game data (c) Project Moon.")
+            f"the unpacked game text. Chinese: {llc_credit(llc)}; Traditional names from maalc's data where it has "
+            "them. Game data (c) Project Moon.")
     return {"note": note, "gifts": {str(k): v for k, v in sorted(rows.items())}}
 
 
-def option_zh(loc, i):
+def llc_credit(llc):
+    return (f"Localize Limbus Company {llc.version} from {llc.source} (CC BY-NC-SA 4.0), the Simplified original in "
+            "cn and the _cn fields, converted with OpenCC s2twp in zh and the _zh fields")
+
+
+def option_text(loc, i):
+    """(text, hint) of option i in an event's LLC row, Simplified as LLC has them."""
     opts = (loc or {}).get("options") or []
     if i >= len(opts):
         return "", ""
-    return zh(opts[i].get("message")), zh(opts[i].get("messageDesc"))
+    return plain(opts[i].get("message")), plain(opts[i].get("messageDesc"))
 
 
-def build(maalc):
+def build(maalc, llc):
     table = load(maalc / "assets/resource/base/data/event_table.json")
     md8 = {e["id"]: e for e in load(maalc / ".local/unpack/out/events-md8.json")["events"]}
-    zpath = llc_zip(maalc)
-    z = zipfile.ZipFile(zpath)
     loc_cache = {}
 
     def loc(event_id):
         f = md8[event_id]["locFile"].removeprefix("EN_")
         if f not in loc_cache:
-            loc_cache[f] = llc_rows(z, f)
+            loc_cache[f] = llc.rows(f)
         return loc_cache[f].get(event_id)
 
     rows, missing_zh = [], []
@@ -196,40 +267,48 @@ def build(maalc):
             missing_zh.append(e["id"])
         options = []
         for i, o in enumerate(e["options"]):
-            text_zh, hint_zh = option_zh(zrow, i)
+            text_cn, hint_cn = option_text(zrow, i)
             full = src["options"][i] if i < len(src["options"]) else {}
-            options.append({"text": plain(full.get("text")) or o["text"], "hint": o["hint"], "text_zh": text_zh,
-                            "hint_zh": hint_zh, "gift_keywords": o.get("gifts", []),
+            options.append({"text": plain(full.get("text")) or o["text"], "hint": o["hint"], "text_zh": zh(text_cn),
+                            "hint_zh": zh(hint_cn), "text_cn": text_cn, "hint_cn": hint_cn,
+                            "gift_keywords": o.get("gifts", []),
                             **{k: v for k, v in o.items() if k not in ("text", "hint", "gifts")}})
+        story_cn = plain((zrow or {}).get("desc") or (zrow or {}).get("eventDesc"))
         rows.append({"id": e["id"], "page": page, "key": e.get("key", ""), "title": plain(src.get("title")),
-                     "story": plain(src.get("desc")), "story_zh": zh((zrow or {}).get("desc") or (zrow or {}).get("eventDesc")),
+                     "story": plain(src.get("desc")), "story_zh": zh(story_cn), "story_cn": story_cn,
                      "options": options})
     ids = {g[1] for r in rows for o in r["options"] for b in o.get("odds", []) + o.get("fail", []) for g in b["gets"]
            if g[0] in ("gift", "win_gift")} | {g[0] for r in rows for o in r["options"] for g in o.get("gift_ids", [])}
-    gifts = gift_info(maalc, z, ids)
+    gifts = gift_info(maalc, llc, ids)
     note = ("Mirror Dungeon choice events for lc-helper, written by tools/sync_maalc.py from maalc's event table "
-            f"(client {table['client']}) and unpacked game text. Chinese: Localize Limbus Company {zpath.stem} "
-            "(CC BY-NC-SA 4.0), OpenCC s2twp. Game data (c) Project Moon.")
-    return {"note": note, "client": table["client"], "zh_release": zpath.stem,
+            f"(client {table['client']}) and unpacked game text. Chinese: {llc_credit(llc)}. Game data (c) Project "
+            "Moon.")
+    return {"note": note, "client": table["client"], "zh_release": llc.version,
             "gifts": {str(k): v for k, v in sorted(gifts.items())}, "events": rows}, missing_zh
 
 
 def main():
     maalc = maalc_dir()
     copy_assets(maalc)
-    data, missing_zh = build(maalc)
+    llc = llc_source(maalc)
+    print(f"Localize Limbus Company {llc.version} from {llc.source}")
+    data, missing_zh = build(maalc, llc)
     out = REPO / "assets/events.json"
     out.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     no_name = [i for i, g in data["gifts"].items() if not g["en"] or not g["zh"]]
+    no_cn = [e["id"] for e in data["events"] if any(en and not cn for en, cn in [(e["story"], e["story_cn"])] + [
+        pair for o in e["options"] for pair in ((o["text"], o["text_cn"]), (o["hint"], o["hint_cn"]))])]
     print(f"{len(data['events'])} events, {len(data['gifts'])} gifts -> {out} ({out.stat().st_size} bytes)")
-    print(f"events without Chinese text: {missing_zh or 'none'}; gifts missing a name: {no_name or 'none'}")
-    gifts = build_gifts(maalc, zipfile.ZipFile(llc_zip(maalc)), [int(i) for i in data["gifts"]])
+    print(f"events without Chinese text: {missing_zh or 'none'}; with English but no Simplified story, option or "
+          f"hint: {no_cn or 'none'}; gifts missing a name: {no_name or 'none'}")
+    gifts = build_gifts(maalc, llc, [int(i) for i in data["gifts"]])
     out = REPO / "assets/gifts.json"
     out.write_text(json.dumps(gifts, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    rows = gifts["gifts"].values()
+    rows = gifts["gifts"]
     print(f"{len(rows)} gifts -> {out} ({out.stat().st_size} bytes); without English effect: "
-          f"{[i for i, g in gifts['gifts'].items() if not g['desc_en']] or 'none'}; without Chinese effect: "
-          f"{[i for i, g in gifts['gifts'].items() if not g['desc_zh']] or 'none'}")
+          f"{[i for i, g in rows.items() if not g['desc_en']] or 'none'}; without Chinese effect: "
+          f"{[i for i, g in rows.items() if not g['desc_zh']] or 'none'}; without a Simplified name: "
+          f"{[i for i, g in rows.items() if not g['cn']] or 'none'}")
 
 
 if __name__ == "__main__":
