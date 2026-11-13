@@ -176,6 +176,22 @@ def same_screen(a, b, share=0.03):
     return a is not None and b is not None and a.shape == b.shape and (abs(a - b) > 8).mean() < share
 
 
+def grey(image, roi):
+    """roi of image in grey levels."""
+    return crop(image, roi).mean(axis=2)
+
+
+# The share of a grey crop's pixels that may move by over 40 levels while it shows the same thing. maalc captures,
+# 2026-11-14: the Choices header moved at most 2.9% between the five Choices pages, 19% to the result page and 29% or
+# more to every other capture (tests/test_vision.py).
+PATCH_MOVED = 0.05
+
+
+def same_patch(a, b, share=PATCH_MOVED):
+    """Whether two grey crops (grey) show the same thing: under share of their pixels moved by more than 40 levels."""
+    return a is not None and b is not None and a.shape == b.shape and (abs(a - b) > 40).mean() < share
+
+
 # The share of hud_band's blocks that may move on a turn screen at rest. maalc live 2026-10-21 (#229): at most 6.9%
 # over 319 pairs of a swarm battle, 62-94% as each turn started.
 HUD_MOVED = 0.2

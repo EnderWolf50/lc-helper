@@ -61,6 +61,7 @@ class Worker(threading.Thread):
         self.last_page = None  # thumbnails (story box, option list) of the last Choices page auto read showed
         self.last_gifts = None  # (page, gift ids) of the last gift screen auto read showed
         self.left_choices = False  # a Choices page was shown and its leaving is not told yet
+        self.choices_header = None  # the header OCR last read as a Choices page's, in grey (on_choices_page)
         self.alive = True
 
     def send(self, name, *args):
@@ -245,7 +246,7 @@ class Worker(threading.Thread):
             self.cb.gifts(self.read_gift_screen(image, page))
         else:
             reading = self.read(image)
-            self.left_choices = reading.event is not None and events.on_choices_page(image)
+            self.left_choices = reading.event is not None and self.on_choices_page(image)
             self.cb.event(reading)
 
     def read_gift_screen(self, image, page):
@@ -308,18 +309,30 @@ class Worker(threading.Thread):
             self.skip_said = said
             self.cb.skip(said)
 
+    def on_choices_page(self, image):
+        """events.on_choices_page, its OCR run only when the header looks unlike the one it last read as Choices: a
+        page left on screen costs no OCR, so the idle clock drops the model while it stays (auto read off), and its
+        leaving loads the model again to be sure."""
+        header = vision.grey(image, vision.CHOICES_HEADER)
+        if vision.same_patch(header, self.choices_header):
+            return True
+        self.ocr_used = time.monotonic()
+        on = events.on_choices_page(image)
+        self.choices_header = header if on else None
+        return on
+
     def watch_tick(self):
         """A look at the screen once a second, while auto read is on or a Choices page F9 read is shown: that page
         going is told once. Auto read also reads the event page once a new one shows or its option list moves (a
         scroll, a lit row): a Choices page whose story box or option list differs from the last read; off it, a gift
-        screen whose gifts differ from the last shown. F9's page alone costs the header's OCR, nothing more."""
+        screen whose gifts differ from the last shown. F9's page alone costs a look at its header, no OCR while the
+        header stays as it was."""
         now = time.monotonic()
         if now - self.last_watch < WATCH_EVERY:
             return
         self.last_watch = now
         image = self.device.screenshot()
-        on_page = events.on_choices_page(image)
-        self.ocr_used = now  # the header's OCR: the model is dropped once the page goes and stays gone a while
+        on_page = self.on_choices_page(image)
         if not on_page:
             self.last_page = None
             if self.left_choices:

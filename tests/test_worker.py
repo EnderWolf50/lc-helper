@@ -107,10 +107,7 @@ def test_a_new_pc_input_reconnects_the_pc_client_with_it(screen):
 
 
 def ocr_watched(monkeypatch, game, **callbacks):
-    """A worker on game whose OCR drops after 0.3 s idle; the drops are counted, not done.
-
-    The page a read finds stays watched, its header read once a second, until it goes: give game a screen to go to,
-    or this worker keeps dropping and loading the model on every look and counts drops into later tests' lists."""
+    """A worker on game whose OCR drops after 0.3 s idle; the drops are counted, not done."""
     from lc_helper import worker as worker_module
     drops = []
     monkeypatch.setattr(worker_module.ocr, "release", lambda: drops.append(time.monotonic()))
@@ -128,6 +125,30 @@ def test_the_ocr_model_is_dropped_once_reads_stop(monkeypatch, screen):
     wait_for(lambda: readings)
     time.sleep(1.0)
     assert len(drops) == 1
+
+
+def test_a_page_read_by_hand_that_stays_lets_the_ocr_model_go_and_its_leaving_is_still_told(monkeypatch, screen):
+    """Its header is looked at once a second but read only once it changes, so the idle clock runs while it stays."""
+    from lc_helper import worker as worker_module
+    readings, left, header_reads = [], [], []
+    game = Still(screen("EventChoices.png"))
+    real = worker_module.events.on_choices_page
+
+    def counted(image):
+        if image is game.image:  # not a screen of another test's worker, still running
+            header_reads.append(1)
+        return real(image)
+
+    monkeypatch.setattr(worker_module.events, "on_choices_page", counted)
+    w, drops = ocr_watched(monkeypatch, game, event=readings.append, page_left=lambda: left.append(1))
+    w.send("read_event")
+    wait_for(lambda: readings)
+    time.sleep(1.5)  # a look or two at the page, past the 0.3 s idle
+    assert header_reads == [1] and len(drops) == 1 and left == []
+    game.image = screen("MirrorMap.png")
+    wait_for(lambda: left)
+    assert header_reads == [1, 1]
+    wait_for(lambda: len(drops) == 2)  # the leaving's read is let go too, before another test counts drops
 
 
 def test_auto_read_keeps_the_ocr_model_until_it_is_turned_off(monkeypatch, screen):

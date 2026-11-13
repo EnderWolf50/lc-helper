@@ -93,3 +93,20 @@ def test_an_llc_label_pressed_or_lit_is_still_the_turn_and_reads_pressed():
         assert vision.win_rate_on(llc(name), box), name
     plain = llc("LlcBattleTurnProbe.png")
     assert not vision.win_rate_on(plain, vision.battle_turn(plain))
+
+
+def test_the_choices_header_is_one_patch_on_every_choices_page_and_on_no_other_screen(screens):
+    """What lets the worker skip the header's OCR while a Choices page stays (Worker.on_choices_page)."""
+    from test_events import CHOICES_PAGES
+
+    pages = [vision.grey(vision.imread(screens / name), vision.CHOICES_HEADER) for name in CHOICES_PAGES]
+    assert all(vision.same_patch(a, b) for a in pages for b in pages)
+    others = 0
+    for path in sorted(screens.glob("*.png")):
+        image = vision.imread(path)
+        if path.name in CHOICES_PAGES or image.shape[:2] != (720, 1280):
+            continue
+        header = vision.grey(image, vision.CHOICES_HEADER)
+        assert not any(vision.same_patch(header, page) for page in pages), path.name
+        others += 1
+    assert others > 200
