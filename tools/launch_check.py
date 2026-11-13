@@ -1,11 +1,13 @@
 """Start the real window (Windows platform, real hotkeys) without touching any emulator, and report how long until
-the window shows, and whether a WM_HOTKEY for each hotkey reaches its action.
+the window shows; then, pinned and unpinned, the native window's extended styles, whether a WM_HOTKEY for each hotkey
+reaches its action, and a capture of the window as the desktop shows it (.local/evidence/launch-pin-*.png).
 
 Usage: uv run python tools/launch_check.py
 
 The worker gets a device scan and a connect that never reach adb: a second MaaFramework controller on an emulator a
 bot is driving can disturb it. The hotkeys are fired by posting WM_HOTKEY to the window's thread, not by pressing
-keys, so no key reaches whatever window has the focus.
+keys, so no key reaches whatever window has the focus. The window runs on its own settings in .local/launch-check/,
+with hotkeys a running lc-helper does not hold, and the pin toggles save there, not in your settings.
 """
 
 import ctypes
@@ -20,7 +22,12 @@ from PySide6.QtCore import QTimer  # noqa: E402
 
 from lc_helper import app as ui  # noqa: E402
 from lc_helper.device import Target  # noqa: E402
+from lc_helper.paths import LOCAL  # noqa: E402
 from lc_helper.worker import Worker  # noqa: E402
+
+HOTKEYS = {"battle": "Ctrl+Alt+Shift+F11", "read": "Ctrl+Alt+Shift+F12"}
+GWL_EXSTYLE = -20
+EX_STYLES = {"WS_EX_TOPMOST": 0x8, "WS_EX_TOOLWINDOW": 0x80}
 
 
 def no_emulator(address, **_):
@@ -37,28 +44,60 @@ class Watched(Worker):
         super().send(name, *args)
 
 
+def styles(window):
+    ex = ctypes.windll.user32.GetWindowLongW(int(window.winId()), GWL_EXSTYLE)
+    return ", ".join(f"{name} {'yes' if ex & bit else 'no'}" for name, bit in EX_STYLES.items())
+
+
 def main():
-    real_show = ui.Window.show
+    ui.SETTINGS = LOCAL / "launch-check/settings.json"
+    ui.save_settings(ui.DEFAULTS | {"hotkeys": HOTKEYS, "pin": True})
+    evidence = LOCAL / "evidence"
+    evidence.mkdir(parents=True, exist_ok=True)
+    fired = []
+    names = {hid: name for name, hid in ui.HOTKEY_IDS.items()}
+    real_show, real_close = ui.Window.show, ui.Window.closeEvent
+    started = []
 
     def show(self):
         real_show(self)
-        shown_at = time.perf_counter() - T0
-        QTimer.singleShot(300, lambda: probe(self, shown_at))
+        if not started:
+            started.append(time.perf_counter() - T0)
+            print(f"window shown {started[0]:.2f} s after start", flush=True)
+            count_hotkeys(self)
+            QTimer.singleShot(300, lambda: check(self, ["on", "off", "on again"]))
 
-    def probe(window, shown_at):
+    def count_hotkeys(window):
+        window.hotkeys.actions = {hid: (lambda hid=hid, act=act: (fired.append(hid), act()))
+                                  for hid, act in window.hotkeys.actions.items()}
+
+    def check(window, states):
+        fired.clear()
         thread = ctypes.windll.kernel32.GetCurrentThreadId()
-        for hid in (1, 2):
+        for hid in ui.HOTKEY_IDS.values():
             ctypes.windll.user32.PostThreadMessageW(thread, ui.WM_HOTKEY, hid, 0)
-        QTimer.singleShot(1500, lambda: report(window, shown_at))
+        QTimer.singleShot(500, lambda: report(window, states))
 
-    def report(window, shown_at):
-        print(f"window shown {shown_at:.2f} s after start")
-        print(f"commands sent: {window.worker.seen}")
-        print(f"hotkeys RegisterHotKey refused: {window.hotkeys_taken or 'none'}")
-        print(f"status: {window.status.text()!r}; device dot: {window.dot.property('state')}", flush=True)
-        window.close()
+    def report(window, states):
+        g = window.frameGeometry()
+        window.screen().grabWindow(0, g.x(), g.y(), g.width(), g.height()).save(
+            str(evidence / f"launch-pin-{states[0].replace(' ', '-')}.png"))
+        print(f"pin {states[0]}: {styles(window)}; hotkeys fired: {', '.join(names[h] for h in fired) or 'none'}",
+              flush=True)
+        if len(states) > 1:
+            window.pin.click()
+            QTimer.singleShot(300, lambda: check(window, states[1:]))
+        else:
+            print(f"commands sent: {window.worker.seen}")
+            print(f"hotkeys RegisterHotKey refused: {window.hotkeys_taken or 'none'}")
+            print(f"status: {window.status.text()!r}; device dot: {window.dot.property('state')}", flush=True)
+            window.close()
 
-    ui.Window.show = show
+    def close_event(self, e):
+        real_close(self, e)
+        print(f"closed: settings saved with pin {ui.load_settings()['pin']}", flush=True)
+
+    ui.Window.show, ui.Window.closeEvent = show, close_event
     ui.main(worker_factory=Watched)
 
 

@@ -102,6 +102,9 @@ def main():
     w.on_targets(found)
     w.on_device("connected", "Limbus PC（合成觸控）")
     shot(w, out, "window-pc.png")
+    for pinned, name in ((False, "unpinned"), (True, "pinned")):
+        w.pin.setChecked(pinned)
+        shot(w.header, out, f"window-header-{name}.png")
     menus(w, out, "window-menu.png")
     sample = out / "render-battles.jsonl"
     sample.unlink(missing_ok=True)

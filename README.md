@@ -27,6 +27,8 @@ uv run lc-helper
 
 字級：「⋯」→「字級」選小、標準（預設）、大，視窗、選單、對話框的字一起變，視窗寬度跟著字放大。
 
+置頂：標題列「⋯」左邊的置頂按鈕。開著（預設）時視窗固定在最上層，不佔工作列；關掉後是一般視窗，會被其他視窗蓋住，從工作列或 Alt+Tab 叫回來。
+
 PC 版：裝置選單裡選「Limbus PC」。遊戲視窗要 16:9（1280×720 或 1920×1080），不能縮到最小，可以被別的視窗蓋住。點擊方式在「⋯」選單的「PC 版點擊方式」，預設「合成觸控」不動滑鼠；遊戲不吃觸控的話改「移動視窗」，再不行改「借用游標」。小工具不要擋在遊戲視窗上面：合成觸控點到被蓋住的地方時，會把遊戲視窗暫時提到最上層。
 
 `tools/sync_maalc.py` 從 maalc 的資料夾讀資料：預設是本 repo 旁邊的 `../maalc`，不在那裡就把路徑寫進 `.local/maalc_dir`。事件的完整英文故事與中文文字要 maalc 的 `.local/unpack` 與 `.local/llc`。
@@ -46,7 +48,7 @@ uv run python tools/exe_check.py             # 打包版自我測試（事件搜
 uv run --group sync pytest          # 辨識、戰鬥流程、事件、背景執行緒；需要 maalc 的 tests/screens
 uv run --group sync python tools/sweep_screens.py   # 每張截圖的辨識結果
 uv run --group sync python tools/render_window.py   # 視窗各狀態的截圖，存到 .local/evidence
-uv run python tools/launch_check.py                 # 真的開視窗、量啟動時間、送熱鍵，不碰模擬器
+uv run python tools/launch_check.py                 # 真的開視窗、量啟動時間、切換置頂、送熱鍵，不碰模擬器
 uv run python tools/pc_input_check.py touch         # PC 版點擊方式在自己的探測視窗上點、長按、拖曳，看游標有沒有動
 uv run python tools/measure_memory.py               # 視窗出現 8 秒後的 private memory，不碰模擬器
 uv run --group sync python tools/ocr_memory.py      # OCR 讀一次、釋放，各吃多少記憶體

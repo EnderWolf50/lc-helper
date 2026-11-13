@@ -1,6 +1,6 @@
 """The floating window: auto battle controls on top, the Mirror Dungeon event lookup below.
 
-Settings (device, pick, guard turns, hotkeys, window position) live in .local/settings.json beside the repository.
+Settings (device, pick, guard turns, hotkeys, text size, pin, window position) live in .local/settings.json beside the repository.
 """
 
 import ctypes
@@ -27,10 +27,15 @@ from .worker import Callbacks, Worker
 
 SETTINGS = LOCAL / "settings.json"
 DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard": 0, "forever": False,
-            "hold": True, "watch": False, "skip": False, "overlay": True, "keyword": None, "stop_after_victory": False, "notify": True, "compact": False, "text_size": "normal", "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
+            "hold": True, "watch": False, "skip": False, "overlay": True, "keyword": None, "stop_after_victory": False, "notify": True, "compact": False, "text_size": "normal", "pin": True, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 TEXT_SIZES = {"small": ("小", 10.5), "normal": ("標準", 12), "large": ("大", 13.5)}  # text_size: menu name, points
 REFERENCE_PT = 10  # the window's pixel sizes were set for text of this size
+# pin: window flags, and the pin button's tooltip. A Qt.Tool window has no taskbar entry, so the unpinned window is a
+# normal one: when it falls behind the game, the taskbar and Alt+Tab still find it.
+PIN = {True: (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool,
+              "置頂中：點一下取消置頂，視窗改成一般視窗，被蓋住時從工作列或 Alt+Tab 叫回"),
+       False: (Qt.FramelessWindowHint | Qt.Window, "沒有置頂：點一下讓視窗固定在最上層")}
 
 STYLE = Template("""
 QWidget#root { background: #17130f; border: 1px solid #5b4527; border-radius: 10px; }
@@ -52,6 +57,7 @@ QPushButton#primary:hover { background: #b8352a; }
 QPushButton#primary[running="true"] { background: #3d4a2a; border-color: #8fb35a; }
 QToolButton#flat { background: transparent; border: none; padding: 2px 6px; color: #b9ab93; }
 QToolButton#flat:hover { color: #fff; }
+QToolButton#flat:checked { color: #e7b45a; }
 QToolButton#flat::menu-indicator { image: none; width: 0; }
 QSpinBox, QLineEdit, QComboBox { background: #0f0c09; border: 1px solid #5b4527; border-radius: 6px; padding: 4px 6px; }
 QComboBox QAbstractItemView { background: #1d1711; selection-background-color: #6b4a1f; }
@@ -85,6 +91,20 @@ def load_settings():
 def save_settings(settings):
     SETTINGS.parent.mkdir(parents=True, exist_ok=True)
     SETTINGS.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def logo():
+    """The app's icon, on the taskbar entry of the unpinned window and on the notifications."""
+    pix = QPixmap(64, 64)
+    pix.fill(Qt.transparent)
+    painter = QPainter(pix)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.scale(2, 2)
+    painter.setBrush(QColor("#9e2b22"))
+    painter.setPen(QColor("#e7b45a"))
+    painter.drawEllipse(2, 2, 28, 28)
+    painter.end()
+    return QIcon(pix)
 
 
 def guard_text(guard):
@@ -288,9 +308,12 @@ class FightLog(QDialog):
 
 class Window(QWidget):
     def __init__(self, worker_factory=Worker, hotkeys=None):
-        super().__init__(None, Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
+        settings = load_settings()
+        super().__init__(None, PIN[settings["pin"]][0])
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.settings = load_settings()
+        self.setWindowTitle("LC Helper")
+        self.setWindowIcon(logo())
+        self.settings = settings
         self.hotkeys = hotkeys if hotkeys is not None else Hotkeys()
         self.hotkeys_taken = []
         self.overlay = Overlay()
@@ -328,7 +351,6 @@ class Window(QWidget):
         h = QHBoxLayout(header)
         h.setContentsMargins(12, 6, 6, 6)
         h.addWidget(QLabel("LC Helper", objectName="title"))
-        h.addStretch()
         self.dot = QLabel("●", objectName="dot")
         self.dot.setProperty("state", "idle")
         self.dot.setToolTip("還沒連線：第一次開始戰鬥或讀取事件時才連")
@@ -336,7 +358,10 @@ class Window(QWidget):
         self.device_box = QComboBox()
         self.device_box.addItem("自動偵測", None)
         self.device_box.activated.connect(self.pick_device)
-        h.addWidget(self.device_box)
+        h.addWidget(self.device_box, 1)  # the device list takes the width the buttons leave
+        self.pin = QToolButton(objectName="flat", text="置頂", checkable=True, checked=s["pin"], toolTip=PIN[s["pin"]][1])
+        self.pin.toggled.connect(self.set_pin)
+        h.addWidget(self.pin)
         more = QToolButton(objectName="flat", text="⋯", popupMode=QToolButton.InstantPopup)
         menu = QMenu(more)
         self.hold_action = QAction("回合播放時按住畫面（加快 E.G.O 動畫）", menu, checkable=True, checked=s["hold"])
@@ -466,8 +491,17 @@ class Window(QWidget):
         QApplication.instance().setStyleSheet(style(base))
         self.root.setFixedWidth(scaled(380, base))
         self.detail.setFixedHeight(scaled(300, base))
-        self.device_box.setMinimumWidth(scaled(130, base))
         QTimer.singleShot(0, self.adjustSize)
+
+    def set_pin(self, on):
+        """Keep the window on top of the game, or make it a normal window, where it is."""
+        self.settings["pin"] = on
+        self.pin.setToolTip(PIN[on][1])
+        pos = self.pos()
+        self.setWindowFlags(PIN[on][0])  # Qt makes a new native window, hidden
+        self.move(pos)
+        self.show()
+        save_settings(self.settings)
 
     def set_text_size(self, key):
         self.settings["text_size"] = key
@@ -546,15 +580,7 @@ class Window(QWidget):
     def notifier(self):
         """The tray icon Windows notifications come from, made on first use."""
         if self.tray is None:
-            pix = QPixmap(32, 32)
-            pix.fill(Qt.transparent)
-            painter = QPainter(pix)
-            painter.setRenderHint(QPainter.Antialiasing)
-            painter.setBrush(QColor("#9e2b22"))
-            painter.setPen(QColor("#e7b45a"))
-            painter.drawEllipse(2, 2, 28, 28)
-            painter.end()
-            self.tray = QSystemTrayIcon(QIcon(pix), self)
+            self.tray = QSystemTrayIcon(logo(), self)
             self.tray.setToolTip("LC Helper")
             self.tray.show()
         return self.tray
