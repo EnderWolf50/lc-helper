@@ -49,15 +49,16 @@ def shot(window, out, name):
 
 
 def menus(window, out, name):
-    """The ⋯ menu with its PC submenu beside it, side by side in one PNG."""
-    menu = next(m for m in window.findChildren(QMenu) if m.title() == "")
-    sub = next(m for m in window.findChildren(QMenu) if m.title() == "PC 版點擊方式")
-    pics = [m.grab() for m in (menu, sub)]
-    sheet = QPixmap(sum(p.width() for p in pics) + 8, max(p.height() for p in pics))
+    """The ⋯ menu with its submenus beside it, side by side in one PNG."""
+    titles = ("", "PC 版點擊方式", "字級")
+    pics = [next(m for m in window.findChildren(QMenu) if m.title() == t).grab() for t in titles]
+    sheet = QPixmap(sum(p.width() + 8 for p in pics), max(p.height() for p in pics))
     sheet.fill(QColor("#0b0a09"))
     painter = QPainter(sheet)
-    painter.drawPixmap(0, 0, pics[0])
-    painter.drawPixmap(pics[0].width() + 8, 0, pics[1])
+    x = 0
+    for pic in pics:
+        painter.drawPixmap(x, 0, pic)
+        x += pic.width() + 8
     painter.end()
     path = out / name
     sheet.save(str(path))
@@ -91,8 +92,7 @@ def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent / ".local/evidence"
     out.mkdir(parents=True, exist_ok=True)
     ui.SETTINGS = out / "render-settings.json"
-    app = QApplication(sys.argv)
-    app.setStyleSheet(ui.STYLE)
+    QApplication(sys.argv)
     w = ui.Window(worker_factory=StandIn)
     w.show()
     w.on_device("connected", "MuMuPlayer12 127.0.0.1:16384")
@@ -132,6 +132,10 @@ def main():
     w.on_event(events.read_screen(image))
     w.overlay.hide_labels()
     shot(w, out, "window-event-read.png")
+    for key in ui.TEXT_SIZES:
+        w.set_text_size(key)
+        shot(w, out, f"window-text-{key}.png")
+    w.set_text_size("normal")
     w.query.setText("螺旋")
     w.run_search()
     shot(w, out, "window-search.png")

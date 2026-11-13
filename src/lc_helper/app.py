@@ -9,6 +9,7 @@ import os
 import json
 import sys
 from ctypes import wintypes
+from string import Template
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QActionGroup, QColor, QFont, QIcon, QKeySequence, QPainter, QPixmap
@@ -26,24 +27,27 @@ from .worker import Callbacks, Worker
 
 SETTINGS = LOCAL / "settings.json"
 DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard": 0, "forever": False,
-            "hold": True, "watch": False, "skip": False, "overlay": True, "keyword": None, "stop_after_victory": False, "notify": True, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
+            "hold": True, "watch": False, "skip": False, "overlay": True, "keyword": None, "stop_after_victory": False, "notify": True, "compact": False, "text_size": "normal", "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
+TEXT_SIZES = {"small": ("小", 10.5), "normal": ("標準", 12), "large": ("大", 13.5)}  # text_size: menu name, points
+REFERENCE_PT = 10  # the window's pixel sizes were set for text of this size
 
-STYLE = """
+STYLE = Template("""
 QWidget#root { background: #17130f; border: 1px solid #5b4527; border-radius: 10px; }
-QWidget { color: #eadcc4; font-family: "Microsoft JhengHei UI", "Segoe UI"; font-size: 10pt; }
+QWidget { color: #eadcc4; font-family: "Microsoft JhengHei UI", "Segoe UI"; font-size: ${body}pt; }
 QFrame#header { background: #231b13; border-top-left-radius: 10px; border-top-right-radius: 10px;
                 border-bottom: 1px solid #5b4527; }
-QLabel#title { color: #e7b45a; font-weight: bold; letter-spacing: 1px; }
-QLabel#section { color: #c9a165; font-size: 9pt; font-weight: bold; }
-QLabel#status { color: #b9ab93; font-size: 9pt; }
+QLabel#title { color: #e7b45a; font-size: ${big}pt; font-weight: bold; letter-spacing: 1px; }
+QLabel#section { color: #c9a165; font-size: ${small}pt; font-weight: bold; }
+QLabel#status { color: #b9ab93; font-size: ${small}pt; }
 QLabel#dot[state="connected"] { color: #6cc070; } QLabel#dot[state="connecting"] { color: #e7b45a; }
 QLabel#dot[state="error"] { color: #d9534f; } QLabel#dot[state="idle"] { color: #6b6152; }
 QPushButton, QToolButton { background: #2c2219; border: 1px solid #5b4527; border-radius: 6px; padding: 5px 10px; }
 QPushButton:hover, QToolButton:hover { background: #3a2c1f; }
 QPushButton:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
 QPushButton:disabled { background: #1d1711; border-color: #3e2f1d; color: #6b6152; }
-QPushButton#primary { background: #9e2b22; border-color: #d65a45; color: #fff; font-weight: bold; padding: 8px; }
+QPushButton#primary { background: #9e2b22; border-color: #d65a45; color: #fff; font-size: ${big}pt; font-weight: bold;
+                       padding: 8px; }
 QPushButton#primary:hover { background: #b8352a; }
 QPushButton#primary[running="true"] { background: #3d4a2a; border-color: #8fb35a; }
 QToolButton#flat { background: transparent; border: none; padding: 2px 6px; color: #b9ab93; }
@@ -54,11 +58,21 @@ QComboBox QAbstractItemView { background: #1d1711; selection-background-color: #
 QListWidget { background: #0f0c09; border: 1px solid #3e2f1d; border-radius: 6px; }
 QListWidget::item { padding: 4px; } QListWidget::item:selected { background: #4a3417; }
 QTextBrowser { background: #0f0c09; border: 1px solid #3e2f1d; border-radius: 6px; padding: 4px; }
-QCheckBox { color: #b9ab93; font-size: 9pt; }
+QCheckBox { color: #b9ab93; font-size: ${small}pt; }
 QMenu { background: #1d1711; border: 1px solid #5b4527; } QMenu::item:selected { background: #4a3417; }
 QDialog { background: #17130f; }
 QKeySequenceEdit QLineEdit { min-width: 140px; }
-"""
+""")
+
+
+def style(base):
+    """The style sheet for body text of base points: secondary text a step smaller, the title and START a step bigger."""
+    return STYLE.substitute(body=base, small=base - 1.5, big=base + 1.5)
+
+
+def scaled(px, base):
+    """A pixel size set for REFERENCE_PT text, for text of base points."""
+    return round(px * base / REFERENCE_PT)
 
 
 def load_settings():
@@ -301,7 +315,7 @@ class Window(QWidget):
 
     def build(self):
         s = self.settings
-        root = QWidget(self, objectName="root")
+        self.root = root = QWidget(self, objectName="root")
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSizeConstraint(QLayout.SetFixedSize)  # the window is as tall as what it shows
@@ -320,7 +334,6 @@ class Window(QWidget):
         self.dot.setToolTip("還沒連線：第一次開始戰鬥或讀取事件時才連")
         h.addWidget(self.dot)
         self.device_box = QComboBox()
-        self.device_box.setMinimumWidth(130)
         self.device_box.addItem("自動偵測", None)
         self.device_box.activated.connect(self.pick_device)
         h.addWidget(self.device_box)
@@ -343,6 +356,12 @@ class Window(QWidget):
             pc_menu.addAction(action)
         menu.addAction("重新尋找模擬器與 PC 版", lambda: self.worker.send("scan"))
         menu.addAction("熱鍵設定…", self.edit_hotkeys)
+        size_menu = menu.addMenu("字級")
+        group = QActionGroup(size_menu)
+        for key, (name, _) in TEXT_SIZES.items():
+            action = QAction(name, group, checkable=True, checked=key == s["text_size"])
+            action.triggered.connect(lambda _, key=key: self.set_text_size(key))
+            size_menu.addAction(action)
         more.setMenu(menu)
         h.addWidget(more)
         self.fold = QToolButton(objectName="flat", text="▸" if s["compact"] else "▾", clicked=self.toggle_compact)
@@ -427,17 +446,33 @@ class Window(QWidget):
         self.results.currentItemChanged.connect(lambda item, _: item and self.show_hit(*item.data(Qt.UserRole)))
         ev.addWidget(self.results)
         self.detail = QTextBrowser(openExternalLinks=False)
-        self.detail.setFixedHeight(300)
         self.detail.setHtml("<p style='color:#8f8270'>在事件的選項頁按「讀取畫面」，或輸入記得的幾個字。</p>")
         ev.addWidget(self.detail)
         body.addWidget(self.event_box)
         self.event_box.setVisible(not s["compact"])
 
-        root.setFixedWidth(380)
+        self.apply_text_size()
         self.apply_hotkey_labels()
         self.update_start()
         if s["pos"]:
             self.move(*s["pos"])
+
+    def apply_text_size(self):
+        """Text of the chosen size everywhere, menus and dialogs included, in a window sized to it."""
+        base = TEXT_SIZES[self.settings["text_size"]][1]
+        font = QFont("Microsoft JhengHei UI")
+        font.setPointSizeF(base)
+        QApplication.setFont(font)
+        QApplication.instance().setStyleSheet(style(base))
+        self.root.setFixedWidth(scaled(380, base))
+        self.detail.setFixedHeight(scaled(300, base))
+        self.device_box.setMinimumWidth(scaled(130, base))
+        QTimer.singleShot(0, self.adjustSize)
+
+    def set_text_size(self, key):
+        self.settings["text_size"] = key
+        self.apply_text_size()
+        save_settings(self.settings)
 
     def apply_hotkey_labels(self):
         keys = self.settings["hotkeys"]
@@ -648,7 +683,7 @@ class Window(QWidget):
             item = QListWidgetItem(f"飾品｜{gifts.label(found)}" if kind == "gift" else result_text(found))
             item.setData(Qt.UserRole, (kind, found))
             self.results.addItem(item)
-        self.results.setFixedHeight(min(len(hits), 5) * 26 + 6)
+        self.results.setFixedHeight(min(len(hits), 5) * self.results.sizeHintForRow(0) + 6)
         self.results.setVisible(bool(hits))
         if hits:
             self.results.setCurrentRow(0)
@@ -711,8 +746,6 @@ def main(worker_factory=Worker):
     if offline:
         worker_factory = offline_worker
     app = QApplication(sys.argv)
-    app.setStyleSheet(STYLE)
-    app.setFont(QFont("Microsoft JhengHei UI", 10))
     hotkeys = Hotkeys()
     app.installNativeEventFilter(hotkeys)
     window = Window(worker_factory, hotkeys)
