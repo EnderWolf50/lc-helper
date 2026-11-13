@@ -78,3 +78,13 @@ def test_the_slots_of_an_llc_turn_are_where_their_portraits_are():
     """The slot count follows the label's x as on maalc's captures: 6 and 8 portraits on these two."""
     assert len(vision.slot_xs(vision.battle_turn(llc("LlcBattleTurn6.png"))[0])) == 6
     assert len(vision.slot_xs(vision.battle_turn(llc("LlcBattleTurn8.png"))[0])) == 8
+
+
+def test_an_llc_label_pressed_or_lit_is_still_the_turn_and_reads_pressed():
+    """Live probe 2026-11-14: 胜率 tapped, then the picks lighting START (its plaque's arm over the label's end)."""
+    for name in ("LlcBattleTurnPressed.png", "LlcBattleTurnLit.png"):
+        box = vision.battle_turn(llc(name))
+        assert box == (946, 531, 40, 29), name
+        assert vision.win_rate_on(llc(name), box), name
+    plain = llc("LlcBattleTurnProbe.png")
+    assert not vision.win_rate_on(plain, vision.battle_turn(plain))

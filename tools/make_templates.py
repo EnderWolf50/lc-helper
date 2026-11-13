@@ -9,7 +9,9 @@ battle_turn_llc.png: the Win Rate label of an LLC (Simplified Chinese) client, w
 reads Win Rate (tests/screens_llc/LlcBattleTurn6.png, a PC client capture). The plate is the same picture in both
 languages, so the plate is found by its text-free right end (cut from maalc's English BattleTurn.png) and the Chinese
 label is cut where the English template sits on it: every tap offset from the label (Win Rate, Damage, START, the
-slots) then holds unchanged.
+slots) then holds unchanged. battle_turn_llc_pressed.png and battle_turn_llc_lit.png: the same label once 胜率 is
+tapped, and once the picks light START (the plaque's arm then covers its left end), from the live probe of
+2026-11-14 (LlcBattleTurnPressed.png, LlcBattleTurnLit.png).
 """
 
 import sys
@@ -39,12 +41,15 @@ def cut(capture, roi, starts, name, pad=3):
     save(image[y - pad:y + h + pad, x - pad:x + w + pad], name, box)
 
 
-def cut_turn_label(capture, name):
+def cut_turn_label(capture, name, placed_on=None):
+    """The Chinese label on capture. A pressed or lit label has another triangle: its plate is found on placed_on,
+    a capture of the same battle with the label plain, where nothing has moved."""
     english = vision.imread(maalc_dir() / "tests/screens/BattleTurn.png")
     ex, ey, ew, eh = vision.battle_turn(english)
+    plain = vision.imread(LLC_SCREENS / (placed_on or capture))
     image = vision.imread(LLC_SCREENS / capture)
     x0, y0, w0, h0 = vision.BATTLE_TURN_ROI
-    area = vision.crop(image, (x0, y0 - 15, w0, h0 + 30))
+    area = vision.crop(plain, (x0, y0 - 15, w0, h0 + 30))
     _, score, _, (bx, by) = cv2.minMaxLoc(cv2.matchTemplate(area, vision.crop(english, PLATE_END), cv2.TM_CCOEFF_NORMED))
     assert score > 0.85, f"the plate's end not found on {capture} ({score:.2f})"
     x, y = x0 + bx - (PLATE_END[0] - ex), y0 - 15 + by - (PLATE_END[1] - ey)
@@ -54,6 +59,8 @@ def cut_turn_label(capture, name):
 def main():
     cut("WipeDialog.png", vision.WIPE_ROI, "All participating", "wipe_text.png")
     cut_turn_label("LlcBattleTurn6.png", "battle_turn_llc.png")
+    cut_turn_label("LlcBattleTurnPressed.png", "battle_turn_llc_pressed.png", placed_on="LlcBattleTurnProbe.png")
+    cut_turn_label("LlcBattleTurnLit.png", "battle_turn_llc_lit.png", placed_on="LlcBattleTurnProbe.png")
 
 
 if __name__ == "__main__":

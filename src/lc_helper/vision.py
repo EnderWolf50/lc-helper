@@ -96,20 +96,27 @@ def find(image, name, roi, threshold=MATCH, masked=False):
     return (max(roi[0], 0) + x, max(roi[1], 0) + y, t.shape[1], t.shape[0])
 
 
-# The Win Rate label's looks: (template, pressed). The LLC client writes 胜率 on the same plate, at the same place
-# (tools/make_templates.py cuts it so), so every tap offset from the label holds in both languages.
-TURN_LABELS = (("battle_turn.png", False), ("battle_turn_pressed.png", True), ("battle_turn_llc.png", False))
+# The Win Rate label's looks, plain, pressed and (LLC) lit by the picks. The LLC client writes 胜率 on the same plate at
+# the same place (tools/make_templates.py cuts it so), so every tap offset from the label holds in both languages.
+TURN_LABELS = ("battle_turn.png", "battle_turn_pressed.png", "battle_turn_llc.png", "battle_turn_llc_pressed.png",
+               "battle_turn_llc_lit.png")
+# The plate between the label's text and its triangle, red channel: 55-62 plain in both languages, 115-243 pressed or
+# lit (maalc's 17 turn captures, where it agrees with the pressed template on every one, and the LLC probe of
+# 2026-11-14). The templates cannot tell it in Chinese: TM_CCOEFF_NORMED evens out brightness, and the plain and pressed
+# 胜率 score 0.975 against each other.
+PRESSED_PLATE = (44, 6, 6, 16)  # x, y, w, h from the label's top-left
+PRESSED_RED = 95
 
 
 def battle_turn(image):
     """The Win Rate label's box when a turn waits for input, else None."""
-    return next(filter(None, (find(image, name, BATTLE_TURN_ROI) for name, _ in TURN_LABELS)), None)
+    return next(filter(None, (find(image, name, BATTLE_TURN_ROI) for name in TURN_LABELS)), None)
 
 
 def win_rate_on(image, box):
-    """Whether the Win Rate label at box shows pressed: its two templates match each other at only 0.70."""
-    x, y = box[0], box[1]
-    return any(find(image, name, (x - 10, y - 10, 60, 49)) is not None for name, pressed in TURN_LABELS if pressed)
+    """Whether the Win Rate label at box shows pressed: its plate turns bright red."""
+    dx, dy, w, h = PRESSED_PLATE
+    return float(crop(image, (box[0] + dx, box[1] + dy, w, h))[..., 2].mean()) > PRESSED_RED
 
 
 def turn_playing(image):
