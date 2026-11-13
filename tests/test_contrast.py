@@ -30,6 +30,7 @@ SHEET_PAIRS = [
     (("QPushButton#pill", "color"), ("QPushButton#pill:hover", "background")),
     (("QPushButton#pill:checked", "color"), ("QPushButton#pill:checked", "background")),
     (("QLineEdit", "placeholder-text-color"), ("QLineEdit", "background")),
+    (("QToolTip", "color"), ("QToolTip", "background")),  # the switches' explanations live in tooltips
 ]
 
 

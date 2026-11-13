@@ -71,6 +71,7 @@ QPushButton#pill:hover { background: #3a2c1f; }
 QPushButton#pill:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
 QMenu { background: #1d1711; border: 1px solid #5b4527; } QMenu::item:selected { background: #4a3417; }
 QDialog { background: #17130f; }
+QToolTip { color: #eadcc4; background: #231b13; border: 1px solid #5b4527; padding: 4px 6px; }
 QKeySequenceEdit QLineEdit { min-width: 140px; }
 """)
 
