@@ -1411,8 +1411,9 @@ def offline_worker(callbacks):
 
 
 def self_test():
-    """Search the events and OCR a line of rendered text, writing what came back to .local/self-test.txt: proof that
-    a built lc-helper.exe carries its data, the OCR model and MaaFramework's libraries. No device is touched."""
+    """Search the events, read a trial and a gift picture and OCR a line of rendered text, writing what came back to
+    .local/self-test.txt: proof that a built lc-helper.exe carries its data, Qt's webp plugin, the OCR model and
+    MaaFramework's libraries. No device is touched."""
     import cv2
     import numpy as np
 
@@ -1425,6 +1426,7 @@ def self_test():
     lines = [f"search 螺旋: {len(hits)} events, first {hits[0]['id'] if hits else None}",
              f"gift 地獄蝶: {found[0]['en'] if found else None}",
              f"trials: {len(table)}, 強韌V: {trials.read_trial('强韧V', '', table)[0]}",
+             f"gift picture 9001: {icons.gift_picture(9001).size().toTuple()}",  # webp, read by Qt's qwebp plugin
              f"ocr: {[text for text, _ in ocr.lines(image, (60, 60, 700, 100))]}"]
     LOCAL.mkdir(parents=True, exist_ok=True)
     (LOCAL / "self-test.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
