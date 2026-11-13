@@ -10,6 +10,7 @@ import os
 import json
 import sys
 from ctypes import wintypes
+from functools import partial
 from string import Template
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QEvent, QObject, QPoint, QSize, Qt, QTimer, Signal
@@ -17,7 +18,7 @@ from PySide6.QtGui import QAction, QActionGroup, QColor, QFont, QFontMetrics, QI
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QComboBox, QDialog, QDialogButtonBox,
                                QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout, QLineEdit,
                                QListWidget, QListWidgetItem, QMenu, QPushButton, QSpinBox, QSystemTrayIcon, QTextBrowser,
-                               QToolButton, QVBoxLayout, QWidget)
+                               QToolButton, QVBoxLayout, QWidget, QWidgetAction)
 
 from . import device as devices
 from .paths import LOCAL
@@ -70,6 +71,7 @@ QPushButton#pill { background: transparent; color: #b9ab93; border-radius: ${pil
 QPushButton#pill:hover { background: #3a2c1f; }
 QPushButton#pill:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
 QMenu { background: #1d1711; border: 1px solid #5b4527; } QMenu::item:selected { background: #4a3417; }
+QLabel#menuSection { color: #c9a165; font-size: ${small}pt; font-weight: bold; padding: 6px 12px 2px 12px; }
 QDialog { background: #17130f; }
 QToolTip { color: #eadcc4; background: #231b13; border: 1px solid #5b4527; padding: 4px 6px; }
 QKeySequenceEdit QLineEdit { min-width: 140px; }
@@ -314,6 +316,35 @@ class FightLog(QDialog):
         lay.addWidget(close)
 
 
+class Choices(QMenu):
+    """A submenu of radio choices whose title names the chosen one, as 字級：標準."""
+
+    def __init__(self, label, names, chosen, choose, parent):
+        """names: {key: (name in the title, item text)}; choose(key) runs on the user's pick."""
+        super().__init__(parent)
+        self.label, self.names, self.choices = label, names, {}
+        group = QActionGroup(self)
+        for key, (_, text) in names.items():
+            self.choices[key] = action = QAction(text, group, checkable=True)
+            action.triggered.connect(lambda _, key=key: choose(key))
+            self.addAction(action)
+        self.show_choice(chosen)
+
+    def show_choice(self, key):
+        self.setTitle(f"{self.label}：{self.names[key][0]}")
+        self.choices[key].setChecked(True)
+
+
+def section(title, menu):
+    """A group's title in a menu. A label draws it, since some styles leave out QMenu.addSection's text; it is a
+    separator to the menu, which no style lets the arrow keys or the mouse stop on."""
+    head = QWidgetAction(menu)
+    head.setDefaultWidget(QLabel(title, objectName="menuSection"))
+    head.setSeparator(True)
+    head.setEnabled(False)
+    return head
+
+
 class Window(QWidget):
     def __init__(self, worker_factory=Worker, hotkeys=None):
         settings = load_settings()
@@ -374,30 +405,32 @@ class Window(QWidget):
         buttons.addWidget(self.pin)
         self.more = more = QToolButton(objectName="flat", popupMode=QToolButton.InstantPopup, accessibleName="更多設定",
                                        toolTip="更多設定")
-        menu = QMenu(more)
-        self.hold_action = QAction("回合播放時按住畫面（加快 E.G.O 動畫）", menu, checkable=True, checked=s["hold"])
-        self.hold_action.toggled.connect(self.set_hold)
-        menu.addAction(self.hold_action)
-        for key, text in (("stop_after_victory", "勝利後停止自動戰鬥"), ("notify", "戰鬥結束時跳出 Windows 通知")):
+        menu = QMenu(more, separatorsCollapsible=False)  # each title is a separator, and Qt hides a leading one
+
+        def check(text, key, toggled):
             action = QAction(text, menu, checkable=True, checked=s[key])
-            action.toggled.connect(lambda on, key=key: self.set_flag(key, on))
-            menu.addAction(action)
-        menu.addAction("戰鬥紀錄…", lambda: FightLog(self).exec())
-        pc_menu = menu.addMenu("PC 版點擊方式")
-        group = QActionGroup(pc_menu)
-        for key, (name, cost, _, can_hold) in devices.PC_INPUTS.items():
-            text = f"{name}（{cost}{'' if can_hold else '，回合播放時不按住'}）"
-            action = QAction(text, group, checkable=True, checked=key == s["pc_input"])
-            action.triggered.connect(lambda _, key=key: self.set_pc_input(key))
-            pc_menu.addAction(action)
-        menu.addAction("重新尋找模擬器與 PC 版", lambda: self.worker.send("scan"))
-        menu.addAction("熱鍵設定…", self.edit_hotkeys)
-        size_menu = menu.addMenu("字級")
-        group = QActionGroup(size_menu)
-        for key, (name, _) in TEXT_SIZES.items():
-            action = QAction(name, group, checkable=True, checked=key == s["text_size"])
-            action.triggered.connect(lambda _, key=key: self.set_text_size(key))
-            size_menu.addAction(action)
+            action.toggled.connect(toggled)
+            return action
+
+        self.hold_action = check("回合播放時按住畫面（加快 E.G.O 動畫）", "hold", self.set_hold)
+        self.pc_menu = Choices("PC 版點擊方式", {key: (name, f"{name}（{cost}{'' if can_hold else '，回合播放時不按住'}）")
+                                            for key, (name, cost, _, can_hold) in devices.PC_INPUTS.items()},
+                               s["pc_input"], self.set_pc_input, menu)
+        self.size_menu = Choices("字級", {key: (name, name) for key, (name, _) in TEXT_SIZES.items()}, s["text_size"],
+                                 self.set_text_size, menu)
+        sections = (
+            ("戰鬥", [self.hold_action,
+                     check("勝利後停止自動戰鬥", "stop_after_victory", partial(self.set_flag, "stop_after_victory")),
+                     check("戰鬥結束時跳出 Windows 通知", "notify", partial(self.set_flag, "notify")),
+                     QAction("戰鬥紀錄…", menu, triggered=lambda: FightLog(self).exec())]),
+            ("裝置", [QAction("重新尋找模擬器與 PC 版", menu, triggered=lambda: self.worker.send("scan")),
+                     self.pc_menu.menuAction()]),
+            ("顯示與操作", [self.size_menu.menuAction(), QAction("熱鍵設定…", menu, triggered=self.edit_hotkeys)]),
+        )
+        for title, items in sections:
+            if menu.actions():
+                menu.addSeparator()
+            menu.addActions([section(title, menu), *items])
         more.setMenu(menu)
         buttons.addWidget(more)
         self.fold = QToolButton(objectName="flat", clicked=self.toggle_compact)
@@ -545,6 +578,7 @@ class Window(QWidget):
 
     def set_text_size(self, key):
         self.settings["text_size"] = key
+        self.size_menu.show_choice(key)
         self.apply_text_size()
         save_settings(self.settings)
 
@@ -628,6 +662,7 @@ class Window(QWidget):
 
     def set_pc_input(self, key):
         self.settings["pc_input"] = key
+        self.pc_menu.show_choice(key)
         self.worker.send("set_pc_input", key)
 
     def set_watch(self, on):

@@ -21,6 +21,7 @@ SHEET_PAIRS = [
     (("QWidget", "color"), ("QMenu::item:selected", "background")),
     (("QLabel#title", "color"), ("QFrame#header", "background")),
     (("QLabel#section", "color"), ("QWidget#root", "background")),
+    (("QLabel#menuSection", "color"), ("QMenu", "background")),
     (("QLabel#status", "color"), ("QWidget#root", "background")),
     (("QPushButton:checked", "color"), ("QPushButton:checked", "background")),
     (("QPushButton#primary", "color"), ("QPushButton#primary", "background")),

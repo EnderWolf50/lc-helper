@@ -15,7 +15,7 @@ os.environ.setdefault("QT_QPA_FONTDIR", os.path.join(os.environ.get("WINDIR", "C
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from PySide6.QtGui import QColor, QPainter, QPixmap  # noqa: E402
-from PySide6.QtWidgets import QApplication, QMenu  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from lc_helper import app as ui  # noqa: E402
 from lc_helper import events, vision  # noqa: E402
@@ -50,8 +50,13 @@ def shot(window, out, name):
 
 def menus(window, out, name):
     """The ⋯ menu with its submenus beside it, side by side in one PNG."""
-    titles = ("", "PC 版點擊方式", "字級")
-    pics = [next(m for m in window.findChildren(QMenu) if m.title() == t).grab() for t in titles]
+    menu = window.more.menu()
+    pics = []
+    for m in (menu, *(a.menu() for a in menu.actions() if a.menu())):
+        # A hidden menu keeps the size it had before the text size changed. A popup takes its size hint; adjustSize
+        # would cap it at 2/3 of the 800 px offscreen screen.
+        m.resize(m.sizeHint())
+        pics.append(m.grab())
     sheet = QPixmap(sum(p.width() + 8 for p in pics), max(p.height() for p in pics))
     sheet.fill(QColor("#0b0a09"))
     painter = QPainter(sheet)
@@ -143,6 +148,7 @@ def main():
     for key in ui.TEXT_SIZES:
         w.set_text_size(key)
         shot(w, out, f"window-text-{key}.png")
+        menus(w, out, f"window-menu-{key}.png")
     w.set_text_size("normal")
     w.query.setText("螺旋")
     w.run_search()
