@@ -10,12 +10,12 @@ import re
 from ctypes import wintypes
 from dataclasses import dataclass
 
-from PySide6.QtCore import QRectF, Qt, QTimer
-from PySide6.QtGui import QColor, QFont, QPainter, QPen
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
 from . import device as devices
-from . import events
+from . import events, icons
 
 GAME_W, GAME_H = 1280, 720
 LABEL_RIGHT = 712  # labels end here, just left of the option list (OCR boxes start at x ~730)
@@ -29,13 +29,13 @@ Rect = tuple[int, int, int, int]  # x, y, w, h in physical screen pixels
 class Label:
     box: tuple[int, int, int, int]  # the option's first OCR line, in game pixels
     text: str
-    mark: str = ""  # a recommendation's mark, drawn before the text
+    recommended: bool = False  # drawn with a star before the text and a gold border
 
 
 def labels(reading, recommend=None) -> list[Label]:
-    """The labels for a reading: one per option visible on the page. recommend(option) may mark options."""
+    """The labels for a reading: one per option visible on the page. recommend(option) says whether to star it."""
     rows = events.option_rows(reading.event, reading.lines)
-    return [Label(box, events.short_effect(option), recommend(option) if recommend else "") for option, box in rows]
+    return [Label(box, events.short_effect(option), bool(recommend and recommend(option))) for option, box in rows]
 
 
 def fit_16_9(rect: Rect) -> Rect:
@@ -189,18 +189,24 @@ class Overlay(QWidget):
         font = QFont("Microsoft JhengHei UI")
         font.setPixelSize(max(9, round(15 * sy)))
         p.setFont(font)
+        metrics = p.fontMetrics()
+        ink = QFontMetricsF(font).tightBoundingRect("國")
+        middle = -(ink.top() + ink.bottom()) / 2  # the baseline sits this far under the option's middle line
+        star = 2 * middle  # as tall as the Chinese glyphs, as in the detail pane
         for item in self.items:
             x, y, _, h = item.box
-            text = f"{item.mark} {item.text}" if item.mark else item.text
-            width = min(p.fontMetrics().horizontalAdvance(text) + 18, (LABEL_RIGHT - LABEL_LEFT) * sx)
+            lead = star + metrics.horizontalAdvance(" ") if item.recommended else 0
+            width = min(metrics.horizontalAdvance(item.text) + lead + 18, (LABEL_RIGHT - LABEL_LEFT) * sx)
             cy = (y + h / 2) * sy
             box = QRectF(LABEL_RIGHT * sx - width, cy - 13 * sy, width, 26 * sy)
-            p.setPen(QPen(QColor("#e7b45a" if item.mark else "#8a6a3a"), 1.2))
+            p.setPen(QPen(QColor("#e7b45a" if item.recommended else "#8a6a3a"), 1.2))
             p.setBrush(QColor(15, 12, 9, 225))
             p.drawRoundedRect(box, 6 * sy, 6 * sy)
-            p.setPen(QColor("#fff3dc" if item.mark else "#eadcc4"))
-            p.drawText(box.adjusted(9, 0, -9, 0), Qt.AlignVCenter | Qt.AlignLeft,
-                       p.fontMetrics().elidedText(text, Qt.ElideRight, int(box.width() - 18)))
+            if item.recommended:
+                icons.paint(p, "star", "#f0c674", QRectF(box.left() + 9, cy - star / 2, star, star))
+            p.setPen(QColor("#fff3dc" if item.recommended else "#eadcc4"))
+            p.drawText(QPointF(box.left() + 9 + lead, cy + middle),
+                       metrics.elidedText(item.text, Qt.ElideRight, int(box.width() - 18 - lead)))
             p.setPen(QPen(QColor("#e7b45a"), 2))  # a short pointer to the option
             p.drawLine(box.right(), cy, (x - 4) * sx, cy)
         p.end()

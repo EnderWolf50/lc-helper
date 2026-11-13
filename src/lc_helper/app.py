@@ -14,8 +14,9 @@ from functools import partial
 from math import ceil
 from string import Template
 
-from PySide6.QtCore import QAbstractNativeEventFilter, QEvent, QObject, QPoint, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QActionGroup, QColor, QFont, QFontMetrics, QIcon, QKeySequence, QPainter, QPixmap
+from PySide6.QtCore import QAbstractNativeEventFilter, QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import (QAction, QActionGroup, QColor, QFont, QFontMetrics, QFontMetricsF, QIcon, QKeySequence,
+                           QPainter, QPixmap, QTextDocument)
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QComboBox, QDialog, QDialogButtonBox,
                                QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout, QLineEdit,
                                QListWidget, QListWidgetItem, QMenu, QPushButton, QSpinBox, QSystemTrayIcon, QTextBrowser,
@@ -46,6 +47,9 @@ FOLD = {False: ("unfolded", "收合事件查詢"), True: ("folded", "展開事�
 SETTING_CHOICES = {"text_size": TEXT_SIZES, "pc_input": devices.PC_INPUTS, "pin": PIN, "compact": FOLD,
                    "keyword": [None, *recommend.CHOICES]}
 ICON, ICON_ON = "#b9ab93", "#e7b45a"
+FOREVER_ICON = {QIcon.Off: "#eadcc4", QIcon.On: "#fff3dc"}  # 無限防禦's infinity, in its text colour off and checked
+# The detail pane's icons, set in its text as images: <img src='icon:NAME'>, in these colours.
+PANE_ICONS = {"star": "#f0c674", "bullet": "#eadcc4"}
 DOT = {"idle": "#6b6152", "connecting": "#e7b45a", "connected": "#6cc070", "error": "#d9534f"}
 
 STYLE = Template("""
@@ -170,7 +174,7 @@ def event_html(event, read_text="", pick=None):
         if not (o["text"] or o["text_zh"]):
             continue
         picked = pick is not None and o is pick[0]
-        title = ("★ " if picked else "") + html.escape(o["text_zh"] or o["text"])
+        title = ("<img src='icon:star'> " if picked else "") + html.escape(o["text_zh"] or o["text"])
         en = html.escape(o["text"]) if o["text_zh"] else ""
         rows.append(f"<p style='margin:6px 0 0 0'><b style='color:#e7b45a'>{i}. {title}</b> "
                     f"<span style='color:#8f8270'>{en}</span> "
@@ -182,7 +186,8 @@ def event_html(event, read_text="", pick=None):
             rows.append(f"<p style='color:#a99c86;margin:0 0 0 14px'>{html.escape(hint)}</p>")
         for e in events.effects(o):
             what = html.escape(e.what).replace("「", "<span style='color:#f0c674'>「").replace("」", "」</span>")
-            rows.append(f"<p style='margin:0 0 0 14px'>• <span style='color:#9fc1d9'>{html.escape(e.when)}</span>"
+            rows.append(f"<p style='margin:0 0 0 14px'><img src='icon:bullet'> "
+                        f"<span style='color:#9fc1d9'>{html.escape(e.when)}</span>"
                         f"：{what}</p>")
     return "".join(rows)
 
@@ -489,7 +494,7 @@ class Window(QWidget):
         self.guard_spin = QSpinBox(minimum=0, maximum=99, value=s["guard"], suffix=" 回合")
         self.guard_spin.valueChanged.connect(self.set_guard)
         row.addWidget(self.guard_spin)
-        self.forever = QPushButton("∞ 無限防禦", checkable=True, checked=s["forever"])
+        self.forever = QPushButton("無限防禦", checkable=True, checked=s["forever"])
         self.forever.toggled.connect(self.set_guard)
         row.addWidget(self.forever)
         row.addStretch()
@@ -569,6 +574,7 @@ class Window(QWidget):
         QApplication.instance().setStyleSheet(style(base, QFontMetrics(font).height()))
         self.root.setFixedWidth(scaled(380, base))
         self.apply_icons()
+        self.apply_pane_icons()
         QTimer.singleShot(0, self.adjustSize)
 
     def fit_detail(self):
@@ -613,10 +619,27 @@ class Window(QWidget):
         self.fold.setToolTip(fold_tip)
         self.fold.setAccessibleName(fold_tip)
         self.dot.setPixmap(icons.pixmap("dot", DOT[self.dot.property("state")], side // 2, ratio))
+        forever = QIcon()
+        for state, color in FOREVER_ICON.items():
+            forever.addPixmap(icons.pixmap("infinity", color, side, ratio), QIcon.Normal, state)
+        self.forever.setIcon(forever)
+        self.forever.setIconSize(QSize(side, side))
+
+    def apply_pane_icons(self):
+        """The detail pane's icons (PANE_ICONS) as its document's images, drawn for the screen's pixel ratio. An image
+        stands on the baseline, so a square twice as tall as the middle of a Chinese glyph above the baseline is
+        centred on the text beside it, at any text size and in any font."""
+        text = self.detail.document()
+        ink = QFontMetricsF(self.detail.font()).tightBoundingRect("國")
+        side, ratio = round(-(ink.top() + ink.bottom())), self.devicePixelRatioF()
+        for name, color in PANE_ICONS.items():
+            text.addResource(QTextDocument.ImageResource, QUrl(f"icon:{name}"), icons.pixmap(name, color, side, ratio))
+        text.markContentsDirty(0, text.characterCount())  # addResource alone leaves the old size in the layout
 
     def event(self, e):
         if e.type() == QEvent.DevicePixelRatioChange:  # moved to a screen of another scale
             self.apply_icons()
+            self.apply_pane_icons()
         elif e.type() == QEvent.LayoutRequest:  # laid out again: what is above the pane may have changed height
             self.fit_timer.start()
         return super().event(e)
@@ -799,8 +822,7 @@ class Window(QWidget):
             self.shown_event = reading.event
         if self.settings["overlay"] and reading.event and not reading.others:
             pick = recommend.best(reading.event, self.settings["keyword"], reading.closed)
-            star = (lambda o: "★" if pick and o is pick[0] else "")
-            self.overlay.show_labels(labels(reading, star), reading.source,
+            self.overlay.show_labels(labels(reading, lambda o: pick is not None and o is pick[0]), reading.source,
                                      hold_ms=0 if self.settings["watch"] else 60_000)
         else:
             self.overlay.hide_labels()

@@ -4,7 +4,9 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtCore import QPoint  # noqa: E402
+from PySide6.QtGui import QColor, QImage, QRegion  # noqa: E402
+from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
 from lc_helper import events, overlay  # noqa: E402
 from lc_helper.overlay import Win  # noqa: E402
@@ -71,6 +73,24 @@ def test_the_display_of_the_instance_read_from_is_picked():
 @pytest.fixture(scope="module")
 def qt():
     return QApplication.instance() or QApplication([])
+
+
+def test_a_drawn_gold_star_marks_the_recommended_label_and_no_other(qt):
+    o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720))
+    o.resize(1280, 720)
+    o.items = [overlay.Label((730, 200, 191, 22), "判定成功獲得「護腕」", recommended=True),
+               overlay.Label((730, 400, 191, 22), "判定成功獲得「護腕」")]
+    canvas = QImage(1280, 720, QImage.Format_ARGB32)
+    canvas.fill(QColor("#000000"))
+    o.render(canvas, QPoint(), QRegion(), QWidget.RenderFlag.DrawChildren)
+    gold = QColor("#f0c674")
+
+    def star_pixels(top):
+        return sum(canvas.pixelColor(x, y) == gold for x in range(overlay.LABEL_LEFT, overlay.LABEL_RIGHT)
+                   for y in range(top - 4, top + 26))
+
+    assert star_pixels(200) > 20 and star_pixels(400) == 0
+    o.close()
 
 
 def test_the_overlay_shows_only_while_the_game_is_on_screen(qt):

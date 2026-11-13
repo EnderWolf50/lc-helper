@@ -103,7 +103,7 @@ def overlay_shot(out, name, capture, keyword=None):
     o.resize(1280, 720)
     from lc_helper import recommend
     pick = recommend.best(reading.event, keyword, reading.closed)
-    o.items = overlay.labels(reading, lambda option: "★" if pick and option is pick[0] else "")
+    o.items = overlay.labels(reading, lambda option: pick is not None and option is pick[0])
     rgb = image[:, :, ::-1].copy()
     canvas = QImage(rgb.data, 1280, 720, 3 * 1280, QImage.Format_RGB888).copy()
     o.render(canvas, QPoint(), QRegion(), QWidget.RenderFlag.DrawChildren)

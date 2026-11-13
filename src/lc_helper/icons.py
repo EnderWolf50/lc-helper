@@ -1,6 +1,8 @@
 """The window's icons, drawn on a 24-unit grid in one stroke weight, as pixmaps for the screen's pixel ratio."""
 
-from PySide6.QtCore import QPointF, Qt
+from math import cos, pi, sin
+
+from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
 
 GRID = 24
@@ -64,8 +66,45 @@ def dot(p):
     p.drawEllipse(QPointF(12, 12), 10, 10)
 
 
+def bullet(p):
+    solid(p)
+    p.drawEllipse(QPointF(12, 12), 4.5, 4.5)
+
+
+def infinity(p):
+    """One unbroken stroke: up and left around the left loop, through the middle, around the right loop."""
+    loop = QPainterPath(QPointF(12, 12))
+    loop.cubicTo(10, 9.33, 8, 8, 6, 8)
+    loop.arcTo(2, 8, 8, 8, 90, 180)
+    loop.cubicTo(8, 16, 10, 14.67, 12, 12)
+    loop.cubicTo(14, 9.33, 16, 8, 18, 8)
+    loop.arcTo(14, 8, 8, 8, 90, -180)
+    loop.cubicTo(16, 16, 14, 14.67, 12, 12)
+    p.drawPath(loop)
+
+
+def star(p):
+    """Five points, filled, the tips blunted by the round-joined stroke. The centre sits low, so the top point and
+    the two feet end equally far from the top and bottom edges."""
+    p.setBrush(p.pen().color())
+    outer, inner = 11, 11 * sin(pi / 10) / sin(3 * pi / 10)
+    middle = 12 + outer * (1 - cos(pi / 5)) / 2
+    p.drawPolygon([QPointF(12 + r * sin(i * pi / 5), middle - r * cos(i * pi / 5))
+                   for i, r in enumerate([outer, inner] * 5)])
+
+
 DRAW = {"more": more, "unfolded": unfolded, "folded": folded, "close": close, "pin": pin, "unpinned": unpinned,
-        "play": play, "stop": stop, "dot": dot}
+        "play": play, "stop": stop, "dot": dot, "bullet": bullet, "infinity": infinity, "star": star}
+
+
+def paint(p, name, color, square: QRectF):
+    """Icon name in color, drawn by p into square."""
+    p.save()
+    p.translate(square.topLeft())
+    p.scale(square.width() / GRID, square.height() / GRID)
+    p.setPen(QPen(QColor(color), STROKE, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    DRAW[name](p)
+    p.restore()
 
 
 def pixmap(name, color, side, ratio):
@@ -75,9 +114,7 @@ def pixmap(name, color, side, ratio):
     pix.fill(Qt.transparent)
     p = QPainter(pix)
     p.setRenderHint(QPainter.Antialiasing)
-    p.scale(side / GRID, side / GRID)
-    p.setPen(QPen(QColor(color), STROKE, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
-    DRAW[name](p)
+    paint(p, name, color, QRectF(0, 0, side, side))
     p.end()
     return pix
 

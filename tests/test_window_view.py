@@ -3,10 +3,11 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest  # noqa: E402
-from PySide6.QtCore import QEvent, QPoint, QPointF, Qt  # noqa: E402
-from PySide6.QtGui import QAction, QColor, QMouseEvent  # noqa: E402
+from PySide6.QtCore import QEvent, QPoint, QPointF, Qt, QUrl  # noqa: E402
+from PySide6.QtGui import QAction, QColor, QMouseEvent, QTextDocument  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
-from PySide6.QtWidgets import QApplication, QStyleFactory, QToolButton, QWidgetAction  # noqa: E402
+from PySide6.QtWidgets import (QAbstractButton, QApplication, QStyleFactory, QToolButton,  # noqa: E402
+                               QWidgetAction)
 
 from lc_helper import app as ui  # noqa: E402
 from lc_helper import events, icons  # noqa: E402
@@ -110,6 +111,38 @@ def test_an_icon_is_drawn_with_the_pixels_of_a_150_percent_screen():
         assert (pix.width(), pix.height(), pix.devicePixelRatio()) == (27, 27, 1.5), name
         image = pix.toImage()
         assert any(image.pixelColor(x, y).alpha() for x in range(27) for y in range(27)), f"{name} draws nothing"
+
+
+GLYPHS = set("★∞•")  # text characters that once stood in for drawn icons
+
+
+def test_the_buttons_and_the_event_pane_draw_their_icons_instead_of_text_glyphs(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch)
+    assert w.forever.text() == "無限防禦" and not w.forever.icon().isNull()
+    assert not any(GLYPHS & set(b.text()) for b in w.findChildren(QAbstractButton))
+    event = events.by_id()[SHORT]
+    option = next(o for o in event["options"] if events.effects(o))
+    page = ui.event_html(event, pick=(option, "有充能飾品"))
+    assert not GLYPHS & set(page)
+    assert page.count("icon:star") == 1 and "icon:bullet" in page
+
+
+def test_the_pane_icons_are_drawn_at_the_text_size_with_the_pixels_of_the_screen(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch, text_size="small")
+    doc = w.detail.document()
+
+    def drawn(name):
+        pix = doc.resource(QTextDocument.ImageResource, QUrl(f"icon:{name}"))
+        return pix.width(), pix.devicePixelRatio()
+
+    small = drawn("star")[0]
+    assert drawn("star") == drawn("bullet") == (small, 1)
+    w.set_text_size("large")
+    large = drawn("star")[0]
+    assert large > small, "they grow with the text"
+    monkeypatch.setattr(w, "devicePixelRatioF", lambda: 1.5)
+    QApplication.sendEvent(w, QEvent(QEvent.DevicePixelRatioChange))
+    assert drawn("star") == drawn("bullet") == (round(large * 1.5), 1.5), "moved to a 150% screen"
 
 
 def painted(w, widget, x, y):
