@@ -18,7 +18,7 @@ from PySide6.QtCore import QPointF  # noqa: E402
 from PySide6.QtGui import QColor, QGlyphRun, QImage, QPainter, QRawFont  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from lc_helper import events, gifts, ocr, vision  # noqa: E402
+from lc_helper import event_skip, events, gifts, ocr, vision  # noqa: E402
 
 FONT = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / "msyh.ttc"  # Simplified Chinese
 STORY_SIZE = 18  # px: the English story text's height on maalc's captures
@@ -169,4 +169,29 @@ def gift_screen(image):
         jobs += [(box, [], 10) for box in plate]
         x, y, w, h = union(plate)
         jobs.append(line((x, y, w, plate[0][3]), shown[0][0]["cn"], x + max(w, 160)))
+    return draw(image, jobs)
+
+
+# LLC's text for the labels the story skipper reads (BattleUIText ab_event_next, choice_event_resume,
+# ab_event_decision, selection, choice_personality).
+LLC_BUTTONS = {"proceed": "继续", "continue": "继续", "commence": "进行判定"}
+LLC_CHOICES = "选项"
+LLC_CHECK = "选择一位罪人来进行判定："
+PROMPT = (850, 290, 330, 60)  # a check's English prompt, both its lines
+
+
+def event_page(image):
+    """image, an event capture, as LLC shows it to the story skipper: the bottom-right button's label (SKIP stays: no
+    LLC text for it was found), the Choices header, and a check's prompt (on one line, where the English one starts)
+    in Simplified."""
+    jobs = []
+    for text, box in ocr.lines(image, event_skip.EVENT_BUTTON_LABEL):
+        if cn := LLC_BUTTONS.get(text.lower()):
+            jobs.append(line(box, cn, box[0] + box[2]))
+    jobs += [line(box, LLC_CHOICES, box[0] + box[2] + 60) for text, box in ocr.lines(image, vision.CHOICES_HEADER)
+             if "choice" in text.lower()]
+    prompt = ocr.lines(image, PROMPT)
+    if any("choose a character" in text.lower() for text, _ in prompt):
+        jobs += [(box, [], 10) for _, box in prompt]
+        jobs.append(line(prompt[0][1], LLC_CHECK, prompt[0][1][0] + 330))
     return draw(image, jobs)

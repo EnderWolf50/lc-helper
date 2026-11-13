@@ -3,10 +3,13 @@
 A trim of maalc's Event action (agent/actions.py Event.run and Event.advance, spec 03 section 10). It acts only on an
 event page, told by the label of its bottom-right button (SKIP, Proceed, Continue, Commence), and never decides for
 the player: it stops on the Choices page, on a check's "Choose a character" prompt, and on a lit Commence (the check
-starts with the sinner the player picked).
+starts with the sinner the player picked). LLC's Chinese labels count the same (labels.WORDS): 继续 is pressed,
+进行判定 never.
 """
 
 from dataclasses import dataclass
+
+from . import labels
 
 EVENT_BUTTON = (1130, 645)  # SKIP / Proceed / Continue / Commence share it; grey while it does nothing
 EVENT_BUTTON_LABEL = (1040, 612, 190, 66)  # on most maps the bottom bar's lever reads there (maalc #511)
@@ -14,8 +17,6 @@ EVENT_NEUTRAL = (5, 5)  # top-left corner: nothing there on any event page; a ta
 EVENT_CARD = (940, 195)  # a Luxcavation check's card, alone at the right, waits for a tap (maalc card_alone)
 CHOICES_HEADER = (690, 105, 170, 45)
 CHECK_PROMPT = (850, 295, 300, 50)
-LABELS = {"skip", "proceed", "continue", "commence"}
-PRESSABLE = LABELS - {"commence"}
 PRESS_TAKES = 1.5  # s a press may take to show (maalc EVENT_TAKE): the same lit label is not pressed again before
 
 
@@ -35,6 +36,10 @@ def compact(text):
     return "".join(c for c in text.lower() if c.isalpha())
 
 
+LABELS = {compact(w) for name in ("skip", "proceed", "continue", "commence") for w in labels.WORDS[name].values()}
+PRESSABLE = LABELS - {compact(w) for w in labels.WORDS["commence"].values()}
+
+
 @dataclass
 class Skipper:
     """One look, one decision. read(image, roi, only_rec) gives the text lines at roi (OCR)."""
@@ -49,9 +54,9 @@ class Skipper:
         if label not in LABELS:
             self.pressed = None
             return "不是事件頁", None
-        if any("choice" in t.lower() for t in self.read(image, CHOICES_HEADER, True)):
+        if labels.shows(self.read(image, CHOICES_HEADER, True), "choices"):
             return "到選項頁了，請你選", None
-        if any("choose a character" in t.lower() for t in self.read(image, CHECK_PROMPT, False)):
+        if labels.shows(self.read(image, CHECK_PROMPT, False), "check"):
             return "判定要選罪人，請你選", None
         if red_button(image):
             if label not in PRESSABLE:

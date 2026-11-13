@@ -1,5 +1,6 @@
 import time
 
+import llc_screen
 import pytest
 
 from lc_helper import ocr
@@ -35,6 +36,26 @@ def test_the_story_is_pushed_on(screen, name):
 def test_choices_checks_commence_and_other_screens_are_left_alone(screen, name):
     what, point = Skipper(read).step(screen(name), 0.0)
     assert point is None, what
+
+
+@pytest.mark.parametrize("name", ACTS)
+def test_the_story_is_pushed_on_in_llc_chinese(screen, name):
+    assert Skipper(read).step(llc_screen.event_page(screen(name)), 0.0) == ACTS[name]
+
+
+# Why one look at an event capture painted in LLC's Chinese leaves it to the player.
+LEAVES_IN_CHINESE = {
+    "EventChoices.png": "到選項頁了，請你選",  # 选项
+    "EventChoicesUsed.png": "到選項頁了，請你選",
+    "EventCheck.png": "判定要選罪人，請你選",  # 选择一位罪人来进行判定：
+    "LuxEventCheck.png": "判定要選罪人，請你選",
+    "LuxEventCommence.png": "按 Commence 開始判定（請你按）",  # 进行判定, lit
+}
+
+
+@pytest.mark.parametrize("name", LEAVES_IN_CHINESE)
+def test_choices_checks_and_commence_in_llc_chinese_are_left_to_the_player(screen, name):
+    assert Skipper(read).step(llc_screen.event_page(screen(name)), 0.0) == (LEAVES_IN_CHINESE[name], None)
 
 
 def test_a_lit_button_is_not_pressed_again_while_its_press_takes(screen):

@@ -13,6 +13,14 @@ WORDS = {
     # LLC writes a gift card's Acquire E.G.O Gift tag the same (获得E.G.O饰品), and on the gift choice the tags reach
     # into the title's region: tell the choice by its refuse first.
     "get": {"en": "get", "cn": "获得"},
+    # a check's prompt: BattleUIText choice_personality (选择一位罪人来进行判定：)
+    "check": {"en": "choose a character", "cn": "选择一位罪人"},
+    # The event button's labels, each word the whole label. No LLC text was found for SKIP: the button may be a
+    # picture, the same under LLC (inferred; no LLC capture shows it).
+    "skip": {"en": "skip"},
+    "proceed": {"en": "proceed", "cn": "继续"},  # BattleUIText ab_event_next
+    "continue": {"en": "continue", "cn": "继续"},  # BattleUIText choice_event_resume
+    "commence": {"en": "commence", "cn": "进行判定"},  # BattleUIText ab_event_decision
 }
 
 
