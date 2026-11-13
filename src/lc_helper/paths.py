@@ -6,6 +6,7 @@ assets/ holds the templates, events.json and the OCR model; .local/ holds settin
 import sys
 from pathlib import Path
 
-ROOT = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent.parent
+BUILT = getattr(sys, "frozen", False)  # running as lc-helper.exe
+ROOT = Path(sys.executable).parent if BUILT else Path(__file__).resolve().parent.parent.parent
 ASSETS = ROOT / "assets"
 LOCAL = ROOT / ".local"

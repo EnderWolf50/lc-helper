@@ -65,7 +65,7 @@ def drive(probe, method, report):
     from maa.controller import Win32Controller
     from maa.define import MaaWin32InputMethodEnum, MaaWin32ScreencapMethodEnum
 
-    device._maa()
+    device.maa_options()
     name, _, enum_name, can_hold = device.PC_INPUTS[method]
     ctl = Win32Controller(int(probe.winId()), MaaWin32ScreencapMethodEnum.Background,
                           getattr(MaaWin32InputMethodEnum, enum_name), MaaWin32InputMethodEnum.PostMessage)

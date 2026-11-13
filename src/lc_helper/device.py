@@ -10,7 +10,7 @@ from typing import Protocol
 
 import numpy as np
 
-from .paths import LOCAL
+from .paths import BUILT, LOCAL
 
 
 
@@ -146,10 +146,13 @@ class MaaDevice:
         return resize_client(self.hwnd, size)
 
 
-def _maa():
+def maa_options():
+    """MaaFramework's options from .local/maa/config/maa_option.json, which it writes on first use. Its "logging"
+    starts off in lc-helper.exe: the logs reached 548 MB in two days of development, as OCR logs every read. Set it
+    to true there to log to .local/maa/debug."""
     from maa.toolkit import Toolkit
 
-    Toolkit.init_option(str(LOCAL / "maa"))
+    Toolkit.init_option(str(LOCAL / "maa"), {"logging": not BUILT})
     return Toolkit
 
 
@@ -237,7 +240,7 @@ def resize_client(hwnd, size):
 
 
 def targets() -> list[Target]:
-    toolkit = _maa()
+    toolkit = maa_options()
     found = [Target(d.name, d.address) for d in toolkit.find_adb_devices()]
     if pc_window(toolkit.find_desktop_windows()):
         found.append(Target(PC_NAME, PC))
@@ -258,7 +261,7 @@ def connect(address: str | None = None, pc_input: str = PC_INPUT) -> tuple[MaaDe
     else the PC client. RuntimeError when none answers."""
     from maa.controller import AdbController
 
-    toolkit = _maa()
+    toolkit = maa_options()
     if address == PC:
         return _connect_pc(toolkit, pc_input)
     devices = toolkit.find_adb_devices()
