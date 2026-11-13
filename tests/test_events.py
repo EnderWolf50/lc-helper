@@ -120,3 +120,31 @@ def test_a_simplified_query_finds_events_by_their_llc_text():
     can miss outright (镜像迷宫里见过的 found nothing)."""
     assert events.search("镜像迷宫里见过的")[0]["id"] == 130802
     assert events.search("交織而成的蜘蛛巢")[0]["id"] == 901028
+
+
+def test_an_option_says_its_check_and_its_outcomes_apart():
+    shake, push = events.by_id()[901069]["options"]
+    assert events.check_sins(push) == ("傲慢", "嫉妒") and events.check_sins(shake) == ()
+    assert events.outcomes(push) == [
+        events.Outcome("成功", "pass", ((9069, ""),)),
+        events.Outcome("失敗", "fail", (), (("hp", -11, "ChosenPersonality"), ("sp", -11, "ChosenPersonality")))]
+
+
+def test_a_failed_checks_gift_and_its_costs_are_one_outcome_and_a_pass_comes_first():
+    both = [o for e in events.book()["events"] for o in e["options"]
+            if any(how == "check_fail" for _, how in o.get("gift_ids", [])) and o.get("fail")]
+    assert both
+    for o in both:
+        whens = [f.when for f in events.outcomes(o)]
+        assert len(whens) == len(set(whens)) and any(w.startswith("失敗") for w in whens), o["text"]
+    for o in (o for e in events.book()["events"] for o in e["options"]):
+        tones = [f.tone for f in events.outcomes(o)]
+        assert tones == sorted(tones, key=("pass", "", "fail").index), o["text"]
+
+
+def test_every_gift_an_option_gives_is_in_the_gift_table():
+    from lc_helper import gifts
+
+    missing = {gid for e in events.book()["events"] for o in e["options"] for f in events.outcomes(o)
+               for gid, _ in f.gifts if gid not in gifts.book()}
+    assert not missing

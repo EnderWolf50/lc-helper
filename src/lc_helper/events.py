@@ -7,7 +7,7 @@ A screen is read in the game's English or in LLC's Simplified Chinese (Script): 
 import json
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from difflib import SequenceMatcher
 from functools import cache
 
@@ -281,13 +281,16 @@ def condition_text(cond):
     return f"{CONDITIONS.get(name, name)} {'<' if m[1] == 'Under' else '≥'} {m[2]}"
 
 
-def branch_text(b):
-    gets = "、".join(get_text(g) for g in b["gets"] if g[0] != "next") or "沒事發生"
+def branch_when(b):
     if "p" in b:
-        return f"機率 {b['p'] * 100:g}%", gets
+        return f"機率 {b['p'] * 100:g}%"
     if "p_per_pick" in b:
-        return f"機率每選一次 {b['p_per_pick'] * 100:+g}%", gets
-    return condition_text(b["if"]), gets
+        return f"機率每選一次 {b['p_per_pick'] * 100:+g}%"
+    return condition_text(b["if"])
+
+
+def branch_text(b):
+    return branch_when(b), "、".join(get_text(g) for g in b["gets"] if g[0] != "next") or "沒事發生"
 
 
 def effects(option, follow=True):
@@ -312,3 +315,51 @@ def effects(option, follow=True):
 
 def kind_text(option):
     return KIND.get(option["kind"], option["kind"])
+
+
+SINS = ("暴怒", "色慾", "怠惰", "暴食", "憂鬱", "傲慢", "嫉妒")
+CHECK = re.compile(f"((?:{'|'.join(SINS)})(?:、(?:{'|'.join(SINS)}))*)優勢判定")
+# How a gift of gift_ids comes, said short beside it on the game, and whether it is a check's pass or fail.
+OUTCOME_WHEN = {"direct": ("獲得", ""), "direct_random": ("機率獲得", ""), "check_pass": ("成功", "pass"),
+                "check_fail": ("失敗", "fail"), "win_battle": ("勝利後", ""), "later_direct": ("下一頁", ""),
+                "later_direct_random": ("下一頁機率", ""), "later_win_battle": ("下一頁勝利後", "")}
+
+
+def check_sins(option):
+    """The sins of an option's check, from the game's hint ("傲慢、嫉妒優勢判定 ..."): () when it has none."""
+    m = CHECK.search(option.get("hint_zh") or "")
+    return tuple(m[1].split("、")) if m else ()
+
+
+@dataclass(frozen=True)
+class Outcome:
+    """One way an option can end, for the hints on the game: when, whether that is a check passed or failed, the
+    gifts it gives (gift id, and "勝利後" for one won in battle), and the table's other gets entries (hp, sp, cost...)."""
+
+    when: str
+    tone: str = ""  # "pass", "fail" or ""
+    gifts: tuple[tuple[int, str], ...] = ()
+    gets: tuple[tuple, ...] = ()
+
+
+def outcomes(option):
+    """What an option does, as effects() says it, kept apart for drawing: one outcome per way it comes about, a
+    check passed first and failed last."""
+    odds, fail = option.get("odds", []), option.get("fail", [])
+    in_branches = {g[1] for b in odds + fail for g in b["gets"] if g[0] in ("gift", "win_gift")}
+    by_how = {}
+    for gid, how in option.get("gift_ids", []):
+        if gid not in in_branches:
+            by_how.setdefault(how, []).append((gid, ""))
+    found = [Outcome(*OUTCOME_WHEN.get(how, (how, "")), tuple(ids)) for how, ids in by_how.items()]
+    for b, tone in [(b, "") for b in odds] + [(b, "fail") for b in fail]:
+        when = branch_when(b)
+        if tone:
+            when = "失敗" if when == "機率 100%" else f"失敗，{when}"
+        gifts = tuple((g[1], "勝利後" if g[0] == "win_gift" else "") for g in b["gets"] if g[0] in ("gift", "win_gift"))
+        found.append(Outcome(when, tone, gifts, tuple(tuple(g) for g in b["gets"] if g[0] not in ("gift", "win_gift", "next"))))
+    merged = {}  # a failed check's gift and its costs are one outcome
+    for f in found:
+        k = (f.when, f.tone)
+        merged[k] = replace(merged[k], gifts=merged[k].gifts + f.gifts, gets=merged[k].gets + f.gets) if k in merged else f
+    return sorted(merged.values(), key=lambda f: ("pass", "", "fail").index(f.tone))

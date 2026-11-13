@@ -5,7 +5,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint, Qt  # noqa: E402
-from PySide6.QtGui import QColor, QImage, QRegion  # noqa: E402
+from PySide6.QtGui import QColor, QImage, QRegion, QTextDocument  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
 from lc_helper import events, overlay  # noqa: E402
@@ -33,11 +33,65 @@ def test_each_visible_option_is_found_at_its_first_line(screen, name):
     assert {option["text"]: box[1] for option, box in rows} == VISIBLE[name]
 
 
-def test_a_label_says_what_the_option_does(screen):
+def test_a_label_is_centred_on_its_options_text_and_says_what_it_does(screen):
     reading = events.read_screen(screen("EventChoices.png"))
-    found = {label.box[1]: label.text for label in overlay.labels(reading)}
-    assert "護腕" in found[327] and "判定" in found[327]
-    assert found[217]
+    found = {label.box[1]: label for label in overlay.labels(reading)}
+    assert "護腕" in found[327].text and "判定" in found[327].text and found[217].text
+    assert 340 < found[327].want < 370, "between the option's first line (327) and its hint's last"
+    assert abs(found[217].want - (217 + found[217].box[3] / 2)) < 2, "a one-line option: that line's middle"
+
+
+def test_an_answered_option_is_a_closed_label(screen):
+    reading = events.read_screen(screen("EventChoicesUsed.png"))
+    assert [label.closed for label in overlay.labels(reading)] == [True, False]
+
+
+def test_a_card_says_the_checks_sins_the_gift_and_what_failing_costs(qt):
+    push = events.by_id()[901069]["options"][1]
+    font, small = overlay.Overlay().fonts()
+    card = overlay.card_html(overlay.Label((730, 327, 191, 22), push), font, small, 600, 1)
+    document = QTextDocument()
+    document.setHtml(card)
+    text = document.toPlainText()
+    for said in ("傲慢", "嫉妒", "優勢判定", "成功", "護腕", "充能 I", "失敗", "HP", "−11", "SP", "判定的罪人"):
+        assert said in text, said
+    assert "回合開始時" in text, "the start of the gift's effect"
+    bare = QTextDocument()
+    bare.setHtml(overlay.card_html(overlay.Label((730, 327, 191, 22), push), font, small, 600, 0))
+    assert "回合開始時" not in bare.toPlainText(), "no effect line when there is no room"
+
+
+def test_a_card_with_nothing_recorded_is_one_line(qt):
+    font, small = overlay.Overlay().fonts()
+    turn_back = events.by_id()[901095]["options"][3]
+    document = QTextDocument()
+    document.setHtml(overlay.card_html(overlay.Label((730, 400, 100, 22), turn_back), font, small, 600, 2))
+    assert document.toPlainText() == "沒有記錄效果"
+
+
+def test_cards_are_centred_on_their_options_when_there_is_room_and_never_overlap():
+    assert overlay.stack([230, 356], [60, 80]) == [200, 316]
+    tops = overlay.stack([230, 260, 600], [100, 100, 100])
+    assert tops[1] >= tops[0] + 100 + overlay.CARD_GAP, "pushed down past the one above"
+    assert tops[2] + 100 <= overlay.CARD_BOTTOM, "pushed up off the party's portraits"
+    assert overlay.stack([120], [100]) == [overlay.CARD_TOP], "kept under the story panel's top"
+
+
+def test_the_busiest_options_fit_three_to_a_page_inside_the_game(qt):
+    """The options with the most to say, on EventChoicesLitTop.png's three rows: cards inside the game's picture,
+    none over another, each card's pointer reaching its option."""
+    def weight(o):
+        found = events.outcomes(o)
+        return len(found) + sum(len(f.gifts) + len(f.gets) for f in found)
+    busiest = sorted((o for e in events.book()["events"] for o in e["options"] if o["text"]), key=weight)[-3:]
+    rows = [(733, 217, 300, 22), (733, 343, 300, 22), (733, 470, 300, 22)]
+    o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
+    o.resize(1280, 720)
+    o.items = [overlay.Label(box, option) for box, option in zip(rows, busiest)]
+    rects = [rect for _, _, rect in o.cards()]
+    assert all(0 <= r.top() and r.bottom() <= 720 and r.right() < overlay.OPTION_FRAME for r in rects)
+    assert all(a.bottom() < b.top() for a, b in zip(rects, rects[1:]))
+    o.close()
 
 
 def test_the_picture_is_the_16_by_9_middle_of_the_render_area():
@@ -78,30 +132,32 @@ def qt():
 def test_a_drawn_gold_star_marks_the_recommended_label_and_no_other(qt):
     o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720))
     o.resize(1280, 720)
-    o.items = [overlay.Label((730, 200, 191, 22), "判定成功獲得「護腕」", recommended=True),
-               overlay.Label((730, 400, 191, 22), "判定成功獲得「護腕」")]
+    push = events.by_id()[901069]["options"][1]
+    o.items = [overlay.Label((730, 200, 191, 22), push, recommended=True), overlay.Label((730, 400, 191, 22), push)]
+    rects = [rect for _, _, rect in o.cards()]
     canvas = QImage(1280, 720, QImage.Format_ARGB32)
     canvas.fill(QColor("#000000"))
     o.render(canvas, QPoint(), QRegion(), QWidget.RenderFlag.DrawChildren)
     gold = QColor("#f0c674")
 
-    def star_pixels(top):
-        return sum(canvas.pixelColor(x, y) == gold for x in range(overlay.LABEL_LEFT, overlay.LABEL_RIGHT)
-                   for y in range(top - 4, top + 26))
+    def star_pixels(rect):
+        return sum(canvas.pixelColor(x, y) == gold for x in range(int(rect.left()), int(rect.right()))
+                   for y in range(int(rect.top()), int(rect.bottom())))
 
-    assert star_pixels(200) > 20 and star_pixels(400) == 0
+    assert star_pixels(rects[0]) > 20 and star_pixels(rects[1]) == 0
     o.close()
 
 
 def test_the_overlay_shows_only_while_the_game_is_on_screen(qt):
     where = {"rect": (0, 0, 1280, 720)}
     o = overlay.Overlay(locate=lambda source: where["rect"])
-    o.show_labels([overlay.Label((730, 327, 191, 22), "判定成功獲得「護腕」")], "127.0.0.1:16384")
+    push = events.by_id()[901069]["options"][1]
+    o.show_labels([overlay.Label((730, 327, 191, 22), push)], "127.0.0.1:16384")
     assert o.isVisible()
     where["rect"] = None  # minimised, or closed
     o.place()
     assert not o.isVisible()
-    o.show_labels([overlay.Label((730, 327, 191, 22), "x")], "127.0.0.1:16384")
+    o.show_labels([overlay.Label((730, 327, 191, 22), push)], "127.0.0.1:16384")
     assert not o.isVisible()
     where["rect"] = (0, 0, 1280, 720)
     o.show_labels([], "127.0.0.1:16384")  # a page with no option found
@@ -116,7 +172,7 @@ def test_the_overlay_is_kept_just_above_the_game_and_never_always_on_top(qt, mon
     monkeypatch.setattr(overlay.follow, "place_above", lambda hwnd, game: placed.append((hwnd, game)))
     o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720), window_of={"127.0.0.1:16384": 42}.get)
     assert not o.windowFlags() & Qt.WindowStaysOnTopHint
-    o.show_labels([overlay.Label((730, 327, 191, 22), "x")], "127.0.0.1:16384")
+    o.show_labels([overlay.Label((730, 327, 191, 22), events.by_id()[901069]["options"][1])], "127.0.0.1:16384")
     assert placed == [(int(o.winId()), 42)]
     o.place()  # the follow timer's look
     assert len(placed) == 2
