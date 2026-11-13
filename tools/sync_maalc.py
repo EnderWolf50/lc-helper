@@ -17,6 +17,7 @@ Writes:
   localization).
 - assets/gifts.json: every gift in maalc's gift search and fusion recipes (and the event table), with its effect in
   English and Chinese, its enhanced effect, its fusion recipe, and its Simplified name, cn (build_gifts).
+- assets/gift_icons/<id>.webp: maalc's gift pictures (copy_gift_icons).
 - assets/trials.json: maalc's trial table (assets/resource/base/data/trials.yaml) with each trial's English text and
   its Chinese name and text (build_trials).
 """
@@ -96,6 +97,18 @@ def copy_keyword_icons(maalc):
     for src in sorted((maalc / "assets/resource/base/data/keyword_icons").glob("*.webp")):
         image = cv2.imdecode(np.fromfile(src, np.uint8), cv2.IMREAD_UNCHANGED)  # imread fails on a non-ASCII path
         cv2.imencode(".png", image)[1].tofile(out / f"{src.stem}.png")
+
+
+def copy_gift_icons(maalc):
+    """maalc's gift pictures (data/gift_icons/<id>.webp, cut from the game's EgoGiftIcon sprites by its
+    tools/gift_icons.py), as they are: Qt reads webp through its qwebp plugin, which PySide6 ships and PyInstaller
+    bundles (dist/lc-helper/_internal/PySide6/plugins/imageformats)."""
+    out = REPO / "assets/gift_icons"
+    out.mkdir(parents=True, exist_ok=True)
+    for old in out.glob("*.webp"):
+        old.unlink()
+    for src in (maalc / "assets/resource/base/data/gift_icons").glob("*.webp"):
+        shutil.copyfile(src, out / src.name)
 
 
 @dataclass(frozen=True)
@@ -328,6 +341,7 @@ def main():
     maalc = maalc_dir()
     copy_assets(maalc)
     copy_keyword_icons(maalc)
+    copy_gift_icons(maalc)
     llc = llc_source(maalc)
     print(f"Localize Limbus Company {llc.version} from {llc.source}")
     data, missing_zh = build(maalc, llc)
