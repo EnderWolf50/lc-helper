@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (QAbstractButton, QApplication, QButtonGroup, QChe
 from . import device as devices
 from .paths import LOCAL
 from . import events, fights, gifts, icons, recommend
-from .overlay import Overlay, labels
+from .overlay import SHOW_FOR_MS, Overlay, labels
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
 
@@ -1281,7 +1281,7 @@ class Window(QWidget):
         if self.settings["overlay"] and reading.event and not reading.others:
             pick = recommend.best(reading.event, self.settings["keywords"], reading.closed)
             self.overlay.show_labels(labels(reading, lambda o: pick is not None and o is pick[0]), reading.source,
-                                     hold_ms=0 if self.settings["watch"] else 60_000)
+                                     hold_ms=0 if reading.watched else SHOW_FOR_MS)
         else:
             self.overlay.hide_labels()
 

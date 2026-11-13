@@ -179,6 +179,7 @@ class Reading:
     lines: tuple = ()  # the option list's OCR lines as (text, (x, y, w, h)) in 1280x720 pixels
     source: str | None = None  # the device address it was read from (device.PC for the PC client)
     closed: tuple[str, ...] = ()  # option texts shown grey: answered in an earlier round, a tap does nothing
+    watched: bool = False  # the worker watches the page it was read from and tells its leaving (page_left)
 
 
 def on_choices_page(image):

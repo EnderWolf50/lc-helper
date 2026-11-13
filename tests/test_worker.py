@@ -184,6 +184,7 @@ def test_auto_read_reads_again_when_the_list_scrolls_and_tells_when_the_page_goe
     wait_for(lambda: left)
     assert [r.event["id"] for r in readings] == [901095, 901095]
     assert [len(r.lines) > 0 for r in readings] == [True, True] and readings[0].source == "127.0.0.1:1"
+    assert all(r.watched for r in readings)
     assert len(left) == 1
 
 
@@ -211,7 +212,7 @@ def test_an_event_page_read_by_hand_is_watched_until_it_goes_and_then_left_alone
     game = Counted([screen("EventChoices.png"), screen("EventChoices.png"), screen("MirrorMap.png")])
     started(game, event=readings.append, page_left=lambda: left.append(game.shots)).send("read_event")
     wait_for(lambda: left)
-    assert [r.event["id"] for r in readings] == [901069]
+    assert [r.event["id"] for r in readings] == [901069] and readings[0].watched
     assert left == [3], "told on the look that saw the map, not while the page was still there"
     time.sleep(1.5)
     assert left == [3] and game.shots == 3, "no more looks once it is told"
@@ -223,7 +224,7 @@ def test_a_read_that_found_no_event_is_not_watched(screen):
     started(game, event=readings.append, page_left=lambda: left.append(1)).send("read_event")
     wait_for(lambda: readings)
     time.sleep(1.5)
-    assert readings[0].event is None and left == [] and game.shots == 1
+    assert readings[0].event is None and not readings[0].watched and left == [] and game.shots == 1
 
 
 def test_auto_read_shows_a_page_once_not_on_every_look(screen):

@@ -1,6 +1,7 @@
 import os
 import re
 import time
+from dataclasses import replace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -177,6 +178,18 @@ def test_an_event_read_by_hand_leaves_the_pane_and_the_game_once_its_page_goes(t
         w.worker.shutdown()
         w.worker.join(3)
         w.overlay.hide_labels()
+
+
+def test_the_hints_of_a_watched_page_stay_until_it_goes_and_others_go_after_a_minute(tmp_path, monkeypatch, screen):
+    """自動 off: F9 on a Choices page is watched, so its hints wait for page_left; a read nothing watches has no
+    page_left to wait for."""
+    w = window(tmp_path, monkeypatch, keywords=["Charge"], overlay=True, watch=False)
+    reading = events.read_screen(screen("EventChoices.png"))
+    w.on_event(replace(reading, watched=True))
+    assert w.overlay.items and not w.overlay.expire.isActive()
+    w.on_event(reading)
+    assert w.overlay.items and w.overlay.expire.isActive() and w.overlay.expire.interval() == 60_000
+    w.overlay.hide_labels()
 
 
 def test_an_event_looked_up_stays_when_the_page_read_goes(tmp_path, monkeypatch, screen):

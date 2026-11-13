@@ -20,7 +20,7 @@ from . import events, icons
 GAME_W, GAME_H = 1280, 720
 LABEL_RIGHT = 712  # labels end here, just left of the option list (OCR boxes start at x ~730)
 LABEL_LEFT = 40
-SHOW_FOR_MS = 60_000  # a read by hand (F9) stays this long; auto read hides it once the page goes
+SHOW_FOR_MS = 60_000  # a read off a page nothing watches stays this long; a watched page's hints go with the page
 
 Rect = tuple[int, int, int, int]  # x, y, w, h in physical screen pixels
 

@@ -247,7 +247,7 @@ class Worker(threading.Thread):
         else:
             reading = self.read(image)
             self.left_choices = reading.event is not None and self.on_choices_page(image)
-            self.cb.event(reading)
+            self.cb.event(replace(reading, watched=self.left_choices))
 
     def read_gift_screen(self, image, page):
         reading = gifts.read_gifts(image, page, ocr.lines)
@@ -357,4 +357,4 @@ class Worker(threading.Thread):
             return
         reading = self.read(image)
         self.last_page = page
-        self.cb.event(reading)
+        self.cb.event(replace(reading, watched=True))
