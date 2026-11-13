@@ -29,7 +29,7 @@ GLYPHS = set("★∞•")  # text characters that once stood in for drawn icons
 
 
 def test_the_recommended_option_is_starred_in_the_pane_and_on_the_game(tmp_path, monkeypatch, screen):
-    w = window(tmp_path, monkeypatch, keyword="Charge", overlay=True)
+    w = window(tmp_path, monkeypatch, keywords=["Charge"], overlay=True)
     w.on_event(events.read_screen(screen("EventChoices.png")))
     assert "推薦：判定通過獲得飾品，有充能飾品" in w.detail.toPlainText()
     assert w.detail.toHtml().count("icon:star") == 1, "the drawn star, once"
@@ -41,7 +41,7 @@ def test_the_recommended_option_is_starred_in_the_pane_and_on_the_game(tmp_path,
 
 
 def test_no_keyword_no_star_and_a_new_keyword_ranks_again(tmp_path, monkeypatch, screen):
-    w = window(tmp_path, monkeypatch, keyword=None, overlay=True)
+    w = window(tmp_path, monkeypatch, keywords=[], overlay=True)
     w.on_event(events.read_screen(screen("EventChoices.png")))
     assert "icon:star" not in w.detail.toHtml() and not any(item.recommended for item in w.overlay.items)
     w.keyword_box.setCurrentIndex(w.keyword_box.findData("Charge"))
@@ -52,7 +52,7 @@ def test_no_keyword_no_star_and_a_new_keyword_ranks_again(tmp_path, monkeypatch,
 
 
 def test_a_grey_option_is_never_starred(tmp_path, monkeypatch, screen):
-    w = window(tmp_path, monkeypatch, keyword="Poise", overlay=True)
+    w = window(tmp_path, monkeypatch, keywords=["Poise"], overlay=True)
     reading = events.read_screen(screen("EventChoicesUsed.png"))
     w.on_event(reading)
     starred = [item for item in w.overlay.items if item.recommended]

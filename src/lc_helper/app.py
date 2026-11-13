@@ -30,8 +30,14 @@ from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
 
 SETTINGS = LOCAL / "settings.json"
-DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard": 0, "forever": False,
-            "hold": True, "watch": False, "skip": False, "overlay": True, "keyword": None, "stop_after_victory": False, "notify": True, "compact": False, "text_size": "normal", "pin": True, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
+# guard_mode: its name in the guard list, and the Plan.guard it gives for guard turns.
+GUARD_MODES = {"none": ("不防禦", lambda turns: 0), "turns": ("防禦前幾回合", lambda turns: turns),
+               "forever": ("全程防禦", lambda turns: FOREVER)}
+SECTIONS = {"event": "鏡牢事件", "gift": "飾品"}  # the main page's folding sections: key, title
+DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard_mode": "none", "guard": 1,
+            "hold": True, "watch": False, "skip": False, "overlay": True, "keywords": [], "stop_after_victory": False,
+            "notify": True, "open_sections": list(SECTIONS), "text_size": "normal", "pin": True, "pos": None,
+            "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 TEXT_SIZES = {"small": ("小", 10.5), "normal": ("標準", 12), "large": ("大", 13.5)}  # text_size: menu name, points
 REFERENCE_PT = 10  # the window's pixel sizes were set for text of this size
@@ -42,12 +48,13 @@ SCREEN_GAP = 8  # px kept free between the window's bottom and the screen's
 PIN = {True: (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool, "pin",
               "置頂中：點一下取消置頂，視窗改成一般視窗，被蓋住時從工作列或 Alt+Tab 叫回"),
        False: (Qt.FramelessWindowHint | Qt.Window, "unpinned", "沒有置頂：點一下讓視窗固定在最上層")}
-FOLD = {False: ("unfolded", "收合事件查詢"), True: ("folded", "展開事件查詢")}  # compact: the fold button's icon, tooltip
+FOLD = {False: ("unfolded", "收合事件查詢"), True: ("folded", "展開事件查詢")}  # folded: the fold button's icon, tooltip
 # The settings whose value must be one of a set (load_settings): the keys of each table, or the listed values.
-SETTING_CHOICES = {"text_size": TEXT_SIZES, "pc_input": devices.PC_INPUTS, "pin": PIN, "compact": FOLD,
-                   "keyword": [None, *recommend.CHOICES]}
+SETTING_CHOICES = {"text_size": TEXT_SIZES, "pc_input": devices.PC_INPUTS, "pin": PIN, "guard_mode": GUARD_MODES,
+                   "guard": range(1, 100)}
+# The settings that are a list of distinct values from a set, in the user's order.
+LIST_CHOICES = {"keywords": recommend.CHOICES, "open_sections": list(SECTIONS)}
 ICON, ICON_ON = "#b9ab93", "#e7b45a"
-FOREVER_ICON = {QIcon.Off: "#eadcc4", QIcon.On: "#fff3dc"}  # 無限防禦's infinity, in its text colour off and checked
 # The detail pane's icons, set in its text as images: <img src='icon:NAME'>, in these colours.
 PANE_ICONS = {"star": "#f0c674", "bullet": "#eadcc4"}
 DOT = {"idle": "#6b6152", "connecting": "#e7b45a", "connected": "#6cc070", "error": "#d9534f"}
@@ -112,6 +119,21 @@ def pane_height(content, preferred, room, floor):
     return max(floor, min(content, preferred, room))
 
 
+def migrate(saved):
+    """Settings an older lc-helper wrote, in today's keys: its guard turns and 無限防禦 as a guard mode, its one main
+    keyword as a list of one, its folded window as every section folded."""
+    saved = dict(saved)
+    forever, keyword, compact = (saved.pop(k, None) for k in ("forever", "keyword", "compact"))
+    guard = saved.get("guard")
+    if "guard_mode" not in saved:
+        saved["guard_mode"] = "forever" if forever else "turns" if isinstance(guard, int) and guard > 0 else "none"
+    if "keywords" not in saved and keyword is not None:
+        saved["keywords"] = [keyword]
+    if "open_sections" not in saved and compact is not None:
+        saved["open_sections"] = [] if compact else list(SECTIONS)
+    return saved
+
+
 def load_settings():
     """The saved settings over the defaults. The file is the user's to edit and another lc-helper version may have
     written it, so a value outside its allowed choices falls back to the default instead of failing the window."""
@@ -119,10 +141,14 @@ def load_settings():
         saved = json.loads(SETTINGS.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         saved = {}
-    settings = DEFAULTS | (saved if isinstance(saved, dict) else {})
+    settings = DEFAULTS | migrate(saved if isinstance(saved, dict) else {})
     for key, allowed in SETTING_CHOICES.items():
         if settings[key] not in allowed:
             settings[key] = DEFAULTS[key]
+    for key, allowed in LIST_CHOICES.items():
+        value = settings[key]
+        settings[key] = list(dict.fromkeys(v for v in value if v in allowed)) if isinstance(value, list) \
+            else DEFAULTS[key]
     return settings
 
 
@@ -146,7 +172,7 @@ def logo():
 
 
 def guard_text(guard):
-    return "無限防禦" if guard == FOREVER else f"防禦剩 {guard} 回合" if guard else ""
+    return "全程防禦" if guard == FOREVER else f"防禦剩 {guard} 回合" if guard else ""
 
 
 def status_text(status: Status):
@@ -490,16 +516,17 @@ class Window(QWidget):
         body.addLayout(row)
 
         row = QHBoxLayout()
-        row.addWidget(QLabel("先防禦"))
-        self.guard_spin = QSpinBox(minimum=0, maximum=99, value=s["guard"], suffix=" 回合")
-        self.guard_spin.valueChanged.connect(self.set_guard)
+        self.guard_box = QComboBox(accessibleName="防禦")
+        for mode, (name, _) in GUARD_MODES.items():
+            self.guard_box.addItem(name, mode)
+        self.guard_box.setCurrentIndex(self.guard_box.findData(s["guard_mode"]))
+        self.guard_box.activated.connect(self.set_guard_mode)
+        row.addWidget(self.guard_box, 1)
+        self.guard_spin = QSpinBox(minimum=1, maximum=99, value=s["guard"], suffix=" 回合", accessibleName="防禦回合數")
+        self.guard_spin.valueChanged.connect(self.set_guard_turns)
         row.addWidget(self.guard_spin)
-        self.forever = QPushButton("無限防禦", checkable=True, checked=s["forever"])
-        self.forever.toggled.connect(self.set_guard)
-        row.addWidget(self.forever)
-        row.addStretch()
         body.addLayout(row)
-        self.guard_spin.setEnabled(not s["forever"])
+        self.guard_spin.setVisible(s["guard_mode"] == "turns")
 
         self.start = QPushButton(objectName="primary", clicked=self.toggle_battle)
         body.addWidget(self.start)
@@ -542,7 +569,7 @@ class Window(QWidget):
         self.keyword_box.addItem("不推薦", None)
         for k in recommend.CHOICES:
             self.keyword_box.addItem(f"{events.KEYWORDS.get(k, k)}  {k}", k)
-        self.keyword_box.setCurrentIndex(max(self.keyword_box.findData(s["keyword"]), 0))
+        self.keyword_box.setCurrentIndex(max(self.keyword_box.findData((s["keywords"] or [None])[0]), 0))
         self.keyword_box.activated.connect(self.set_keyword)
         row.addWidget(self.keyword_box, 1)
         ev.addLayout(row)
@@ -557,7 +584,7 @@ class Window(QWidget):
         self.detail.setHtml("<p style='color:#8f8270'>在事件的選項頁按「讀取畫面」，或輸入記得的幾個字。</p>")
         ev.addWidget(self.detail)
         body.addWidget(self.event_box)
-        self.event_box.setVisible(not s["compact"])
+        self.event_box.setVisible("event" in s["open_sections"])
 
         self.apply_text_size()
         self.apply_hotkey_labels()
@@ -609,7 +636,7 @@ class Window(QWidget):
         side, ratio = scaled(15, TEXT_SIZES[self.settings["text_size"]][1]), self.devicePixelRatioF()
         pinned = self.settings["pin"]
         _, pin_icon, pin_tip = PIN[pinned]
-        fold_icon, fold_tip = FOLD[self.settings["compact"]]
+        fold_icon, fold_tip = FOLD["event" not in self.settings["open_sections"]]
         for button, name, color in ((self.pin, pin_icon, ICON_ON if pinned else ICON), (self.more, "more", ICON),
                                     (self.fold, fold_icon, ICON), (self.close_button, "close", ICON),
                                     (self.start, "stop" if self.running else "play", "#fff")):
@@ -619,11 +646,6 @@ class Window(QWidget):
         self.fold.setToolTip(fold_tip)
         self.fold.setAccessibleName(fold_tip)
         self.dot.setPixmap(icons.pixmap("dot", DOT[self.dot.property("state")], side // 2, ratio))
-        forever = QIcon()
-        for state, color in FOREVER_ICON.items():
-            forever.addPixmap(icons.pixmap("infinity", color, side, ratio), QIcon.Normal, state)
-        self.forever.setIcon(forever)
-        self.forever.setIconSize(QSize(side, side))
 
     def apply_pane_icons(self):
         """The detail pane's icons (PANE_ICONS) as its document's images, drawn for the screen's pixel ratio. An image
@@ -685,8 +707,8 @@ class Window(QWidget):
                 self.status.setText("熱鍵已更新")
 
     def plan(self):
-        pick = Pick(self.picks.checkedButton().property("pick"))
-        return Plan(pick, FOREVER if self.forever.isChecked() else self.guard_spin.value())
+        s = self.settings
+        return Plan(Pick(s["pick"]), GUARD_MODES[s["guard_mode"]][1](s["guard"]))
 
     def update_start(self):
         self.start.setText(f"停止  {self.settings['hotkeys']['battle']}" if self.running
@@ -708,9 +730,13 @@ class Window(QWidget):
         self.settings["pick"] = button.property("pick")
         self.worker.send("set_pick", Pick(self.settings["pick"]))
 
-    def set_guard(self, *_):
-        self.settings["guard"], self.settings["forever"] = self.guard_spin.value(), self.forever.isChecked()
-        self.guard_spin.setEnabled(not self.forever.isChecked())
+    def set_guard_mode(self, index):
+        self.settings["guard_mode"] = self.guard_box.itemData(index)
+        self.guard_spin.setVisible(self.settings["guard_mode"] == "turns")
+        self.worker.send("set_guard", self.plan().guard)
+
+    def set_guard_turns(self, turns):
+        self.settings["guard"] = turns
         self.worker.send("set_guard", self.plan().guard)
 
     def set_hold(self, on):
@@ -760,7 +786,8 @@ class Window(QWidget):
 
     def set_keyword(self, index):
         """A new main keyword: the event shown is ranked again."""
-        self.settings["keyword"] = self.keyword_box.itemData(index)
+        keyword = self.keyword_box.itemData(index)
+        self.settings["keywords"] = [keyword] if keyword else []
         if self.last_reading is not None:
             self.shown_event = None
             self.on_event(self.last_reading)
@@ -773,9 +800,9 @@ class Window(QWidget):
             self.overlay.hide_labels()
 
     def toggle_compact(self):
-        compact = self.event_box.isVisible()
-        self.settings["compact"] = compact
-        self.event_box.setVisible(not compact)
+        shown = set(self.settings["open_sections"]) ^ {"event"}
+        self.settings["open_sections"] = [key for key in SECTIONS if key in shown]
+        self.event_box.setVisible("event" in shown)
         self.apply_icons()
         QTimer.singleShot(0, self.adjustSize)
 
@@ -805,10 +832,11 @@ class Window(QWidget):
         self.running = status.phase is not Phase.STOPPED
         self.update_start()
         self.status.setText(status_text(status))
-        # The spin box counts down with the battle and goes back to the set value once it stops; set_guard only
-        # hears the user, so a change made mid-battle restarts the count from what the user picked.
+        # The spin box counts down with the battle, to 0, and goes back to the set value once it stops;
+        # set_guard_turns only hears the user, so a change made mid-battle restarts the count from what the user picked.
         left = status.plan.guard if self.running and status.plan.guard != FOREVER else self.settings["guard"]
         self.guard_spin.blockSignals(True)
+        self.guard_spin.setMinimum(0 if self.running else 1)
         self.guard_spin.setValue(left)
         self.guard_spin.blockSignals(False)
 
@@ -821,7 +849,7 @@ class Window(QWidget):
             self.show_event(reading.event, " ".join([reading.story, *reading.options]), reading.others, reading.closed)
             self.shown_event = reading.event
         if self.settings["overlay"] and reading.event and not reading.others:
-            pick = recommend.best(reading.event, self.settings["keyword"], reading.closed)
+            pick = recommend.best(reading.event, self.settings["keywords"], reading.closed)
             self.overlay.show_labels(labels(reading, lambda o: pick is not None and o is pick[0]), reading.source,
                                      hold_ms=0 if self.settings["watch"] else 60_000)
         else:
@@ -846,7 +874,7 @@ class Window(QWidget):
         """An event in the detail pane, its recommended option starred when a main keyword is set; closed are
         option texts shown grey on screen."""
         self.shown_event = event
-        pick = (lambda e: recommend.best(e, self.settings["keyword"], closed))
+        pick = (lambda e: recommend.best(e, self.settings["keywords"], closed))
         page = event_html(event, read_text, pick(event))
         if others:
             page = ("<p style='color:#d9a441;margin:0 0 4px 0'>畫面上的文字對到不只一個事件，選項效果各列一份</p>"

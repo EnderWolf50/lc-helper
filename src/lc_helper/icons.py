@@ -71,18 +71,6 @@ def bullet(p):
     p.drawEllipse(QPointF(12, 12), 4.5, 4.5)
 
 
-def infinity(p):
-    """One unbroken stroke: up and left around the left loop, through the middle, around the right loop."""
-    loop = QPainterPath(QPointF(12, 12))
-    loop.cubicTo(10, 9.33, 8, 8, 6, 8)
-    loop.arcTo(2, 8, 8, 8, 90, 180)
-    loop.cubicTo(8, 16, 10, 14.67, 12, 12)
-    loop.cubicTo(14, 9.33, 16, 8, 18, 8)
-    loop.arcTo(14, 8, 8, 8, 90, -180)
-    loop.cubicTo(16, 16, 14, 14.67, 12, 12)
-    p.drawPath(loop)
-
-
 def star(p):
     """Five points, filled, the tips blunted by the round-joined stroke. The centre sits low, so the top point and
     the two feet end equally far from the top and bottom edges."""
@@ -94,7 +82,7 @@ def star(p):
 
 
 DRAW = {"more": more, "unfolded": unfolded, "folded": folded, "close": close, "pin": pin, "unpinned": unpinned,
-        "play": play, "stop": stop, "dot": dot, "bullet": bullet, "infinity": infinity, "star": star}
+        "play": play, "stop": stop, "dot": dot, "bullet": bullet, "star": star}
 
 
 def paint(p, name, color, square: QRectF):

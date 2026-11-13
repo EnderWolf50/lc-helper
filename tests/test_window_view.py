@@ -62,9 +62,11 @@ def test_the_text_size_kept_is_the_one_a_new_window_opens_with(tmp_path, monkeyp
 
 def test_a_settings_file_with_unknown_choices_still_opens_the_window(tmp_path, monkeypatch):
     """settings.json is the user's to edit, and an older or newer lc-helper may have written it."""
-    w = window(tmp_path, monkeypatch, text_size="huge", pc_input="laser", keyword="Fire", pin="yes")
-    assert (w.settings["text_size"], w.settings["pc_input"], w.settings["keyword"], w.settings["pin"]) == \
-        ("normal", "touch", None, True)
+    w = window(tmp_path, monkeypatch, text_size="huge", pc_input="laser", keywords=["Fire"], pin="yes",
+               guard_mode="sometimes", guard=-2, open_sections="all")
+    assert (w.settings["text_size"], w.settings["pc_input"], w.settings["keywords"], w.settings["pin"]) == \
+        ("normal", "touch", [], True)
+    assert (w.settings["guard_mode"], w.settings["guard"], w.settings["open_sections"]) == ("none", 1, ["event", "gift"])
     assert w.detail.font().pointSizeF() == 12
 
 
@@ -118,7 +120,6 @@ GLYPHS = set("★∞•")  # text characters that once stood in for drawn icons
 
 def test_the_buttons_and_the_event_pane_draw_their_icons_instead_of_text_glyphs(tmp_path, monkeypatch):
     w = window(tmp_path, monkeypatch)
-    assert w.forever.text() == "無限防禦" and not w.forever.icon().isNull()
     assert not any(GLYPHS & set(b.text()) for b in w.findChildren(QAbstractButton))
     event = events.by_id()[SHORT]
     option = next(o for o in event["options"] if events.effects(o))
