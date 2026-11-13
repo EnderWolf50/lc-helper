@@ -11,7 +11,7 @@ from enum import StrEnum
 from typing import Literal
 
 from . import vision
-from .device import Clock, Device
+from .device import Clock, Covered, Device
 
 
 class Pick(StrEnum):
@@ -275,7 +275,11 @@ class AutoBattle:
         """Hold a finger on HOLD_SPOT while the turn plays, until the next turn waits for input, the battle menu
         opens, the engine stops or HOLD_LIMIT s pass. Always lifted on return."""
         end = self.clock.now() + HOLD_LIMIT
-        self.device.touch_down(*HOLD_SPOT)
+        try:
+            self.device.touch_down(*HOLD_SPOT)
+        except Covered:  # the corner is under another window: this turn plays at its own speed
+            self.sleep(IDLE_EVERY)
+            return
         try:
             while self.clock.now() < end:
                 self.sleep(HOLD_EVERY)

@@ -1,3 +1,5 @@
+import pytest
+
 from types import SimpleNamespace
 
 import numpy as np
@@ -38,3 +40,34 @@ def test_a_device_is_called_by_a_short_name():
     assert device.Target("LDPlayer", "emulator-5554").label == "LDPlayer"
     assert device.Target("MuMuPlayer12", "127.0.0.1:5555").label == "MuMuPlayer12", "not one of MuMu's own ports"
     assert device.Target("BlueStacks", "127.0.0.1:16384").label == "BlueStacks"
+
+
+class Clicks:
+    """A MaaFramework controller stand-in that records what was posted."""
+
+    def __init__(self):
+        self.posted = []
+
+    def __getattr__(self, name):
+        def post(*args):
+            self.posted.append((name, args))
+            return SimpleNamespace(wait=lambda: None)
+        return post
+
+
+def test_a_covered_point_of_the_pc_client_is_never_touched():
+    """2026-11-14: the user's browser over 胜率 took 16 synthetic touches meant for the game."""
+    ctl = Clicks()
+    covered = device.MaaDevice(ctl, cover=lambda x, y: "brave" if x > 900 else None)
+    covered.tap(312, 557)
+    with pytest.raises(device.Covered, match="brave"):
+        covered.tap(966, 545)
+    with pytest.raises(device.Covered):
+        covered.touch_down(966, 545)
+    assert ctl.posted == [("post_click", (312, 557))]
+
+
+def test_without_a_cover_check_every_tap_goes_through():
+    ctl = Clicks()
+    device.MaaDevice(ctl).tap(966, 545)
+    assert ctl.posted == [("post_click", (966, 545))]

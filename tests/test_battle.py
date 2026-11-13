@@ -99,3 +99,19 @@ def test_a_wipe_is_told_and_the_engine_keeps_waiting(screen):
                           engine={"on_fight": fights.append, "stop_after_victory": True})
     assert [(f.result, f.turns) for f in fights] == [("wipe", 2)]
     assert statuses[-1].note == ""  # a wipe waits for the player's retry or forfeit
+
+
+def test_a_covered_corner_plays_the_turn_without_holding(screen):
+    """The hold's corner under another window (the PC client): no touch there, and the battle goes on."""
+    from lc_helper.device import Covered
+
+    class CornerCovered(FakeBattle):
+        def touch_down(self, x, y):
+            if (x, y) == (1, 1):
+                raise Covered("corner covered")
+            super().touch_down(x, y)
+
+    clock = VirtualClock()
+    fake = CornerCovered(screen, clock, turns=2)
+    AutoBattle(fake, Plan(), fake.stop, clock=clock, hold=True).run()
+    assert fake.starts() == ["win_rate", "win_rate"] and "hold" not in fake.log

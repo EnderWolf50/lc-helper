@@ -81,11 +81,16 @@ PC_INPUTS = {
 PC_INPUT = "touch"
 
 
+class Covered(RuntimeError):
+    """A tap's point on the PC client is under another window: a synthetic touch lands on whatever is on top there."""
+
+
 class MaaDevice:
-    def __init__(self, controller, can_hold=True, what="模擬器"):
+    def __init__(self, controller, can_hold=True, what="模擬器", cover=None):
         self.ctl = controller
         self.can_hold = can_hold
         self.what = what
+        self.cover = cover  # (x, y) -> the program whose window covers that game point, or None when the game shows
 
     def screenshot(self):
         job = self.ctl.post_screencap().wait()
@@ -94,10 +99,17 @@ class MaaDevice:
             raise RuntimeError(f"{self.what}截圖失敗，可能已關閉、斷線或縮到最小")
         return image
 
+    def uncovered(self, x, y):
+        """Raise Covered rather than touch a point another window hides: the touch would go to that window."""
+        if self.cover and (program := self.cover(x, y)):
+            raise Covered(f"遊戲視窗在點擊位置被「{program}」蓋住，沒有點下去，請讓遊戲露出來")
+
     def tap(self, x, y):
+        self.uncovered(x, y)
         self.ctl.post_click(x, y).wait()
 
     def touch_down(self, x, y):
+        self.uncovered(x, y)
         self.ctl.post_touch_down(x, y).wait()
 
     def touch_move(self, x, y):
@@ -117,6 +129,38 @@ def _maa():
 def pc_window(windows):
     """The PC client's window among MaaFramework's desktop windows, or None."""
     return next((w for w in windows if w.class_name == PC_CLASS and w.window_name == PC_TITLE), None)
+
+
+def covering(hwnd):
+    """(x, y) in the game's 1280x720 -> the name of the program whose window is on top at that screen point, or None
+    when it is the game's own."""
+    import ctypes
+    from ctypes import wintypes
+    from pathlib import PureWindowsPath
+
+    user32, kernel32 = ctypes.WinDLL("user32"), ctypes.WinDLL("kernel32")
+    user32.WindowFromPoint.restype = user32.GetAncestor.restype = wintypes.HWND
+    user32.WindowFromPoint.argtypes = [wintypes.POINT]
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+
+    def program(top):
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(top, ctypes.byref(pid))
+        handle = kernel32.OpenProcess(0x1000, False, pid.value)  # PROCESS_QUERY_LIMITED_INFORMATION
+        buf, size = ctypes.create_unicode_buffer(260), wintypes.DWORD(260)
+        ok = handle and kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size))
+        if handle:
+            kernel32.CloseHandle(handle)
+        return PureWindowsPath(buf.value).stem if ok else "另一個視窗"
+
+    def cover(x, y):
+        rect, origin = wintypes.RECT(), wintypes.POINT(0, 0)
+        user32.GetClientRect(hwnd, ctypes.byref(rect))
+        user32.ClientToScreen(hwnd, ctypes.byref(origin))
+        point = wintypes.POINT(origin.x + round(x * rect.right / 1280), origin.y + round(y * rect.bottom / 720))
+        top = user32.GetAncestor(user32.WindowFromPoint(point), 2)  # GA_ROOT
+        return None if top == hwnd else program(top)
+    return cover
 
 
 def targets() -> list[Target]:
@@ -173,7 +217,10 @@ def _connect_pc(toolkit, pc_input):
     ctl.post_connection().wait()
     if not ctl.connected:
         raise RuntimeError("連不上 PC 版遊戲視窗")
-    device = MaaDevice(ctl, can_hold, "PC 版遊戲")
+    # Touch and seized input land on the screen point: a window over the game there takes them (seen 2026-11-14:
+    # the user's Discord window over 胜率 swallowed 16 taps). Window and cursor inputs post to the game's window.
+    cover = covering(window.hwnd) if method in ("AnchoredTouch", "Seize") else None
+    device = MaaDevice(ctl, can_hold, "PC 版遊戲", cover)
     if problem := screen_size_problem(device.screenshot()):
         raise RuntimeError(problem)
     return device, Target(f"{PC_NAME}（{name}）", PC)
