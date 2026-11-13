@@ -61,6 +61,7 @@ QToolButton#flat { background: transparent; border: none; padding: 4px 3px; }
 QToolButton#flat:hover { background: #3a2c1f; }
 QToolButton#flat::menu-indicator { image: none; width: 0; }
 QSpinBox, QLineEdit, QComboBox { background: #0f0c09; border: 1px solid #5b4527; border-radius: 6px; padding: 4px 6px; }
+QLineEdit { placeholder-text-color: #8f8270; }
 QComboBox QAbstractItemView { background: #1d1711; selection-background-color: #6b4a1f; }
 QListWidget { background: #0f0c09; border: 1px solid #3e2f1d; border-radius: 6px; }
 QListWidget::item { padding: 4px; } QListWidget::item:selected { background: #4a3417; }
@@ -144,7 +145,7 @@ def event_html(event, read_text="", pick=None):
         title = ("★ " if picked else "") + html.escape(o["text_zh"] or o["text"])
         en = html.escape(o["text"]) if o["text_zh"] else ""
         rows.append(f"<p style='margin:6px 0 0 0'><b style='color:#e7b45a'>{i}. {title}</b> "
-                    f"<span style='color:#7d715f'>{en}</span> "
+                    f"<span style='color:#8f8270'>{en}</span> "
                     f"<span style='background:#3a2c1f;color:#d8c7a6'>&nbsp;{events.kind_text(o)}&nbsp;</span></p>")
         if picked:
             rows.append(f"<p style='color:#f0c674;margin:0 0 0 14px'>推薦：{html.escape(pick[1])}</p>")
@@ -164,10 +165,11 @@ def gift_html(gift_list, heading=""):
     names = gifts.book()
     for g in gift_list:
         rows.append(f"<p style='margin:6px 0 0 0'><b style='color:#e7b45a'>{html.escape(gifts.label(g))}</b> "
-                    f"<span style='color:#7d715f'>{html.escape(g['en'])}</span></p>")
-        for text, color in ((g["desc_zh"], "#eadcc4"), (g["desc_en"] if not g["desc_zh"] else "", "#a99c86")):
-            if text:
-                rows.append(f"<p style='color:{color};margin:0 0 0 14px'>{html.escape(text).replace(chr(10), '<br>')}</p>")
+                    f"<span style='color:#8f8270'>{html.escape(g['en'])}</span></p>")
+        if g["desc_zh"]:
+            rows.append(f"<p style='color:#eadcc4;margin:0 0 0 14px'>{html.escape(g['desc_zh']).replace(chr(10), '<br>')}</p>")
+        elif g["desc_en"]:
+            rows.append(f"<p style='color:#a99c86;margin:0 0 0 14px'>{html.escape(g['desc_en']).replace(chr(10), '<br>')}</p>")
         plus = g["plus_zh"] or g["plus_en"]
         if plus:
             rows.append(f"<p style='color:#9fc1d9;margin:2px 0 0 14px'>強化後：{html.escape(plus).replace(chr(10), '<br>')}</p>")
