@@ -3,13 +3,13 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest  # noqa: E402
-from PySide6.QtCore import QPoint, Qt  # noqa: E402
-from PySide6.QtGui import QAction, QColor  # noqa: E402
+from PySide6.QtCore import QEvent, QPoint, QPointF, Qt  # noqa: E402
+from PySide6.QtGui import QAction, QColor, QMouseEvent  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication, QStyleFactory, QToolButton, QWidgetAction  # noqa: E402
 
 from lc_helper import app as ui  # noqa: E402
-from lc_helper import icons  # noqa: E402
+from lc_helper import events, icons  # noqa: E402
 
 
 class StandIn:
@@ -20,6 +20,13 @@ class StandIn:
         self.sent.append(command)
 
 
+def settled(w):
+    """w once it has laid itself out and fitted the detail pane, which takes a few event passes."""
+    for _ in range(20):
+        QApplication.processEvents()
+    return w
+
+
 def window(tmp_path, monkeypatch, **settings):
     QApplication.instance() or QApplication([])
     monkeypatch.setattr(ui, "SETTINGS", tmp_path / "settings.json")
@@ -27,8 +34,7 @@ def window(tmp_path, monkeypatch, **settings):
         ui.save_settings(ui.DEFAULTS | settings)
     w = ui.Window(StandIn)
     w.show()
-    QApplication.processEvents()
-    return w
+    return settled(w)
 
 
 def menu_action(w, text):
@@ -40,7 +46,7 @@ def test_a_bigger_text_size_grows_the_text_and_the_window_and_is_kept(tmp_path, 
     assert w.detail.font().pointSizeF() == 12
     width, pane = w.width(), w.detail.height()
     menu_action(w, "大").trigger()
-    QApplication.processEvents()
+    settled(w)
     assert QApplication.font().pointSizeF() == 13.5, "menus and dialogs grow too"
     assert w.detail.font().pointSizeF() == 13.5
     assert w.width() > width and w.detail.height() > pane
@@ -214,3 +220,95 @@ def test_every_menu_item_still_does_what_it_did(tmp_path, monkeypatch):
     assert w.worker.sent == [("set_hold", False), ("set_stop_after_victory", True), ("scan",)]
     assert (w.settings["hold"], w.settings["stop_after_victory"], w.settings["notify"]) == (False, True, False)
     assert opened == ["戰鬥紀錄", "熱鍵設定"]
+
+
+SHORT, LONG = 901101, 971097  # an event whose effects fit the pane at the large size, and one that scrolls in it
+
+
+def test_the_pane_takes_its_text_up_to_the_preferred_height_and_the_room_on_screen_but_never_under_the_floor():
+    assert ui.pane_height(content=200, preferred=360, room=500, floor=80) == 200
+    assert ui.pane_height(content=600, preferred=360, room=500, floor=80) == 360, "the rest scrolls"
+    assert ui.pane_height(content=600, preferred=360, room=250, floor=80) == 250, "the window ends on the screen"
+    assert ui.pane_height(content=30, preferred=360, room=500, floor=80) == 80, "a short text gets the floor"
+    assert ui.pane_height(content=600, preferred=360, room=20, floor=80) == 80, "a window placed low keeps a few lines"
+
+
+def test_the_empty_pane_is_a_few_lines_and_an_event_gets_the_height_its_text_needs(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch, text_size="large")
+    w.move(w.screen().availableGeometry().topLeft())
+    settled(w)
+    empty, line = w.detail.height(), w.detail.fontMetrics().lineSpacing()
+    assert 2 * line < empty < 5 * line, "about three lines"
+    w.show_event(events.by_id()[SHORT])
+    settled(w)
+    short = w.detail.height()
+    assert short > empty and w.detail.verticalScrollBar().maximum() == 0, "a short event shows whole"
+    w.show_event(events.by_id()[LONG])
+    settled(w)
+    assert short < w.detail.height() <= ui.scaled(300, 13.5) and w.detail.verticalScrollBar().maximum() > 0
+
+
+def test_a_long_event_at_the_large_text_size_keeps_the_window_on_a_short_screen(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch, text_size="large")
+    screen = w.screen().availableGeometry()
+    w.move(screen.left(), screen.bottom() - 700)  # less room than a large window with a long event takes
+    w.show_event(events.by_id()[LONG])
+    settled(w)
+    assert w.frameGeometry().bottom() <= screen.bottom()
+    assert w.detail.verticalScrollBar().maximum() > 0, "the rest scrolls"
+
+
+def test_moving_the_window_down_shrinks_the_pane_and_moving_it_back_up_restores_it(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch)
+    screen = w.screen().availableGeometry()
+    w.move(screen.topLeft())
+    w.show_event(events.by_id()[LONG])
+    settled(w)
+    high = w.detail.height()
+    w.move(screen.left(), screen.top() + 250)
+    settled(w)
+    assert w.detail.height() < high and w.frameGeometry().bottom() <= screen.bottom()
+    w.move(screen.topLeft())
+    settled(w)
+    assert w.detail.height() == high
+
+
+def test_a_window_dragged_down_keeps_its_shape_while_held_and_fits_the_screen_once_let_go(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch)
+    screen = w.screen().availableGeometry()
+    w.move(screen.topLeft())
+    w.show_event(events.by_id()[LONG])
+    settled(w)
+    high = w.detail.height()
+
+    def mouse(kind, at):
+        button = Qt.NoButton if kind == QEvent.MouseButtonRelease else Qt.LeftButton
+        QApplication.sendEvent(w, QMouseEvent(kind, QPointF(w.mapFromGlobal(at)), QPointF(at), Qt.LeftButton, button,
+                                              Qt.NoModifier))
+
+    grab = w.header.mapToGlobal(QPoint(20, 10))
+    mouse(QEvent.MouseButtonPress, grab)
+    mouse(QEvent.MouseMove, grab + QPoint(0, 250))
+    settled(w)
+    assert w.y() == screen.top() + 250 and w.detail.height() == high
+    mouse(QEvent.MouseButtonRelease, grab + QPoint(0, 250))
+    settled(w)
+    assert w.detail.height() < high and w.frameGeometry().bottom() <= screen.bottom()
+
+
+def test_a_fit_that_runs_before_the_window_has_caught_up_with_the_last_one_lands_on_the_same_height(tmp_path,
+                                                                                                    monkeypatch):
+    """The fit timer can fire while a new pane height is still on its way up the layouts: a fit that read the
+    window's bottom then chased the one before it, and the pane and the window never settled."""
+    w = window(tmp_path, monkeypatch)
+    screen = w.screen().availableGeometry()
+    w.move(screen.topLeft())
+    w.show_event(events.by_id()[LONG])
+    settled(w)
+    w.move(screen.left(), screen.top() + 250)
+    w.fit_detail()
+    fitted = w.detail.height()
+    w.fit_detail()
+    assert w.detail.height() == fitted
+    settled(w)
+    assert w.detail.height() == fitted and w.frameGeometry().bottom() <= screen.bottom()

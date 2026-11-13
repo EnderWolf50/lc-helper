@@ -40,12 +40,31 @@ class StandIn:
         pass
 
 
-def shot(window, out, name):
-    for _ in range(3):
+def settle():
+    """Let the window lay itself out and fit its detail pane, which takes a few event passes."""
+    for _ in range(20):
         QApplication.processEvents()
+
+
+def shot(window, out, name):
+    settle()
     path = out / name
     window.grab().save(str(path))
     print(path)
+
+
+def on_screen(window, out, name):
+    """The window where it is on its screen's available area, drawn dark: whether it ends above the screen's bottom."""
+    settle()
+    area = window.screen().availableGeometry()
+    sheet = QPixmap(area.size())
+    sheet.fill(QColor("#0b0a09"))
+    painter = QPainter(sheet)
+    painter.drawPixmap(window.frameGeometry().topLeft() - area.topLeft(), window.grab())
+    painter.end()
+    path = out / name
+    sheet.save(str(path))
+    print(path, f"screen {area.height()} px, window {window.y()}..{window.frameGeometry().bottom()}")
 
 
 def menus(window, out, name):
@@ -149,6 +168,12 @@ def main():
         w.set_text_size(key)
         shot(w, out, f"window-text-{key}.png")
         menus(w, out, f"window-menu-{key}.png")
+    w.show_event(events.by_id()[971097])  # too long for the pane at every text size: it stops short and scrolls
+    area = w.screen().availableGeometry()
+    for where, y in (("top", 0), ("low", area.height() // 4)):
+        w.move(area.left(), area.top() + y)
+        on_screen(w, out, f"window-long-event-{where}.png")
+    w.move(area.topLeft())
     w.set_text_size("normal")
     w.query.setText("螺旋")
     w.run_search()

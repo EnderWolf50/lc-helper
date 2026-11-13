@@ -11,6 +11,7 @@ import json
 import sys
 from ctypes import wintypes
 from functools import partial
+from math import ceil
 from string import Template
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QEvent, QObject, QPoint, QSize, Qt, QTimer, Signal
@@ -33,6 +34,8 @@ DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 TEXT_SIZES = {"small": ("小", 10.5), "normal": ("標準", 12), "large": ("大", 13.5)}  # text_size: menu name, points
 REFERENCE_PT = 10  # the window's pixel sizes were set for text of this size
+PANE_LINES = 3  # the detail pane's least height in lines of text, which is also its height with nothing to show
+SCREEN_GAP = 8  # px kept free between the window's bottom and the screen's
 # pin: window flags, the pin button's icon and tooltip. A Qt.Tool window has no taskbar entry, so the unpinned window
 # is a normal one: when it falls behind the game, the taskbar and Alt+Tab still find it.
 PIN = {True: (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool, "pin",
@@ -91,6 +94,13 @@ def style(base, line):
 def scaled(px, base):
     """A pixel size set for REFERENCE_PT text, for text of base points."""
     return round(px * base / REFERENCE_PT)
+
+
+def pane_height(content, preferred, room, floor):
+    """The detail pane's height for text content px tall: all of it up to preferred, the rest scrolling, and no more
+    than the room left on the screen under the pane. Never under floor, even in a window placed so low that it then
+    runs off the screen: the user placed it, so it is not moved."""
+    return max(floor, min(content, preferred, room))
 
 
 def load_settings():
@@ -371,6 +381,7 @@ class Window(QWidget):
         self.shown_event = None
         self.running = False
         self.drag_from: QPoint | None = None
+        self.fit_timer = QTimer(self, singleShot=True, interval=0, timeout=self.fit_detail)
         self.bridge = Bridge()
         self.worker = worker_factory(self.bridge.callbacks())
         self.build()
@@ -532,6 +543,7 @@ class Window(QWidget):
         self.results.currentItemChanged.connect(lambda item, _: item and self.show_hit(*item.data(Qt.UserRole)))
         ev.addWidget(self.results)
         self.detail = QTextBrowser(openExternalLinks=False)
+        self.detail.document().documentLayout().documentSizeChanged.connect(lambda _: self.fit_timer.start())
         self.detail.setHtml("<p style='color:#8f8270'>在事件的選項頁按「讀取畫面」，或輸入記得的幾個字。</p>")
         ev.addWidget(self.detail)
         body.addWidget(self.event_box)
@@ -551,9 +563,35 @@ class Window(QWidget):
         QApplication.setFont(font)
         QApplication.instance().setStyleSheet(style(base, QFontMetrics(font).height()))
         self.root.setFixedWidth(scaled(380, base))
-        self.detail.setFixedHeight(scaled(300, base))
         self.apply_icons()
         QTimer.singleShot(0, self.adjustSize)
+
+    def fit_detail(self):
+        """The detail pane as tall as pane_height makes it where the window is now. Its text changing size, the window
+        being laid out again (the text size, the fold, a line shown or hidden above the pane) or moving bring it here.
+
+        Qt carries a new pane height up to the window one layout per event pass, so a fit that read the window's
+        bottom in between would chase the fit before it, for good: the layouts holding the pane run here first."""
+        pane, text = self.detail, self.detail.document()
+        if not pane.isVisible():
+            return  # showing it lays the window out, which comes back here
+        holder = pane.parentWidget()
+        while holder is not None:
+            holder.layout().activate()
+            holder = holder.parentWidget()
+        chrome = pane.height() - pane.viewport().height()  # the border and the padding
+        screen = self.screen().availableGeometry()
+        room = pane.height() + screen.bottom() - SCREEN_GAP - self.frameGeometry().bottom()
+        floor = PANE_LINES * pane.fontMetrics().lineSpacing() + 2 * round(text.documentMargin()) + chrome
+        preferred = scaled(300, TEXT_SIZES[self.settings["text_size"]][1])
+        pane.setFixedHeight(pane_height(ceil(text.size().height()) + chrome, preferred, room, floor))
+
+    def moveEvent(self, e):
+        """A dragged window is fitted once it is let go: it keeps its shape in the hand instead of being laid out again
+        on every mouse move."""
+        if self.drag_from is None:
+            self.fit_timer.start()
+        super().moveEvent(e)
 
     def apply_icons(self):
         """The icons for the states they show, at the text's size, drawn for the screen's pixel ratio."""
@@ -574,6 +612,8 @@ class Window(QWidget):
     def event(self, e):
         if e.type() == QEvent.DevicePixelRatioChange:  # moved to a screen of another scale
             self.apply_icons()
+        elif e.type() == QEvent.LayoutRequest:  # laid out again: what is above the pane may have changed height
+            self.fit_timer.start()
         return super().event(e)
 
     def set_pin(self, on):
@@ -810,7 +850,9 @@ class Window(QWidget):
             self.move(e.globalPosition().toPoint() - self.drag_from)
 
     def mouseReleaseEvent(self, e):
-        self.drag_from = None
+        if self.drag_from is not None:
+            self.drag_from = None
+            self.fit_timer.start()
 
     def closeEvent(self, e):
         self.settings["pos"] = [self.x(), self.y()]
