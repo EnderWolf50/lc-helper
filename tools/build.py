@@ -24,6 +24,8 @@ KEPT = DIST / "lc-helper.local"  # the replaced build's .local while PyInstaller
 def main():
     if not (ROOT / "assets/maa/model/ocr/rec.onnx").is_file():
         sys.exit("no OCR model: run uv run --group sync python tools/sync_maalc.py first")
+    if running(APP / "lc-helper.exe"):
+        sys.exit(f"{APP / 'lc-helper.exe'} is open: close it first, the build empties the folder it runs from")
     if (APP / ".local").is_dir() and not KEPT.exists():
         shutil.move(APP / ".local", KEPT)
     try:
@@ -34,6 +36,18 @@ def main():
             shutil.move(KEPT, APP / ".local")
     size = sum(f.stat().st_size for f in APP.rglob("*") if f.is_file())
     print(f"{APP / 'lc-helper.exe'}  ({size / 2**20:.0f} MB in all)")
+
+
+def running(exe):
+    """Whether exe runs: Windows refuses to open a running program's file for writing (checked 2026-11-14 on
+    lc-helper.exe open, PermissionError 13). Nothing is written."""
+    try:
+        with open(exe, "r+b"):
+            return False
+    except FileNotFoundError:
+        return False
+    except PermissionError:
+        return True
 
 
 def build():
