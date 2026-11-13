@@ -282,7 +282,7 @@ def test_a_size_the_game_cannot_take_is_told_and_the_battle_runs_anyway(screen):
     w.join(3)
 
 
-def test_an_emulator_keeps_its_size_and_unknown_sizes_mean_keep(screen):
+def test_an_emulator_keeps_its_size_and_an_unknown_size_is_the_default(screen):
     emulator, pc = Sized(screen("EventChoices.png")), Sized(screen("EventChoices.png"))
     w, v = started(emulator), on_pc(pc)
     w.send("set_pc_size", "720")
@@ -293,4 +293,4 @@ def test_an_emulator_keeps_its_size_and_unknown_sizes_mean_keep(screen):
     for worker in (w, v):
         worker.shutdown()
         worker.join(3)
-    assert emulator.sizes == pc.sizes == []
+    assert emulator.sizes == [] and pc.sizes == [(2560, 1440), "back"]

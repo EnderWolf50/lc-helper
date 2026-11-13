@@ -88,7 +88,7 @@ PC_SIZES = {
     "1080": ("1920×1080", (1920, 1080)),
     "1440": ("2560×1440", (2560, 1440)),
 }
-PC_SIZE = "keep"
+PC_SIZE = "1440"
 WINDOW_BACK_AFTER = 0.05  # s from the lift to moving the window back; AALC waits 0.02 (input.py, WindowMoveInput)
 
 
