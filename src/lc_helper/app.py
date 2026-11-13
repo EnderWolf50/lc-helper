@@ -1318,7 +1318,7 @@ class Window(QWidget):
 
     def on_trials(self, page):
         """The gift choice after a boss read: each card's worth, its gift against its trial with the recommended
-        keywords as the team's, drawn over each card's trial on the game; only there (the window lists its gifts as
+        keywords as the team's, drawn above each card on the game; only there (the window lists its gifts as
         for any gift screen)."""
         self.last_trials = page
         if self.settings["overlay"]:

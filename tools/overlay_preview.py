@@ -6,7 +6,7 @@ Usage: uv run python tools/overlay_preview.py [width]   (default 1920: the game 
 The captures are maalc's tests/screens (tools/sync_maalc.py), read as lc-helper reads them, with Charge and Sinking
 as the recommended keywords. The "busiest" pictures put the options with the most to say (gifts, chances, a check's
 costs) on EventChoicesLitTop.png's three rows: their text on the game is not theirs, only the cards are. The post-boss
-captures get each card's worth over its trial (trials.worth), the same keywords as the team's.
+captures get each card's worth above it (trials.worth), the same keywords as the team's.
 """
 
 import os

@@ -27,9 +27,10 @@ GAME_W, GAME_H = 1280, 720
 CARD_LEFT, CARD_RIGHT, CARD_TOP, CARD_BOTTOM = 52, 678, 108, 612
 OPTION_FRAME = 690
 CARD_GAP = 6
-# Around a post-boss card's centre x: over its trial's effect box, under the trial's badge and name
-# (BossGiftTrials*.png: the boxes at y 478-545, the cards 245 wide).
-TRIAL_CARD = (-117, 474, 234, 72)
+# Around a post-boss card's centre x: above the card, on the bare background, so neither its gift nor its trial is
+# covered (the user, 2026-11-14). BossGiftTrials*.png: the cards 245 wide from y ~158, their Acquire and Owned tags
+# from y 152; nothing above them under the top bar's buttons (y < 80).
+TRIAL_CARD = (-117, 86, 234, 62)
 OPTION_TEXT = 90  # an option's text and hint end within this far under its first line (frames are ~115 apart)
 TEXT_PX, SMALL_PX, PAD_PX = 15, 13, 7  # at 1280x720
 SHOW_FOR_MS = 60_000  # a read off a page nothing watches stays this long; a watched page's hints go with the page
@@ -324,7 +325,7 @@ class Overlay(QWidget):
         self.show_cards(list(items), [], source, hold_ms)
 
     def show_trials(self, worths, source):
-        """Each post-boss card's worth over its trial, until hide_labels: the worker tells the page's leaving."""
+        """Each post-boss card's worth above it, until hide_labels: the worker tells the page's leaving."""
         self.show_cards([], list(worths), source, 0)
 
     def show_cards(self, items, worths, source, hold_ms):
@@ -439,7 +440,7 @@ class Overlay(QWidget):
         p.end()
 
     def trial_cards(self):
-        """Each post-boss card's worth laid out over its trial's effect box: (worth, document, rect in overlay
+        """Each post-boss card's worth laid out above the card: (worth, document, rect in overlay
         pixels)."""
         sx, sy = self.width() / GAME_W, self.height() / GAME_H
         pad = PAD_PX * sy
