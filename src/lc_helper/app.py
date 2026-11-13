@@ -592,10 +592,10 @@ class Window(QWidget):
         pane.setFixedHeight(pane_height(ceil(text.size().height()) + chrome, preferred, room, floor))
 
     def moveEvent(self, e):
-        """A dragged window is fitted once it is let go: it keeps its shape in the hand instead of being laid out again
-        on every mouse move."""
-        if self.drag_from is None:
-            self.fit_timer.start()
+        """The pane follows the screen's bottom while the window is dragged, too. The fit waits for the next event
+        pass, so a burst of mouse moves costs one layout; it only resizes the window, from its top, which moves
+        nothing and so comes back to no moveEvent."""
+        self.fit_timer.start()
         super().moveEvent(e)
 
     def apply_icons(self):
@@ -855,9 +855,7 @@ class Window(QWidget):
             self.move(e.globalPosition().toPoint() - self.drag_from)
 
     def mouseReleaseEvent(self, e):
-        if self.drag_from is not None:
-            self.drag_from = None
-            self.fit_timer.start()
+        self.drag_from = None
 
     def closeEvent(self, e):
         self.settings["pos"] = [self.x(), self.y()]

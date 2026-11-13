@@ -273,7 +273,7 @@ def test_moving_the_window_down_shrinks_the_pane_and_moving_it_back_up_restores_
     assert w.detail.height() == high
 
 
-def test_a_window_dragged_down_keeps_its_shape_while_held_and_fits_the_screen_once_let_go(tmp_path, monkeypatch):
+def test_a_dragged_window_keeps_its_bottom_on_the_screen_at_every_step_while_it_is_held(tmp_path, monkeypatch):
     w = window(tmp_path, monkeypatch)
     screen = w.screen().availableGeometry()
     w.move(screen.topLeft())
@@ -288,12 +288,18 @@ def test_a_window_dragged_down_keeps_its_shape_while_held_and_fits_the_screen_on
 
     grab = w.header.mapToGlobal(QPoint(20, 10))
     mouse(QEvent.MouseButtonPress, grab)
-    mouse(QEvent.MouseMove, grab + QPoint(0, 250))
+    heights = []
+    for down in (100, 200, 300, 200, 0):
+        mouse(QEvent.MouseMove, grab + QPoint(0, down))
+        settled(w)
+        assert w.y() == screen.top() + down, "the window stays under the hand"
+        assert w.frameGeometry().bottom() <= screen.bottom(), f"{down} px down, still held"
+        heights.append(w.detail.height())
+    assert high > heights[0] > heights[1] > heights[2], "the pane shrinks as the window goes down"
+    assert heights[2] < heights[3] < heights[4] == high, "and grows back on the way up"
+    mouse(QEvent.MouseButtonRelease, grab)
     settled(w)
-    assert w.y() == screen.top() + 250 and w.detail.height() == high
-    mouse(QEvent.MouseButtonRelease, grab + QPoint(0, 250))
-    settled(w)
-    assert w.detail.height() < high and w.frameGeometry().bottom() <= screen.bottom()
+    assert w.y() == screen.top() and w.detail.height() == high, "letting go changes nothing"
 
 
 def test_a_fit_that_runs_before_the_window_has_caught_up_with_the_last_one_lands_on_the_same_height(tmp_path,
