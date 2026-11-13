@@ -1,11 +1,12 @@
-"""Draw the hints the overlay puts on the game over captures of Choices pages, without the game: a PNG per capture in
-.local/evidence/overlay-*.png.
+"""Draw the hints the overlay puts on the game over captures of Choices pages and of the gift choice after a boss,
+without the game: a PNG per capture in .local/evidence/overlay-*.png.
 
 Usage: uv run python tools/overlay_preview.py [width]   (default 1920: the game window's width; 1280 is the smallest)
 
 The captures are maalc's tests/screens (tools/sync_maalc.py), read as lc-helper reads them, with Charge and Sinking
 as the recommended keywords. The "busiest" pictures put the options with the most to say (gifts, chances, a check's
-costs) on EventChoicesLitTop.png's three rows: their text on the game is not theirs, only the cards are.
+costs) on EventChoicesLitTop.png's three rows: their text on the game is not theirs, only the cards are. The post-boss
+captures get each card's worth over its trial (trials.worth), the same keywords as the team's.
 """
 
 import os
@@ -19,11 +20,12 @@ from PySide6.QtCore import QPoint, Qt  # noqa: E402
 from PySide6.QtGui import QImage, QPainter  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
-from lc_helper import events, overlay, recommend, vision  # noqa: E402
+from lc_helper import events, gifts, ocr, overlay, recommend, trials, vision  # noqa: E402
 from sync_maalc import maalc_dir  # noqa: E402
 
 KEYWORDS = ["Charge", "Sinking"]
 CAPTURES = ["EventChoices.png", "EventChoicesLitTop.png", "EventChoicesUsed.png", "EventChoicesScrolledBack.png"]
+TRIAL_CAPTURES = ["BossGiftTrials.png", "BossGiftTrialsHard.png", "BossGiftTrialsFloor3.png"]
 ROWS = [(733, 217, 300, 22), (733, 343, 300, 22), (733, 470, 300, 22)]  # EventChoicesLitTop.png's first lines
 
 
@@ -33,11 +35,11 @@ def qimage(image, width):
     return picture.scaledToWidth(width, Qt.SmoothTransformation).convertToFormat(QImage.Format_ARGB32_Premultiplied)
 
 
-def draw(image, items, width, out):
+def draw(image, items, width, out, worths=()):
     picture = qimage(image, width)
     o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
     o.resize(picture.width(), picture.height())
-    o.items = items
+    o.items, o.trials = items, list(worths)
     p = QPainter(picture)
     o.render(p, QPoint(0, 0), renderFlags=QWidget.RenderFlag.DrawChildren)
     p.end()
@@ -71,6 +73,10 @@ def main():
         items = [overlay.Label(box, o, recommended=j == 0, middle=box[1] + 13)
                  for j, (box, o) in enumerate(zip(ROWS, options[i:i + 3]))]
         draw(background, items, width, out / f"overlay-busiest-{i // 3 + 1}-{width}.png")
+    for name in TRIAL_CAPTURES:
+        image = vision.imread(screens / name)
+        page = trials.read_page(image, ocr.lines, gifts.read_gifts(image, "choice", ocr.lines))
+        draw(image, [], width, out / f"overlay-{Path(name).stem}-{width}.png", trials.worth(page, KEYWORDS))
 
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (QAbstractButton, QApplication, QButtonGroup, QChe
 
 from . import device as devices
 from .paths import LOCAL
-from . import events, fights, follow, gifts, icons, recommend
+from . import events, fights, follow, gifts, icons, recommend, trials
 from .overlay import SHOW_FOR_MS, Overlay, game_window, labels, lifts
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
@@ -321,12 +321,13 @@ class Bridge(QObject):
     fight = Signal(object, str)
     skip = Signal(str)
     gifts = Signal(object)
+    trials = Signal(object)
     error = Signal(str)
 
     def callbacks(self):
         return Callbacks(device=self.device.emit, targets=self.targets.emit, battle=self.battle.emit,
                          event=self.event.emit, page_left=self.page_left.emit, fight=self.fight.emit, skip=self.skip.emit,
-                         gifts=self.gifts.emit,                         error=self.error.emit)
+                         gifts=self.gifts.emit, trials=self.trials.emit, error=self.error.emit)
 
 
 WM_HOTKEY, MOD_NOREPEAT = 0x0312, 0x4000
@@ -637,6 +638,7 @@ class Window(QWidget):
         self.overlay = Overlay()
         self.tray = None
         self.last_reading = None  # the event page last read, ranked again on new keywords
+        self.last_trials = None  # the post-boss gift choice last read, while it is up: scored again on new keywords
         self.shown_event = None
         self.running = False
         self.drag_from: QPoint | None = None
@@ -653,6 +655,7 @@ class Window(QWidget):
         self.bridge.page_left.connect(self.on_page_left)
         self.bridge.fight.connect(self.on_fight)
         self.bridge.gifts.connect(self.on_gifts)
+        self.bridge.trials.connect(self.on_trials)
         self.bridge.skip.connect(lambda what: self.say_skip(f"自動跳過：{what}"))
         self.bridge.error.connect(self.say)
         self.foreground = follow.Foreground(self.on_foreground) if lifts() else None
@@ -1234,6 +1237,8 @@ class Window(QWidget):
             self.on_event(self.last_reading)
         elif self.shown_event is not None:
             self.show_event(self.shown_event)
+        if self.last_trials is not None:
+            self.on_trials(self.last_trials)
 
     def set_overlay(self, on):
         self.settings["overlay"] = on
@@ -1298,6 +1303,7 @@ class Window(QWidget):
         """The Choices page read off the game went away: its hints leave the game, and the pane goes back to saying
         how to fill it, unless it shows an event the user looked up."""
         self.overlay.hide_labels()
+        self.last_trials = None
         if self.last_reading is not None:
             self.clear_event()
 
@@ -1309,6 +1315,14 @@ class Window(QWidget):
         """The search field emptied, or the page read gone: the pane goes back to saying how to fill it."""
         self.shown_event = self.last_reading = None
         self.detail.setHtml(EVENT_PLACEHOLDER)
+
+    def on_trials(self, page):
+        """The gift choice after a boss read: each card's worth, its gift against its trial with the recommended
+        keywords as the team's, drawn over each card's trial on the game; only there (the window lists its gifts as
+        for any gift screen)."""
+        self.last_trials = page
+        if self.settings["overlay"]:
+            self.overlay.show_trials(trials.worth(page, self.settings["keywords"]), page.source)
 
     def on_gifts(self, reading):
         """A gift screen read: its gifts in Chinese, with the effects once enhanced and their fusion recipes."""

@@ -177,3 +177,21 @@ def test_the_overlay_is_kept_just_above_the_game_and_never_always_on_top(qt, mon
     o.place()  # the follow timer's look
     assert len(placed) == 2
     o.close()
+
+
+def test_each_post_boss_cards_worth_sits_over_its_trial_and_fits(qt):
+    from lc_helper import gifts, trials
+
+    def card(x, gift_id, trial, level):
+        return trials.Card(x, gifts.book()[gift_id], False, trial, level)
+    page = trials.TrialPage((card(242, 9054, "Defense Level Up", 1), card(506, 9013, "Defense Skill Up", 1),
+                             card(771, 9089, "Take Less Damage", 2), card(1035, 9001, "Growth I", 2)), 2)
+    o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
+    o.resize(1280, 720)
+    o.trials = trials.worth(page, ["Charge"])
+    laid = o.trial_cards()
+    assert all(abs(rect.center().x() - w.card.x) < 2 and rect.top() >= 470 and rect.bottom() <= 548
+               for w, _, rect in laid), "over the trial's effect box, clear of Refuse Gift and Select (y 548)"
+    assert all(a.right() < b.left() for (_, _, a), (_, _, b) in zip(laid, laid[1:]))
+    assert all(doc.size().height() <= rect.height() for _, doc, rect in laid)
+    o.close()

@@ -11,7 +11,7 @@ from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QAbstractButton, QApplication, QLabel, QToolButton  # noqa: E402
 
 from lc_helper import app as ui  # noqa: E402
-from lc_helper import events  # noqa: E402
+from lc_helper import events, gifts, trials  # noqa: E402
 from lc_helper.device import Target  # noqa: E402
 from lc_helper.worker import Worker  # noqa: E402
 
@@ -393,3 +393,26 @@ def test_no_keyword_says_what_adding_one_does(tmp_path, monkeypatch):
     assert chips(w) == ["＋ 體系"]
     row = w.sections["event"].body.findChildren(QLabel)
     assert any(label.text() == "加入後標出建議的選項" and label.isVisible() for label in row)
+
+
+def post_boss_page():
+    """BossGiftTrialsHard.png's cards: Melted Spring (Sinking II), Talisman Bundle (Rupture I), Rusted Muzzle (Bleed I),
+    Hellterfly's Dream (Burn II)."""
+    def card(x, gift_id, trial, level):
+        return trials.Card(x, gifts.book()[gift_id], False, trial, level)
+    return trials.TrialPage((card(242, 9054, "Defense Level Up", 1), card(506, 9013, "Defense Skill Up", 1),
+                             card(771, 9089, "Take Less Damage", 2), card(1035, 9001, "Growth I", 2)), 2, "127.0.0.1:1")
+
+
+def test_each_post_boss_cards_worth_is_drawn_on_the_game_scored_by_the_keywords(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch, overlay=True, keywords=["Charge", "Sinking"])
+    w.on_trials(post_boss_page())
+    assert [x.rank for x in w.overlay.trials] == [1, 3, 4, 2] and w.overlay.isVisible()
+    assert not w.overlay.expire.isActive(), "it stays until the worker tells the page went"
+    w.set_keywords(["Burn"])
+    assert [x.rank for x in w.overlay.trials] == [2, 3, 4, 1], "Hellterfly's Dream is the team's now"
+    w.bridge.page_left.emit()
+    assert not w.overlay.trials and not w.overlay.isVisible() and w.last_trials is None
+    w.settings["overlay"] = False
+    w.on_trials(post_boss_page())
+    assert not w.overlay.trials, "the worth is drawn on the game only: nothing with the hints off"

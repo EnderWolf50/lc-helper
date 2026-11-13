@@ -13,6 +13,12 @@ WORDS = {
     # LLC writes a gift card's Acquire E.G.O Gift tag the same (获得E.G.O饰品), and on the gift choice the tags reach
     # into the title's region: tell the choice by its refuse first.
     "get": {"en": "get", "cn": "获得"},
+    # The post-boss gift choice: the tag over each card's trial half, MirrorDungeonUI mirror_dungeon_acquire_enemy_buff
+    # (追加的苦难); the tag on each card's top-right corner, mirror_dungeon_acquire_ego_gift_desc (获得E.G.O饰品); the
+    # tag over a gift held already, own (持有).
+    "mounting": {"en": "mounting", "cn": "追加的苦难"},
+    "acquire": {"en": "acquire", "cn": "获得"},
+    "owned": {"en": "owned", "cn": "持有"},
     # a check's prompt: BattleUIText choice_personality (选择一位罪人来进行判定：)
     "check": {"en": "choose a character", "cn": "选择一位罪人"},
     # The event button's labels, each word the whole label. No LLC text was found for SKIP: the button may be a

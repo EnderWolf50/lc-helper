@@ -353,3 +353,21 @@ def test_an_emulator_keeps_its_size_and_an_unknown_size_is_the_default(screen):
         worker.shutdown()
         worker.join(3)
     assert emulator.sizes == [] and pc.sizes == [(2560, 1440), "back"]
+
+
+def test_the_trials_of_a_post_boss_choice_read_by_hand_are_told_and_so_is_their_page_going(screen):
+    pages, left = [], []
+    game = Slides([screen("BossGiftTrialsHard.png"), screen("BossGiftTrialsHard.png"), screen("MirrorMap.png")])
+    started(game, trials=pages.append, page_left=lambda: left.append(1)).send("read_event")
+    wait_for(lambda: left)
+    assert [c.trial for c in pages[0].cards] == ["Defense Level Up", "Defense Skill Up", "Take Less Damage", "Growth I"]
+    assert pages[0].picks == 2 and pages[0].source == "127.0.0.1:1"
+    assert len(pages) == 1 and left == [1]
+
+
+def test_auto_read_tells_a_post_boss_choice_once_while_it_stays_and_its_going(screen):
+    pages, left = [], []
+    game = Slides([screen("BossGiftTrialsHard.png")] * 3 + [screen("MirrorMap.png")])
+    started(game, trials=pages.append, page_left=lambda: left.append(1)).send("set_watch", True)
+    wait_for(lambda: left)
+    assert len(pages) == 1 and [c.trial for c in pages[0].cards] == ["Defense Level Up", "Defense Skill Up", "Take Less Damage", "Growth I"] and left == [1]

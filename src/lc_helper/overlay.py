@@ -19,7 +19,7 @@ from PySide6.QtGui import (QAbstractTextDocumentLayout, QColor, QFont, QFontMetr
 from PySide6.QtWidgets import QWidget
 
 from . import device as devices
-from . import events, follow, gifts, icons
+from . import events, follow, gifts, icons, trials
 
 GAME_W, GAME_H = 1280, 720
 # The cards' column, in game pixels: from the story panel's left edge to just short of the option frames (x 690),
@@ -27,6 +27,9 @@ GAME_W, GAME_H = 1280, 720
 CARD_LEFT, CARD_RIGHT, CARD_TOP, CARD_BOTTOM = 52, 678, 108, 612
 OPTION_FRAME = 690
 CARD_GAP = 6
+# Around a post-boss card's centre x: over its trial's effect box, under the trial's badge and name
+# (BossGiftTrials*.png: the boxes at y 478-545, the cards 245 wide).
+TRIAL_CARD = (-117, 474, 234, 72)
 OPTION_TEXT = 90  # an option's text and hint end within this far under its first line (frames are ~115 apart)
 TEXT_PX, SMALL_PX, PAD_PX = 15, 13, 7  # at 1280x720
 SHOW_FOR_MS = 60_000  # a read off a page nothing watches stays this long; a watched page's hints go with the page
@@ -145,6 +148,23 @@ def card_html(label, font, small, width, desc_lines):
     if not any(f.gifts for f in found) and (rest := hint_rest(o) or ("" if rows else "沒有記錄效果")):
         body += f"<p style='margin:0;color:#cbbd9f'>{html.escape(rest)}</p>"
     return (f"<p style='margin:0 0 2px 0'>{'&nbsp;'.join(head)}</p>" if head else "") + body
+
+
+def trial_html(w, small, width):
+    """A post-boss card's worth: its rank (a star and 推薦 for a pick), its total, how it adds up, and its trial's
+    effect in Chinese, cut to the card's width."""
+    gold = "#f0c674"
+    head = ("<img src='icon:star' style='vertical-align: middle'> " if w.pick else "") + (
+        f"<span style='color:{gold if w.pick else '#eadcc4'}'>{'推薦 ' if w.pick else ''}第 {w.rank}</span>")
+    total = f"<span style='color:{'#8fd17a' if w.total >= 0 else '#ec7b66'}'>{w.total:+.1f}</span>"
+    why = "已持有" if w.card.owned else "推薦體系" if w.gift >= trials.GIFT_SCORES["main"] else ""
+    calc = (f"<span style='color:#b9a888;font-size:{small.pixelSize()}px'>飾品 {w.gift:g}{f'（{why}）' if why else ''}"
+            f" − 苦難 {w.burden:.1f}</span>")
+    t = trials.book()["trials"].get(w.card.trial) if w.card.trial else None
+    effect = (QFontMetricsF(small).elidedText(t["desc_zh"] or t["desc_en"], Qt.ElideRight, width) if t
+              else "苦難沒認出：照這層最重的算")
+    return (f"<p style='margin:0'>{head}&nbsp;&nbsp;{total}</p><p style='margin:0'>{calc}</p>"
+            f"<p style='margin:0;color:#cbbd9f;font-size:{small.pixelSize()}px'>{html.escape(effect)}</p>")
 
 
 def stack(wants, heights, top=CARD_TOP, bottom=CARD_BOTTOM, gap=CARD_GAP):
@@ -294,14 +314,22 @@ class Overlay(QWidget):
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.locate, self.window_of = locate, window_of
         self.items: list[Label] = []
+        self.trials: list[trials.Worth] = []  # the post-boss cards' worth, shown instead of items
         self.source = None
         self.follow = QTimer(self, interval=500, timeout=self.place)
         self.expire = QTimer(self, singleShot=True, timeout=self.hide_labels)
 
     def show_labels(self, items, source, hold_ms=SHOW_FOR_MS):
         """Show items over the game read from source; hold_ms 0 keeps them until hide_labels."""
-        self.items, self.source = list(items), source
-        if not self.items or not self.place():
+        self.show_cards(list(items), [], source, hold_ms)
+
+    def show_trials(self, worths, source):
+        """Each post-boss card's worth over its trial, until hide_labels: the worker tells the page's leaving."""
+        self.show_cards([], list(worths), source, 0)
+
+    def show_cards(self, items, worths, source, hold_ms):
+        self.items, self.trials, self.source = items, worths, source
+        if not (self.items or self.trials) or not self.place():
             self.hide_labels()
             return
         self.show()
@@ -312,7 +340,7 @@ class Overlay(QWidget):
     def hide_labels(self):
         self.follow.stop()
         self.expire.stop()
-        self.items = []
+        self.items, self.trials = [], []
         self.hide()
 
     def place(self):
@@ -378,7 +406,7 @@ class Overlay(QWidget):
                 for label, doc, top, h in zip(items, docs, tops, heights)]
 
     def paintEvent(self, _):
-        if not self.items:
+        if not (self.items or self.trials):
             return
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
@@ -400,4 +428,33 @@ class Overlay(QWidget):
             p.translate(rect.left() + pad, rect.top() + pad)
             doc.documentLayout().draw(p, context)
             p.restore()
+        for w, doc, rect in self.trial_cards():
+            p.setPen(QPen(QColor("#e7b45a" if w.pick else "#7a5d33"), (1.6 if w.pick else 1.0) * max(sy, 1)))
+            p.setBrush(QColor(14, 11, 8, 245))
+            p.drawRoundedRect(rect, 6 * sy, 6 * sy)
+            p.save()
+            p.translate(rect.left() + pad, rect.top() + pad * 0.6)
+            doc.documentLayout().draw(p, context)
+            p.restore()
         p.end()
+
+    def trial_cards(self):
+        """Each post-boss card's worth laid out over its trial's effect box: (worth, document, rect in overlay
+        pixels)."""
+        sx, sy = self.width() / GAME_W, self.height() / GAME_H
+        pad = PAD_PX * sy
+        dx, y, w, h = TRIAL_CARD
+        font, small = self.fonts()
+        side, ratio = font.pixelSize() * 1.2, self.devicePixelRatioF()
+        star = icons.pixmap("star", "#f0c674", side, ratio)
+        cards = []
+        for worth in self.trials:
+            rect = QRectF((worth.card.x + dx) * sx, y * sy, w * sx, h * sy)
+            doc = QTextDocument()
+            doc.setDocumentMargin(0)
+            doc.setDefaultFont(font)
+            doc.addResource(QTextDocument.ImageResource, QUrl("icon:star"), star)
+            doc.setTextWidth(rect.width() - 2 * pad)
+            doc.setHtml(trial_html(worth, small, rect.width() - 2 * pad))
+            cards.append((worth, doc, rect))
+        return cards
