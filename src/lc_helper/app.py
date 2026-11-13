@@ -39,6 +39,9 @@ PIN = {True: (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool, "pin",
               "置頂中：點一下取消置頂，視窗改成一般視窗，被蓋住時從工作列或 Alt+Tab 叫回"),
        False: (Qt.FramelessWindowHint | Qt.Window, "unpinned", "沒有置頂：點一下讓視窗固定在最上層")}
 FOLD = {False: ("unfolded", "收合事件查詢"), True: ("folded", "展開事件查詢")}  # compact: the fold button's icon, tooltip
+# The settings whose value must be one of a set (load_settings): the keys of each table, or the listed values.
+SETTING_CHOICES = {"text_size": TEXT_SIZES, "pc_input": devices.PC_INPUTS, "pin": PIN, "compact": FOLD,
+                   "keyword": [None, *recommend.CHOICES]}
 ICON, ICON_ON = "#b9ab93", "#e7b45a"
 DOT = {"idle": "#6b6152", "connecting": "#e7b45a", "connected": "#6cc070", "error": "#d9534f"}
 
@@ -91,10 +94,17 @@ def scaled(px, base):
 
 
 def load_settings():
+    """The saved settings over the defaults. The file is the user's to edit and another lc-helper version may have
+    written it, so a value outside its allowed choices falls back to the default instead of failing the window."""
     try:
-        return DEFAULTS | json.loads(SETTINGS.read_text(encoding="utf-8"))
+        saved = json.loads(SETTINGS.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return dict(DEFAULTS)
+        saved = {}
+    settings = DEFAULTS | (saved if isinstance(saved, dict) else {})
+    for key, allowed in SETTING_CHOICES.items():
+        if settings[key] not in allowed:
+            settings[key] = DEFAULTS[key]
+    return settings
 
 
 def save_settings(settings):

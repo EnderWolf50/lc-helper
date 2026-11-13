@@ -53,6 +53,14 @@ def test_the_text_size_kept_is_the_one_a_new_window_opens_with(tmp_path, monkeyp
     assert menu_action(w, "小").isChecked()
 
 
+def test_a_settings_file_with_unknown_choices_still_opens_the_window(tmp_path, monkeypatch):
+    """settings.json is the user's to edit, and an older or newer lc-helper may have written it."""
+    w = window(tmp_path, monkeypatch, text_size="huge", pc_input="laser", keyword="Fire", pin="yes")
+    assert (w.settings["text_size"], w.settings["pc_input"], w.settings["keyword"], w.settings["pin"]) == \
+        ("normal", "touch", None, True)
+    assert w.detail.font().pointSizeF() == 12
+
+
 def on_top(w):
     return bool(w.windowFlags() & Qt.WindowStaysOnTopHint)
 
