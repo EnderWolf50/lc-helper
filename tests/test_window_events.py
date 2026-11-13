@@ -1,4 +1,5 @@
 import os
+import re
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -46,7 +47,7 @@ def test_no_keyword_no_star_and_a_new_keyword_ranks_again(tmp_path, monkeypatch,
     w = window(tmp_path, monkeypatch, keywords=[], overlay=True)
     w.on_event(events.read_screen(screen("EventChoices.png")))
     assert "icon:star" not in w.detail.toHtml() and not any(item.recommended for item in w.overlay.items)
-    choose(button(w, "＋ 體系"), "充能  Charge")
+    choose(button(w, "＋ 體系"), "充能")
     assert "推薦" in w.detail.toPlainText() and "icon:star" in w.detail.toHtml()
     assert any(item.recommended for item in w.overlay.items)
     w.overlay.hide_labels()
@@ -201,11 +202,20 @@ def choose(chip, text):
     QApplication.processEvents()
 
 
+def row_parts(w):
+    """The recommendation row as shown, left to right: its chips, the marks between them and ＋ 體系."""
+    body = w.sections["event"].body
+    parts = [b for b in body.findChildren(QAbstractButton) if b.objectName() in ("chip", "chipAdd")]
+    parts += body.findChildren(QLabel, "then")
+    return sorted((p for p in parts if p.isVisibleTo(body)), key=lambda p: p.mapTo(w, QPoint()).x())
+
+
 def chips(w):
     """The recommendation row as shown: each keyword chip's text, then ＋ 體系 if it shows."""
-    body = w.sections["event"].body
-    row = [b for b in body.findChildren(QToolButton) if b.objectName() in ("chip", "chipAdd")]
-    return [b.text() for b in sorted(row, key=lambda b: b.mapTo(w, QPoint()).x()) if b.isVisibleTo(body)]
+    return [p.text() for p in row_parts(w) if isinstance(p, QAbstractButton)]
+
+
+NOT_CHINESE = re.compile("[0-9A-Za-z０-９Ａ-Ｚａ-ｚ]")  # digits and Latin letters, half and full width
 
 
 def starred(w):
@@ -219,33 +229,47 @@ DRAW_SWORD = 971014  # a Bleed gift for 做出拔劍的姿勢, a Poise gift for 
 def test_keywords_show_as_chips_in_their_order_and_the_order_decides_the_star(tmp_path, monkeypatch):
     w = shown(tmp_path, monkeypatch, keywords=["Bleed", "Poise"])
     w.show_event(events.by_id()[DRAW_SWORD])
-    assert chips(w) == ["1 流血", "2 呼吸", "＋ 體系"]
+    assert chips(w) == ["流血", "呼吸", "＋ 體系"]
     assert "做出拔劍的姿勢" in starred(w)
-    choose(button(w, "2 呼吸"), "往前移")
-    assert chips(w) == ["1 呼吸", "2 流血", "＋ 體系"] and w.settings["keywords"] == ["Poise", "Bleed"]
+    choose(button(w, "呼吸"), "往前移")
+    assert chips(w) == ["呼吸", "流血", "＋ 體系"] and w.settings["keywords"] == ["Poise", "Bleed"]
     assert "拔劍後垂在身側" in starred(w)
-    choose(button(w, "1 呼吸"), "往後移")
+    choose(button(w, "呼吸"), "往後移")
     assert w.settings["keywords"] == ["Bleed", "Poise"] and "做出拔劍的姿勢" in starred(w)
 
 
 def test_a_chip_can_be_removed_and_the_first_and_last_cannot_move_further(tmp_path, monkeypatch):
     w = shown(tmp_path, monkeypatch, keywords=["Bleed", "Poise", "Burn"])
-    first, last = button(w, "1 流血"), button(w, "3 燒傷")
+    first, last = button(w, "流血"), button(w, "燒傷")
     enabled = lambda chip: {a.text(): a.isEnabled() for a in chip.menu().actions()}  # noqa: E731
     assert enabled(first) == {"往前移": False, "往後移": True, "移除": True}
     assert enabled(last) == {"往前移": True, "往後移": False, "移除": True}
-    choose(button(w, "2 呼吸"), "移除")
-    assert chips(w) == ["1 流血", "2 燒傷", "＋ 體系"] and w.settings["keywords"] == ["Bleed", "Burn"]
+    choose(button(w, "呼吸"), "移除")
+    assert chips(w) == ["流血", "燒傷", "＋ 體系"] and w.settings["keywords"] == ["Bleed", "Burn"]
 
 
 def test_add_offers_the_keywords_not_chosen_and_goes_away_at_four(tmp_path, monkeypatch):
     w = shown(tmp_path, monkeypatch, keywords=["Bleed"], open_sections=[])
-    offered = [a.text() for a in button(w, "＋ 體系").menu().actions()]
-    assert offered == [f"{events.KEYWORDS[k]}  {k}" for k in ui.recommend.CHOICES if k != "Bleed"]
-    for text in ("燒傷  Burn", "震顫  Tremor", "破裂  Rupture"):
+    offered = button(w, "＋ 體系").menu().actions()
+    assert [a.text() for a in offered] == [events.KEYWORDS[k] for k in ui.recommend.CHOICES if k != "Bleed"]
+    assert all(not a.icon().isNull() for a in offered), "each with the game's icon"
+    for text in ("燒傷", "震顫", "破裂"):
         choose(button(w, "＋ 體系"), text)
-    assert chips(w) == ["1 流血", "2 燒傷", "3 震顫", "4 破裂"], "four at most: no ＋ 體系"
+    assert chips(w) == ["流血", "燒傷", "震顫", "破裂"], "four at most: no ＋ 體系"
     assert w.sections["event"].summary.text() == "推薦 流血 › 燒傷 › 震顫 › 破裂"
+
+
+def test_a_chip_is_the_keywords_icon_and_chinese_name_and_its_place_is_its_order(tmp_path, monkeypatch):
+    """The player read 「1 呼吸」「2 燒傷」 as noise: the order shows by place, a mark between each chip and the next."""
+    w = shown(tmp_path, monkeypatch, keywords=["Poise", "Burn", "Charge"])
+    parts = row_parts(w)
+    assert [p.objectName() for p in parts] == ["chip", "then", "chip", "then", "chip", "chipAdd"]
+    for chip in parts[:5:2]:
+        assert not chip.icon().isNull() and chip.iconSize().height() > 0, chip.text()
+        assert not NOT_CHINESE.search(chip.text() + chip.toolTip()), chip.text()
+    assert all(not mark.pixmap().isNull() and not mark.text() for mark in parts[1:5:2]), "a drawn mark, no glyph"
+    menus = [a.text() for p in parts if isinstance(p, QAbstractButton) for a in p.menu().actions()]
+    assert not NOT_CHINESE.search("".join(menus)), "the chips' menus and ＋ 體系's"
 
 
 def test_no_keyword_says_what_adding_one_does(tmp_path, monkeypatch):

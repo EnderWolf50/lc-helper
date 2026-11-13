@@ -11,7 +11,7 @@ from lc_helper import app as ui
 SHEET_PAIRS = [
     (("QWidget", "color"), ("QWidget#root", "background")),
     (("QWidget", "color"), ("QFrame#header", "background")),
-    (("QWidget", "color"), ("QPushButton", "background")),
+    (("QWidget", "color"), ("QPushButton", "background")),  # a keyword chip too
     (("QWidget", "color"), ("QPushButton:hover", "background")),
     (("QWidget", "color"), ("QLineEdit", "background")),
     (("QWidget", "color"), ("QComboBox QAbstractItemView", "background")),
@@ -40,10 +40,8 @@ SHEET_PAIRS = [
     (("QWidget", "color"), ("QListView#hits", "background")),
     (("QListView#hits::item:selected", "color"), ("QListView#hits::item:selected", "background")),
     (("QListView#hits::item:disabled", "color"), ("QListView#hits", "background")),  # the no-hit row says why
-    (("QWidget", "color"), ("QToolButton", "background")),  # a keyword chip
-    (("QWidget", "color"), ("QToolButton:hover", "background")),
-    (("QToolButton#chipAdd", "color"), ("QWidget#root", "background")),
-    (("QToolButton#chipAdd:hover", "color"), ("QToolButton#chipAdd:hover", "background")),
+    (("QPushButton#chipAdd", "color"), ("QWidget#root", "background")),
+    (("QPushButton#chipAdd:hover", "color"), ("QPushButton#chipAdd:hover", "background")),
     (("QWidget", "color"), ("QMenu", "background")),
     (("QWidget", "color"), ("QMenu::item:selected", "background")),
     (("QPushButton#pill", "color"), ("QWidget#root", "background")),

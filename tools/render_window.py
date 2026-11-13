@@ -6,9 +6,10 @@ No emulator: a stand-in worker takes the commands; the battle states are fed in 
 event pane shows what the real reader makes of maalc's EventChoices.png capture (OCR included).
 
 The states: the main page as it opens (window-main), the settings page at each text size (window-settings-*), a
-battle running (window-battle-running), each text size (window-text-*), a search list dropped down
-(window-search, window-gift-search: the list is a window of its own, painted where it shows), both sections open
-on the screen (window-both-open) and every section folded (window-folded).
+battle running (window-battle-running), each text size (window-text-*), four recommended keywords at each text size
+(window-keywords-four-*), the ＋ 體系 menu open (window-keyword-menu), a search list dropped down (window-search,
+window-gift-search: a list or a menu is a window of its own, painted where it shows), both sections open on the
+screen (window-both-open) and every section folded (window-folded).
 """
 
 import os
@@ -91,6 +92,25 @@ def with_popup(window, box, out, name):
     path = out / name
     sheet.save(str(path))
     print(path, f"list of {popup.model().rowCount()} rows")
+
+
+def menu_shot(window, button, out, name):
+    """The window with button's menu open under it, painted where it shows: the menu is a window of its own."""
+    menu = button.menu()
+    menu.popup(button.mapToGlobal(button.rect().bottomLeft()))
+    settle()
+    page, drop = window.grab(), menu.grab()
+    at = menu.mapToGlobal(menu.rect().topLeft()) - window.mapToGlobal(window.rect().topLeft())
+    sheet = QPixmap(max(page.width(), at.x() + drop.width()), max(page.height(), at.y() + drop.height()))
+    sheet.fill(QColor("#0b0a09"))
+    painter = QPainter(sheet)
+    painter.drawPixmap(0, 0, page)
+    painter.drawPixmap(at, drop)
+    painter.end()
+    menu.hide()
+    path = out / name
+    sheet.save(str(path))
+    print(path)
 
 
 def overlay_shot(out, name, capture, keywords=()):
@@ -178,6 +198,15 @@ def main():
         w.gear.setChecked(True)
         shot(w, out, f"window-settings-{key}.png")
         w.gear.setChecked(False)
+    w.set_keywords(["Charge", "Bleed", "Tremor", "Rupture"])  # four: the widest row, and no ＋ 體系
+    for key in ui.TEXT_SIZES:
+        w.set_text_size(key)
+        shot(w.sections["event"], out, f"window-keywords-four-{key}.png")
+    w.set_keywords(["Charge", "Bleed"])
+    settle()  # the new chips show on an event pass; the ones they replace stay, hidden, until the event loop deletes
+    from PySide6.QtWidgets import QAbstractButton
+    add = next(b for b in w.findChildren(QAbstractButton) if b.objectName() == "chipAdd" and b.isVisible())
+    menu_shot(w, add, out, "window-keyword-menu.png")
     w.show_event(events.by_id()[971097])  # too long for the pane at every text size: it stops short and scrolls
     area = w.screen().availableGeometry()
     for where, y in (("top", 0), ("low", area.height() // 4)):

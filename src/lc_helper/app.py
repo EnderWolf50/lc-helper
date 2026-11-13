@@ -19,7 +19,7 @@ from PySide6.QtCore import (QAbstractNativeEventFilter, QEvent, QModelIndex, QOb
                             QUrl, Signal)
 from PySide6.QtGui import (QColor, QFont, QFontMetrics, QFontMetricsF, QIcon, QKeySequence, QPainter, QPixmap,
                            QStandardItem, QStandardItemModel, QTextDocument)
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QCompleter, QDialog,
+from PySide6.QtWidgets import (QAbstractButton, QApplication, QButtonGroup, QCheckBox, QComboBox, QCompleter, QDialog,
                                QDialogButtonBox, QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout,
                                QLineEdit, QListWidget, QMenu, QProxyStyle, QPushButton, QSizePolicy, QSpinBox, QStyle,
                                QSystemTrayIcon, QTextBrowser, QToolButton, QVBoxLayout, QWidget)
@@ -60,7 +60,7 @@ SETTING_CHOICES = {"text_size": TEXT_SIZES, "pc_input": devices.PC_INPUTS, "pin"
 MAX_KEYWORDS = 4  # the chips that fit on one row at every text size
 # The settings that are a list of distinct values from a set, in the user's order: the set, and how many at most.
 LIST_CHOICES = {"keywords": (recommend.CHOICES, MAX_KEYWORDS), "open_sections": (list(SECTIONS), len(SECTIONS))}
-ICON, ICON_ON, HEAD_ICON = "#b9ab93", "#e7b45a", "#c9a165"
+ICON, ICON_ON, HEAD_ICON, THEN = "#b9ab93", "#e7b45a", "#c9a165", "#8f8270"  # THEN: the mark between two chips
 # The detail pane's icons, set in its text as images: <img src='icon:NAME'>, in these colours.
 PANE_ICONS = {"star": "#f0c674", "bullet": "#eadcc4"}
 DOT = {"idle": "#6b6152", "connecting": "#e7b45a", "connected": "#6cc070", "error": "#d9534f"}
@@ -114,12 +114,12 @@ QTextBrowser { background: #0f0c09; border: 1px solid #3e2f1d; border-radius: 6p
 QPushButton#pill { background: transparent; color: #b9ab93; border-radius: ${pill}px; padding: 0 12px; }
 QPushButton#pill:hover { background: #3a2c1f; }
 QPushButton#pill:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
-QToolButton#chip { border-radius: ${chip}px; padding: 2px 10px; }
-QToolButton#chip:hover { border-color: #e7b45a; }
-QToolButton#chipAdd { background: transparent; color: #b9ab93; border: 1px dashed #5b4527; border-radius: ${chip}px;
+QPushButton#chip { border-radius: ${chip}px; padding: 2px 10px; }
+QPushButton#chip:hover { border-color: #e7b45a; }
+QPushButton#chipAdd { background: transparent; color: #b9ab93; border: 1px dashed #5b4527; border-radius: ${chip}px;
                       padding: 2px 10px; }
-QToolButton#chipAdd:hover { background: #3a2c1f; color: #eadcc4; }
-QToolButton#chip::menu-indicator, QToolButton#chipAdd::menu-indicator { image: none; width: 0; }
+QPushButton#chipAdd:hover { background: #3a2c1f; color: #eadcc4; }
+QPushButton#chip::menu-indicator, QPushButton#chipAdd::menu-indicator { image: none; width: 0; }
 QMenu { background: #1d1711; border: 1px solid #5b4527; padding: 4px 0; }
 QMenu::item { padding: 4px 16px; } QMenu::item:selected { background: #4a3417; }
 QMenu::item:disabled { color: #6b6152; }
@@ -145,6 +145,11 @@ def style(base, line):
     a step bigger. A pill's ends are round with half its height: Qt draws square corners for a radius over that."""
     return STYLE.substitute(body=base, small=base - 1.5, big=base + 1.5, pill=control_height(line) // 2,
                             arrow=control_height(line) // 2, chip=(line + 6) // 2)
+
+
+def glyph_side(font):
+    """The side of a square icon set beside text in font: as tall as a Chinese glyph's ink (國)."""
+    return round(QFontMetricsF(font).tightBoundingRect("國").height())
 
 
 def scaled(px, base):
@@ -600,6 +605,8 @@ class Look(QProxyStyle):
             return round(widget.fontMetrics().height() * 0.85)
         if metric == QStyle.PM_LineEditIconSize and widget is not None:  # the search icon and the clear button
             return round(widget.fontMetrics().height() * 0.8)
+        if metric == QStyle.PM_SmallIconSize and isinstance(widget, QMenu):  # the keyword icons in ＋ 體系
+            return glyph_side(widget.font())
         return super().pixelMetric(metric, option, widget)
 
 
@@ -942,6 +949,23 @@ class Window(QWidget):
         for section in self.sections.values():
             arrow = "unfolded" if section.head.isChecked() else "folded"
             section.arrow.setPixmap(icons.pixmap(arrow, HEAD_ICON, side, ratio))
+        self.apply_keyword_icons()
+
+    def apply_keyword_icons(self):
+        """The game's keyword icons on the chips and in ＋ 體系's menu, and the marks between the chips, at the text's
+        size and drawn for the screen's pixel ratio."""
+        side, ratio = glyph_side(self.text_font()), self.devicePixelRatioF()
+        for i in range(self.keyword_row.count()):
+            part = self.keyword_row.itemAt(i).widget()
+            if isinstance(part, QAbstractButton):
+                part.setIconSize(QSize(side, side))
+                for action in part.menu().actions():
+                    if keyword := action.property("keyword"):
+                        action.setIcon(QIcon(icons.keyword(keyword, side, ratio)))
+                if keyword := part.property("keyword"):
+                    part.setIcon(QIcon(icons.keyword(keyword, side, ratio)))
+            elif part is not None and part.objectName() == "then":
+                part.setPixmap(icons.pixmap("folded", THEN, side, ratio))
 
     def apply_pane_icons(self):
         """The detail pane's icons (PANE_ICONS) as its document's images, drawn for the screen's pixel ratio. An image
@@ -1109,17 +1133,23 @@ class Window(QWidget):
         QTimer.singleShot(0, self.adjustSize)
 
     def show_keywords(self):
-        """The recommended keywords as chips in their order, each with a menu to move it or remove it, then ＋ 體系
-        while there is room for one more, or what adding one does while there is none."""
+        """The recommended keywords as chips in their order, a mark between each and the next: each the game's icon
+        and the keyword's name, with a menu to move it or remove it. Then ＋ 體系 while there is room for one more, or
+        what adding one does while there is none."""
         while self.keyword_row.count():
             if widget := self.keyword_row.takeAt(0).widget():
                 widget.hide()
                 widget.deleteLater()  # later: the menu that asked for this may belong to it
         keywords = self.settings["keywords"]
         for i, keyword in enumerate(keywords):
+            if i:
+                self.keyword_row.addWidget(QLabel(objectName="then"))
             name = events.KEYWORDS[keyword]
-            chip = QToolButton(objectName="chip", text=f"{i + 1} {name}", popupMode=QToolButton.InstantPopup,
-                               accessibleName=f"推薦體系第 {i + 1} 位：{name}", toolTip="調整順序或移除")
+            # Push buttons, not tool buttons: one centres its icon and text together, where a tool button sets them
+            # left and leaves the two spaces it adds to the text on the right.
+            chip = QPushButton(name, objectName="chip", accessibleName=f"推薦體系第 {i + 1} 位：{name}",
+                               toolTip="調整順序或移除")
+            chip.setProperty("keyword", keyword)
             menu = QMenu(chip)
             for text, j in (("往前移", i - 1), ("往後移", i + 1)):
                 order = list(keywords)
@@ -1130,17 +1160,18 @@ class Window(QWidget):
             chip.setMenu(menu)
             self.keyword_row.addWidget(chip)
         if len(keywords) < MAX_KEYWORDS:
-            add = QToolButton(objectName="chipAdd", text="＋ 體系", popupMode=QToolButton.InstantPopup,
-                              toolTip="加入一個體系，排在最後")
+            add = QPushButton("＋ 體系", objectName="chipAdd", toolTip="加入一個體系，排在最後")
             menu = QMenu(add)
             for keyword in recommend.CHOICES:
                 if keyword not in keywords:
-                    self.keyword_action(menu, f"{events.KEYWORDS[keyword]}  {keyword}", [*keywords, keyword])
+                    action = self.keyword_action(menu, events.KEYWORDS[keyword], [*keywords, keyword])
+                    action.setProperty("keyword", keyword)
             add.setMenu(menu)
             self.keyword_row.addWidget(add)
         if not keywords:
             self.keyword_row.addWidget(QLabel("加入後標出建議的選項", objectName="status"))
         self.keyword_row.addStretch()
+        self.apply_keyword_icons()
 
     def keyword_action(self, menu, text, keywords):
         """A menu item that sets keywords."""
