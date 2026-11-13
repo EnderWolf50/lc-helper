@@ -6,12 +6,12 @@ TemplateMatch does (TM_CCOEFF_NORMED on the colour image), so maalc's thresholds
 """
 
 from functools import cache
-from pathlib import Path
 
 import cv2
 import numpy as np
 
-ASSETS = Path(__file__).resolve().parent.parent.parent / "assets"
+from .paths import ASSETS
+
 
 Box = tuple[int, int, int, int]
 

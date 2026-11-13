@@ -6,12 +6,12 @@ maa is imported inside connect(): loading MaaFramework's DLLs takes ~2 s, and th
 
 import time
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Protocol
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+from .paths import LOCAL
+
 
 
 class Device(Protocol):
@@ -100,7 +100,7 @@ class MaaDevice:
 def _maa():
     from maa.toolkit import Toolkit
 
-    Toolkit.init_option(str(ROOT / ".local/maa"))
+    Toolkit.init_option(str(LOCAL / "maa"))
     return Toolkit
 
 

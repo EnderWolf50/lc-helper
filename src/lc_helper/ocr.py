@@ -6,7 +6,8 @@ without an emulator and never waits on the device's screenshots or taps. Loading
 
 import threading
 
-from .vision import ASSETS, crop
+from .paths import ASSETS, LOCAL
+from .vision import crop
 
 _lock = threading.Lock()
 _tasker = None
@@ -41,7 +42,7 @@ def _get():
 
             if not (ASSETS / "maa/model/ocr/rec.onnx").is_file():
                 raise RuntimeError("沒有 OCR 模型：執行 uv run --group sync python tools/sync_maalc.py")
-            Tasker.set_log_dir(str(ASSETS.parent / ".local/maa"))
+            Tasker.set_log_dir(str(LOCAL / "maa"))
             Tasker.set_stdout_level(0)
             Tasker.set_save_draw(False)
             res = Resource()

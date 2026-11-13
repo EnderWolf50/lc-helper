@@ -11,7 +11,7 @@ from functools import cache
 
 from rapidfuzz import fuzz, process
 
-from .vision import ASSETS
+from .paths import ASSETS
 
 KEYWORDS = {"Burn": "燒傷", "Bleed": "流血", "Tremor": "震顫", "Rupture": "破裂", "Sinking": "沉淪", "Poise": "呼吸",
             "Charge": "充能", "Slash": "斬擊", "Pierce": "突刺", "Blunt": "打擊", "Keywordless": "無體系"}

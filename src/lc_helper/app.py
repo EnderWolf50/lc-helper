@@ -9,7 +9,6 @@ import os
 import json
 import sys
 from ctypes import wintypes
-from pathlib import Path
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QActionGroup, QFont, QKeySequence
@@ -19,12 +18,12 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
                                QVBoxLayout, QWidget)
 
 from . import device as devices
+from .paths import LOCAL
 from . import events
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
 
-ROOT = Path(__file__).resolve().parent.parent.parent
-SETTINGS = ROOT / ".local/settings.json"
+SETTINGS = LOCAL / "settings.json"
 DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard": 0, "forever": False,
             "hold": True, "watch": False, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
