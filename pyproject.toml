@@ -1,0 +1,34 @@
+[project]
+name = "lc-helper"
+version = "0.1.0"
+description = "Floating helper for Limbus Company: auto battle, guard turns, Mirror Dungeon event lookup"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "maafw==5.14.3",
+    "numpy",
+    "opencv-python-headless",
+    "pyside6-essentials",
+    "rapidfuzz",
+]
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
+# tools/sync_maalc.py: Simplified to Traditional Chinese for the LLC event text.
+sync = ["opencc-python-reimplemented"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lc_helper"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tools"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E9", "F"]
