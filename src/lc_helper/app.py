@@ -862,11 +862,18 @@ class Window(QWidget):
         row.addWidget(widget, 1)
         return row
 
+    def text_font(self):
+        """The chosen text size as the font the style sheet gives every widget. Icons are sized by this, not by a
+        widget's font: until the window shows, a widget holds Qt's default font, as an application font set before
+        the event loop runs reaches only the widgets made after it."""
+        font = QFont("Microsoft JhengHei UI")
+        font.setPointSizeF(TEXT_SIZES[self.settings["text_size"]][1])
+        return font
+
     def apply_text_size(self):
         """Text of the chosen size everywhere, dialogs included, in a window and controls sized to it."""
-        base = TEXT_SIZES[self.settings["text_size"]][1]
-        font = QFont("Microsoft JhengHei UI")
-        font.setPointSizeF(base)
+        font = self.text_font()
+        base = font.pointSizeF()
         QApplication.setFont(font)
         metrics = QFontMetrics(font)
         QApplication.instance().setStyleSheet(style(base, metrics.height()))
@@ -941,7 +948,7 @@ class Window(QWidget):
         stands on the baseline, so a square twice as tall as the middle of a Chinese glyph above the baseline is
         centred on the text beside it, at any text size and in any font."""
         text = self.detail.document()
-        ink = QFontMetricsF(self.detail.font()).tightBoundingRect("國")
+        ink = QFontMetricsF(self.text_font()).tightBoundingRect("國")
         side, ratio = round(-(ink.top() + ink.bottom())), self.devicePixelRatioF()
         for name, color in PANE_ICONS.items():
             text.addResource(QTextDocument.ImageResource, QUrl(f"icon:{name}"), icons.pixmap(name, color, side, ratio))

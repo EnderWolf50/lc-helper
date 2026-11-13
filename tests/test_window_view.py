@@ -168,6 +168,15 @@ def test_the_pane_icons_are_drawn_at_the_text_size_with_the_pixels_of_the_screen
     assert drawn("star") == drawn("bullet") == (round(large * 1.5), 1.5), "moved to a 150% screen"
 
 
+def test_a_new_window_draws_the_pane_icons_at_its_text_size_from_the_start(tmp_path, monkeypatch):
+    """Until the window shows, a widget holds Qt's default font: icons sized by it came out about half size."""
+    w = window(tmp_path, monkeypatch, text_size="large")
+    star = lambda: w.detail.document().resource(QTextDocument.ImageResource, QUrl("icon:star")).width()  # noqa: E731
+    first = star()
+    w.set_text_size("large")
+    assert star() == first
+
+
 def painted(w, widget, x, y):
     """The colour the window shows at (x, y) inside widget."""
     QApplication.processEvents()
