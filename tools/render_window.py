@@ -4,6 +4,11 @@ Usage: uv run --group sync python tools/render_window.py [out folder]   (default
 
 No emulator: a stand-in worker takes the commands; the battle states are fed in as the real worker would, and the
 event pane shows what the real reader makes of maalc's EventChoices.png capture (OCR included).
+
+The states: the main page as it opens (window-main), the settings page at each text size (window-settings-*), a
+battle running (window-battle-running), each text size (window-text-*), a search list dropped down
+(window-search, window-gift-search: the list is a window of its own, painted where it shows), both sections open
+on the screen (window-both-open) and every section folded (window-folded).
 """
 
 import os
