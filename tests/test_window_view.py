@@ -4,9 +4,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtGui import QAction  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtWidgets import QApplication, QToolButton  # noqa: E402
 
 from lc_helper import app as ui  # noqa: E402
+from lc_helper import icons  # noqa: E402
 
 
 class StandIn:
@@ -72,3 +73,24 @@ def test_unpinning_makes_a_normal_window_where_it_was_and_is_kept(tmp_path, monk
 def test_a_window_left_unpinned_opens_unpinned(tmp_path, monkeypatch):
     w = window(tmp_path, monkeypatch, pin=False)
     assert not w.pin.isChecked() and not on_top(w) and w.windowType() == Qt.Window
+
+
+def test_the_header_buttons_are_drawn_icons_a_screen_reader_can_name(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch)
+    buttons = w.header.findChildren(QToolButton)
+    assert len(buttons) == 4
+    for b in buttons:
+        assert b.text() == "" and not b.icon().isNull() and b.accessibleName() and b.toolTip(), b.accessibleName()
+    assert w.dot.text() == "" and not w.dot.pixmap().isNull() and w.dot.accessibleName()
+    assert w.fold.toolTip() == "收合事件查詢"
+    w.fold.click()
+    assert w.fold.toolTip() == "展開事件查詢"
+
+
+def test_an_icon_is_drawn_with_the_pixels_of_a_150_percent_screen():
+    QApplication.instance() or QApplication([])
+    for name in icons.DRAW:
+        pix = icons.pixmap(name, "#ffffff", 18, 1.5)
+        assert (pix.width(), pix.height(), pix.devicePixelRatio()) == (27, 27, 1.5), name
+        image = pix.toImage()
+        assert any(image.pixelColor(x, y).alpha() for x in range(27) for y in range(27)), f"{name} draws nothing"

@@ -92,6 +92,7 @@ def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent / ".local/evidence"
     out.mkdir(parents=True, exist_ok=True)
     ui.SETTINGS = out / "render-settings.json"
+    ui.SETTINGS.unlink(missing_ok=True)
     QApplication(sys.argv)
     w = ui.Window(worker_factory=StandIn)
     w.show()

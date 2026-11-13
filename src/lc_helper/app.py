@@ -1,6 +1,7 @@
 """The floating window: auto battle controls on top, the Mirror Dungeon event lookup below.
 
-Settings (device, pick, guard turns, hotkeys, text size, pin, window position) live in .local/settings.json beside the repository.
+Settings (device, pick, guard turns, hotkeys, text size, pin, window position) live in .local/settings.json beside the
+repository.
 """
 
 import ctypes
@@ -11,7 +12,7 @@ import sys
 from ctypes import wintypes
 from string import Template
 
-from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, Qt, QTimer, Signal
+from PySide6.QtCore import QAbstractNativeEventFilter, QEvent, QObject, QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QActionGroup, QColor, QFont, QIcon, QKeySequence, QPainter, QPixmap
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
                                QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout, QLineEdit,
@@ -20,7 +21,7 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
 
 from . import device as devices
 from .paths import LOCAL
-from . import events, fights, gifts, recommend
+from . import events, fights, gifts, icons, recommend
 from .overlay import Overlay, labels
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
@@ -31,11 +32,14 @@ DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 TEXT_SIZES = {"small": ("小", 10.5), "normal": ("標準", 12), "large": ("大", 13.5)}  # text_size: menu name, points
 REFERENCE_PT = 10  # the window's pixel sizes were set for text of this size
-# pin: window flags, and the pin button's tooltip. A Qt.Tool window has no taskbar entry, so the unpinned window is a
-# normal one: when it falls behind the game, the taskbar and Alt+Tab still find it.
-PIN = {True: (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool,
+# pin: window flags, the pin button's icon and tooltip. A Qt.Tool window has no taskbar entry, so the unpinned window
+# is a normal one: when it falls behind the game, the taskbar and Alt+Tab still find it.
+PIN = {True: (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool, "pin",
               "置頂中：點一下取消置頂，視窗改成一般視窗，被蓋住時從工作列或 Alt+Tab 叫回"),
-       False: (Qt.FramelessWindowHint | Qt.Window, "沒有置頂：點一下讓視窗固定在最上層")}
+       False: (Qt.FramelessWindowHint | Qt.Window, "unpinned", "沒有置頂：點一下讓視窗固定在最上層")}
+FOLD = {False: ("unfolded", "收合事件查詢"), True: ("folded", "展開事件查詢")}  # compact: the fold button's icon, tooltip
+ICON, ICON_ON = "#b9ab93", "#e7b45a"
+DOT = {"idle": "#6b6152", "connecting": "#e7b45a", "connected": "#6cc070", "error": "#d9534f"}
 
 STYLE = Template("""
 QWidget#root { background: #17130f; border: 1px solid #5b4527; border-radius: 10px; }
@@ -45,8 +49,6 @@ QFrame#header { background: #231b13; border-top-left-radius: 10px; border-top-ri
 QLabel#title { color: #e7b45a; font-size: ${big}pt; font-weight: bold; letter-spacing: 1px; }
 QLabel#section { color: #c9a165; font-size: ${small}pt; font-weight: bold; }
 QLabel#status { color: #b9ab93; font-size: ${small}pt; }
-QLabel#dot[state="connected"] { color: #6cc070; } QLabel#dot[state="connecting"] { color: #e7b45a; }
-QLabel#dot[state="error"] { color: #d9534f; } QLabel#dot[state="idle"] { color: #6b6152; }
 QPushButton, QToolButton { background: #2c2219; border: 1px solid #5b4527; border-radius: 6px; padding: 5px 10px; }
 QPushButton:hover, QToolButton:hover { background: #3a2c1f; }
 QPushButton:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
@@ -55,9 +57,8 @@ QPushButton#primary { background: #9e2b22; border-color: #d65a45; color: #fff; f
                        padding: 8px; }
 QPushButton#primary:hover { background: #b8352a; }
 QPushButton#primary[running="true"] { background: #3d4a2a; border-color: #8fb35a; }
-QToolButton#flat { background: transparent; border: none; padding: 2px 6px; color: #b9ab93; }
-QToolButton#flat:hover { color: #fff; }
-QToolButton#flat:checked { color: #e7b45a; }
+QToolButton#flat { background: transparent; border: none; padding: 4px 3px; }
+QToolButton#flat:hover { background: #3a2c1f; }
 QToolButton#flat::menu-indicator { image: none; width: 0; }
 QSpinBox, QLineEdit, QComboBox { background: #0f0c09; border: 1px solid #5b4527; border-radius: 6px; padding: 4px 6px; }
 QComboBox QAbstractItemView { background: #1d1711; selection-background-color: #6b4a1f; }
@@ -351,7 +352,7 @@ class Window(QWidget):
         h = QHBoxLayout(header)
         h.setContentsMargins(12, 6, 6, 6)
         h.addWidget(QLabel("LC Helper", objectName="title"))
-        self.dot = QLabel("●", objectName="dot")
+        self.dot = QLabel(objectName="dot", accessibleName="連線狀態")
         self.dot.setProperty("state", "idle")
         self.dot.setToolTip("還沒連線：第一次開始戰鬥或讀取事件時才連")
         h.addWidget(self.dot)
@@ -359,10 +360,13 @@ class Window(QWidget):
         self.device_box.addItem("自動偵測", None)
         self.device_box.activated.connect(self.pick_device)
         h.addWidget(self.device_box, 1)  # the device list takes the width the buttons leave
-        self.pin = QToolButton(objectName="flat", text="置頂", checkable=True, checked=s["pin"], toolTip=PIN[s["pin"]][1])
+        buttons = QHBoxLayout(spacing=0)
+        h.addLayout(buttons)
+        self.pin = QToolButton(objectName="flat", checkable=True, checked=s["pin"], accessibleName="置頂")
         self.pin.toggled.connect(self.set_pin)
-        h.addWidget(self.pin)
-        more = QToolButton(objectName="flat", text="⋯", popupMode=QToolButton.InstantPopup)
+        buttons.addWidget(self.pin)
+        self.more = more = QToolButton(objectName="flat", popupMode=QToolButton.InstantPopup, accessibleName="更多設定",
+                                       toolTip="更多設定")
         menu = QMenu(more)
         self.hold_action = QAction("回合播放時按住畫面（加快 E.G.O 動畫）", menu, checkable=True, checked=s["hold"])
         self.hold_action.toggled.connect(self.set_hold)
@@ -388,11 +392,12 @@ class Window(QWidget):
             action.triggered.connect(lambda _, key=key: self.set_text_size(key))
             size_menu.addAction(action)
         more.setMenu(menu)
-        h.addWidget(more)
-        self.fold = QToolButton(objectName="flat", text="▸" if s["compact"] else "▾", clicked=self.toggle_compact)
-        self.fold.setToolTip("收合事件查詢")
-        h.addWidget(self.fold)
-        h.addWidget(QToolButton(objectName="flat", text="✕", clicked=self.close))
+        buttons.addWidget(more)
+        self.fold = QToolButton(objectName="flat", clicked=self.toggle_compact)
+        buttons.addWidget(self.fold)
+        self.close_button = QToolButton(objectName="flat", accessibleName="關閉", toolTip="關閉 LC Helper",
+                                        clicked=self.close)
+        buttons.addWidget(self.close_button)
         lay.addWidget(header)
         self.header = header
 
@@ -491,12 +496,34 @@ class Window(QWidget):
         QApplication.instance().setStyleSheet(style(base))
         self.root.setFixedWidth(scaled(380, base))
         self.detail.setFixedHeight(scaled(300, base))
+        self.apply_icons()
         QTimer.singleShot(0, self.adjustSize)
+
+    def apply_icons(self):
+        """The icons for the states they show, at the text's size, drawn for the screen's pixel ratio."""
+        side, ratio = scaled(15, TEXT_SIZES[self.settings["text_size"]][1]), self.devicePixelRatioF()
+        pinned = self.settings["pin"]
+        _, pin_icon, pin_tip = PIN[pinned]
+        fold_icon, fold_tip = FOLD[self.settings["compact"]]
+        for button, name, color in ((self.pin, pin_icon, ICON_ON if pinned else ICON), (self.more, "more", ICON),
+                                    (self.fold, fold_icon, ICON), (self.close_button, "close", ICON),
+                                    (self.start, "stop" if self.running else "play", "#fff")):
+            button.setIcon(icons.icon(name, color, side, ratio))
+            button.setIconSize(QSize(side, side))
+        self.pin.setToolTip(pin_tip)
+        self.fold.setToolTip(fold_tip)
+        self.fold.setAccessibleName(fold_tip)
+        self.dot.setPixmap(icons.pixmap("dot", DOT[self.dot.property("state")], side // 2, ratio))
+
+    def event(self, e):
+        if e.type() == QEvent.DevicePixelRatioChange:  # moved to a screen of another scale
+            self.apply_icons()
+        return super().event(e)
 
     def set_pin(self, on):
         """Keep the window on top of the game, or make it a normal window, where it is."""
         self.settings["pin"] = on
-        self.pin.setToolTip(PIN[on][1])
+        self.apply_icons()
         pos = self.pos()
         self.setWindowFlags(PIN[on][0])  # Qt makes a new native window, hidden
         self.move(pos)
@@ -538,7 +565,8 @@ class Window(QWidget):
 
     def update_start(self):
         self.start.setText(f"停止  {self.settings['hotkeys']['battle']}" if self.running
-                           else f"▶ 開始自動戰鬥  {self.settings['hotkeys']['battle']}")
+                           else f"開始自動戰鬥  {self.settings['hotkeys']['battle']}")
+        self.apply_icons()
         self.start.setProperty("running", "true" if self.running else "false")
         self.start.style().unpolish(self.start)
         self.start.style().polish(self.start)
@@ -622,7 +650,7 @@ class Window(QWidget):
         compact = self.event_box.isVisible()
         self.settings["compact"] = compact
         self.event_box.setVisible(not compact)
-        self.fold.setText("▸" if compact else "▾")
+        self.apply_icons()
         QTimer.singleShot(0, self.adjustSize)
 
     def pick_device(self, index):
@@ -631,9 +659,8 @@ class Window(QWidget):
 
     def on_device(self, state, text):
         self.dot.setProperty("state", state)
-        self.dot.style().unpolish(self.dot)
-        self.dot.style().polish(self.dot)
         self.dot.setToolTip(text)
+        self.apply_icons()
         if not self.running:
             self.status.setText({"connected": f"已連上 {text}", "connecting": "連線中…"}.get(state, text))
 
