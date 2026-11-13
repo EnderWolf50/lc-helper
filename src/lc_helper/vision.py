@@ -31,6 +31,29 @@ TURN_NUMBER = (55, 57, 45, 30)
 SLOT_PORTRAIT_Y = 665  # tapping a slot's portrait swaps its lower skill and its guard skill
 LOWER_Y = 577  # a slot's lower skill, at rest
 
+# A battle's end (maalc mirror_dungeon.json Victory and WipeDialog: OCR nodes, read here only once a cheap check
+# says the screen may show them).
+VICTORY_ROI = (420, 280, 440, 140)
+WIPE_ROI = (330, 360, 270, 50)
+# The orange share that sends a screen to OCR: 0.225 on Victory.png; 0.157 and 0.148 on two team screens (their
+# OCR then reads no VICTORY); 0.033 at most on battle captures (tools/sweep_screens.py, 2026-11-13).
+VICTORY_ORANGE = 0.1
+
+
+def wiped(image):
+    """Whether the wipe dialog (every participating sinner killed) is up: its first text line, cut from maalc's
+    WipeDialog.png capture by tools/make_templates.py."""
+    x, y, w, h = WIPE_ROI
+    return find(image, "wipe_text.png", (x - 20, y - 10, w + 40, h + 20)) is not None
+
+
+def victory_likely(image):
+    """Whether the VICTORY banner's orange fills enough of its spot to be worth an OCR read."""
+    p = crop(image, VICTORY_ROI).astype(int)
+    b, g, r = p[..., 0], p[..., 1], p[..., 2]
+    return float(((r > 200) & (g > 110) & (g < 230) & (b < 110) & (r - b > 120)).mean()) > VICTORY_ORANGE
+
+
 # Event pages (maalc actions.py).
 EVENT_STORY = (60, 320, 580, 200)
 CHOICES_HEADER = (690, 105, 170, 45)

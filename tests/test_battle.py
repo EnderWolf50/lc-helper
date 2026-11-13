@@ -2,11 +2,11 @@ from lc_helper.battle import FOREVER, AutoBattle, Phase, Pick, Plan
 from fake_game import DAMAGE_AT, WIN_RATE_AT, FakeBattle, VirtualClock
 
 
-def play(screen, plan, hold=True, **game):
+def play(screen, plan, hold=True, engine=None, **game):
     clock = VirtualClock()
     fake = FakeBattle(screen, clock, **game)
     statuses = []
-    bot = AutoBattle(fake, plan, fake.stop, statuses.append, clock=clock, hold=hold)
+    bot = AutoBattle(fake, plan, fake.stop, statuses.append, clock=clock, hold=hold, **(engine or {}))
     bot.run()
     return fake, statuses
 
@@ -75,3 +75,27 @@ def test_it_stops_when_start_starts_no_turn(screen):
     fake, statuses = play(screen, Plan(), turns=5, start_works=False, max_shots=10_000)
     assert fake.starts() == []
     assert statuses[-1].phase is Phase.STOPPED and "START" in statuses[-1].note
+
+
+def test_a_victory_is_told_once_with_its_turns(screen):
+    fights = []
+    fake, statuses = play(screen, Plan(), turns=3, max_shots=400, engine={"on_fight": fights.append})
+    assert [(f.result, f.turns) for f in fights] == [("victory", 3)]
+    assert fights[0].seconds > 0
+    assert statuses[-1].phase is Phase.STOPPED and statuses[-1].note == ""  # the fake ended it, not the engine
+
+
+def test_the_engine_stops_itself_after_a_victory_when_asked(screen):
+    fights = []
+    fake, statuses = play(screen, Plan(), turns=2, max_shots=400,
+                          engine={"on_fight": fights.append, "stop_after_victory": True})
+    assert [f.result for f in fights] == ["victory"]
+    assert "戰鬥勝利" in statuses[-1].note
+
+
+def test_a_wipe_is_told_and_the_engine_keeps_waiting(screen):
+    fights = []
+    fake, statuses = play(screen, Plan(), turns=2, end="WipeDialog.png", max_shots=60,
+                          engine={"on_fight": fights.append, "stop_after_victory": True})
+    assert [(f.result, f.turns) for f in fights] == [("wipe", 2)]
+    assert statuses[-1].note == ""  # a wipe waits for the player's retry or forfeit

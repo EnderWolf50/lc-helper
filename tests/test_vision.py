@@ -43,3 +43,9 @@ def test_menus_and_popups_are_told_apart_from_turns(readings):
     assert {n for n, r in readings.items() if r["menu"]} == {"BattleMenu.png", "BattleMenuClosing.png", "LuxBattleMenu.png"}
     popups = {n for n, r in readings.items() if r["popup"]}
     assert popups and not popups & (TURN_SCREENS | {"BattlePause.png"})
+
+
+def test_the_end_of_a_battle_shows_on_its_own_captures_only(readings):
+    likely = {n for n, r in readings.items() if r["victory"]}  # a filter before OCR: menus may pass, battles not
+    assert "Victory.png" in likely and not likely & (TURN_SCREENS | {"BattlePause.png"})
+    assert {n for n, r in readings.items() if r["wiped"]} == {"WipeDialog.png"}

@@ -29,17 +29,18 @@ class FakeBattle:
     max_shots screenshots. With start_works False, START does nothing.
 
     States: "turn" (BattleTurn.png, or `turn_image`), "lit" (picks made: BattleTurnLit.png), "playing"
-    (BattlePause.png for `play_s`), "over" (Victory.png). A portrait tap swaps that slot's lower skill with a flat
+    (BattlePause.png for `play_s`), "over" (Victory.png, or `end`). A portrait tap swaps that slot's lower skill with a flat
     brown guard icon; a drag from the left gear through every acting slot's lower skill links the guard chain.
     """
 
     can_hold = True
 
     def __init__(self, screen, clock, turns=3, turn_image="BattleTurn.png", play_s=2.0, max_shots=None,
-                 start_works=True, menu_after_pick=False, popup_while_playing=False):
+                 start_works=True, menu_after_pick=False, popup_while_playing=False, end="Victory.png"):
         self.screen, self.clock, self.turns, self.play_s = screen, clock, turns, play_s
         self.max_shots, self.start_works, self.shots = max_shots, start_works, 0
         self.menu_after_pick, self.popup_while_playing = menu_after_pick, popup_while_playing
+        self.end = end  # the screen once the turns are played: Victory.png, or WipeDialog.png for a wipe
         self.holds = []  # (down, up) virtual times of each finger held on (1, 1)
         self.base = screen(turn_image)
         self.box = vision.battle_turn(self.base)
@@ -60,7 +61,7 @@ class FakeBattle:
             self.looks_over += 1
             if self.looks_over >= 2:
                 self.stop.set()
-            return self.screen("Victory.png")
+            return self.screen(self.end)
         if self.state == "menu":
             return self.screen("BattleMenu.png")
         if self.state == "playing":

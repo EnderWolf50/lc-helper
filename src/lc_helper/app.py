@@ -11,22 +11,22 @@ import sys
 from ctypes import wintypes
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QActionGroup, QFont, QKeySequence
+from PySide6.QtGui import QAction, QActionGroup, QColor, QFont, QIcon, QKeySequence, QPainter, QPixmap
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
                                QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout, QLineEdit,
-                               QListWidget, QListWidgetItem, QMenu, QPushButton, QSpinBox, QTextBrowser, QToolButton,
-                               QVBoxLayout, QWidget)
+                               QListWidget, QListWidgetItem, QMenu, QPushButton, QSpinBox, QSystemTrayIcon, QTextBrowser,
+                               QToolButton, QVBoxLayout, QWidget)
 
 from . import device as devices
 from .paths import LOCAL
-from . import events
+from . import events, fights
 from .overlay import Overlay, labels
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
 
 SETTINGS = LOCAL / "settings.json"
 DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard": 0, "forever": False,
-            "hold": True, "watch": False, "overlay": True, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
+            "hold": True, "watch": False, "overlay": True, "stop_after_victory": False, "notify": True, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 
 STYLE = """
@@ -130,11 +130,13 @@ class Bridge(QObject):
     battle = Signal(object)
     event = Signal(object)
     page_left = Signal()
+    fight = Signal(object, str)
     error = Signal(str)
 
     def callbacks(self):
         return Callbacks(device=self.device.emit, targets=self.targets.emit, battle=self.battle.emit,
-                         event=self.event.emit, page_left=self.page_left.emit, error=self.error.emit)
+                         event=self.event.emit, page_left=self.page_left.emit, fight=self.fight.emit,
+                         error=self.error.emit)
 
 
 WM_HOTKEY, MOD_NOREPEAT = 0x0312, 0x4000
@@ -224,6 +226,25 @@ class HotkeyDialog(QDialog):
         self.buttons.button(QDialogButtonBox.Ok).setEnabled(not problem)
 
 
+class FightLog(QDialog):
+    """The battles the auto battle played to their end, newest first, with a one-line summary."""
+
+    def __init__(self, parent=None, path=None):
+        super().__init__(parent, Qt.Dialog | Qt.WindowStaysOnTopHint)
+        self.setWindowTitle("戰鬥紀錄")
+        lay = QVBoxLayout(self)
+        rows = fights.load(path)
+        self.summary = QLabel(fights.summary(rows), objectName="status")
+        lay.addWidget(self.summary)
+        self.rows = QListWidget()
+        self.rows.addItems([fights.row_text(r) for r in rows])
+        self.rows.setMinimumSize(320, 260)
+        lay.addWidget(self.rows)
+        close = QDialogButtonBox(QDialogButtonBox.Close)
+        close.rejected.connect(self.reject)
+        lay.addWidget(close)
+
+
 class Window(QWidget):
     def __init__(self, worker_factory=Worker, hotkeys=None):
         super().__init__(None, Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
@@ -232,6 +253,7 @@ class Window(QWidget):
         self.hotkeys = hotkeys if hotkeys is not None else Hotkeys()
         self.hotkeys_taken = []
         self.overlay = Overlay()
+        self.tray = None
         self.shown_event = None
         self.running = False
         self.drag_from: QPoint | None = None
@@ -243,6 +265,7 @@ class Window(QWidget):
         self.bridge.battle.connect(self.on_battle)
         self.bridge.event.connect(self.on_event)
         self.bridge.page_left.connect(lambda: self.overlay.hide_labels())
+        self.bridge.fight.connect(self.on_fight)
         self.bridge.error.connect(lambda text: self.status.setText(text))
         self.search_timer = QTimer(self, singleShot=True, interval=120, timeout=self.run_search)
 
@@ -276,6 +299,11 @@ class Window(QWidget):
         self.hold_action = QAction("回合播放時按住畫面（加快 E.G.O 動畫）", menu, checkable=True, checked=s["hold"])
         self.hold_action.toggled.connect(self.set_hold)
         menu.addAction(self.hold_action)
+        for key, text in (("stop_after_victory", "勝利後停止自動戰鬥"), ("notify", "戰鬥結束時跳出 Windows 通知")):
+            action = QAction(text, menu, checkable=True, checked=s[key])
+            action.toggled.connect(lambda on, key=key: self.set_flag(key, on))
+            menu.addAction(action)
+        menu.addAction("戰鬥紀錄…", lambda: FightLog(self).exec())
         pc_menu = menu.addMenu("PC 版點擊方式")
         group = QActionGroup(pc_menu)
         for key, (name, cost, _, can_hold) in devices.PC_INPUTS.items():
@@ -422,6 +450,35 @@ class Window(QWidget):
         self.settings["hold"] = on
         self.worker.send("set_hold", on)
 
+    def set_flag(self, key, on):
+        self.settings[key] = on
+        if key == "stop_after_victory":
+            self.worker.send("set_stop_after_victory", on)
+
+    def on_fight(self, fight, device):
+        """A battle ended: log it, and say so in a Windows notification when asked."""
+        row = fights.record(fight, device)
+        if self.settings["notify"]:
+            self.notifier().showMessage(f"戰鬥{fights.RESULT_TEXT[fight.result]}",
+                                        f"{row['turns']} 回合，{fights.duration(row['seconds'])}"
+                                        + ("；自動戰鬥已停止" if fight.result == "victory" and self.settings["stop_after_victory"] else ""))
+
+    def notifier(self):
+        """The tray icon Windows notifications come from, made on first use."""
+        if self.tray is None:
+            pix = QPixmap(32, 32)
+            pix.fill(Qt.transparent)
+            painter = QPainter(pix)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setBrush(QColor("#9e2b22"))
+            painter.setPen(QColor("#e7b45a"))
+            painter.drawEllipse(2, 2, 28, 28)
+            painter.end()
+            self.tray = QSystemTrayIcon(QIcon(pix), self)
+            self.tray.setToolTip("LC Helper")
+            self.tray.show()
+        return self.tray
+
     def set_pc_input(self, key):
         self.settings["pc_input"] = key
         self.worker.send("set_pc_input", key)
@@ -524,6 +581,8 @@ class Window(QWidget):
         self.settings["pos"] = [self.x(), self.y()]
         save_settings(self.settings)
         self.overlay.close()
+        if self.tray is not None:
+            self.tray.hide()
         self.worker.shutdown()
         self.worker.join(timeout=3)
         super().closeEvent(e)
@@ -574,6 +633,7 @@ def main(worker_factory=Worker):
     window.worker.send("scan")
     window.worker.send("set_address", window.settings["address"])
     window.worker.send("set_pc_input", window.settings["pc_input"])
+    window.worker.send("set_stop_after_victory", window.settings["stop_after_victory"])
     if window.settings["watch"]:  # auto read loads the OCR model now; otherwise the first event read does
         window.worker.send("set_watch", True)
     code = app.exec()

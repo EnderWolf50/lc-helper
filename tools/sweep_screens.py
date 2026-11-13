@@ -25,7 +25,8 @@ def read(image):
     box = vision.battle_turn(image)
     row = {"turn": box, "turn_score": max(best(image, "battle_turn.png", vision.BATTLE_TURN_ROI),
                                           best(image, "battle_turn_pressed.png", vision.BATTLE_TURN_ROI)),
-           "playing": vision.turn_playing(image), "menu": vision.battle_menu(image), "popup": vision.popup(image)}
+           "playing": vision.turn_playing(image), "menu": vision.battle_menu(image), "popup": vision.popup(image),
+           "victory": vision.victory_likely(image), "wiped": vision.wiped(image)}
     if box:
         disc = vision.start_disc(box)
         xs = vision.slot_xs(box[0])
@@ -43,7 +44,8 @@ def sweep(folder):
 def main():
     folder = Path(sys.argv[1]) if len(sys.argv) > 1 else maalc_dir() / "tests/screens"
     for name, row in sweep(folder).items():
-        if row["turn"] or row["playing"] or row["menu"] or row["popup"] or row["turn_score"] > 0.5:
+        if (row["turn"] or row["playing"] or row["menu"] or row["popup"] or row["victory"] or row["wiped"]
+                or row["turn_score"] > 0.5):
             print(name, row)
 
 

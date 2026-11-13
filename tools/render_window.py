@@ -101,6 +101,17 @@ def main():
     w.on_device("connected", "Limbus PC（合成觸控）")
     shot(w, out, "window-pc.png")
     menus(w, out, "window-menu.png")
+    sample = out / "render-battles.jsonl"
+    sample.unlink(missing_ok=True)
+    from lc_helper import fights
+    from lc_helper.battle import Fight
+    for i, (result, turns, seconds) in enumerate([("victory", 5, 128), ("victory", 7, 171), ("wipe", 4, 96),
+                                                  ("victory", 6, 142)]):
+        fights.record(Fight(result, turns, seconds), "MuMuPlayer12", sample, now=1_763_000_000 + 600 * i)
+    log = ui.FightLog(w, sample)
+    log.show()
+    shot(log, out, "window-battle-log.png")
+    log.close()
     dialog = ui.HotkeyDialog({"battle": "F8", "read": "F8"}, w)
     dialog.show()
     shot(dialog, out, "window-hotkeys-clash.png")

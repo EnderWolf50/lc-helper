@@ -12,7 +12,7 @@ from typing import Callable
 
 from . import device as devices
 from . import events, ocr, vision
-from .battle import AutoBattle, Phase, Plan, Status, Stopped
+from .battle import AutoBattle, Fight, Phase, Plan, Status, Stopped
 
 WATCH_EVERY = 1.0  # s between looks for a new event page while auto read is on
 # s without an event read before the OCR model is dropped (auto read off). tools/ocr_memory.py, 2026-11-13: a read of
@@ -28,6 +28,7 @@ class Callbacks:
     battle: Callable[[Status], None] = lambda status: None
     event: Callable[[events.Reading], None] = lambda reading: None
     page_left: Callable[[], None] = lambda: None  # auto read saw the Choices page it had read go away
+    fight: Callable[[Fight, str], None] = lambda fight, device: None  # a battle ended (and on which device)
     error: Callable[[str], None] = lambda text: None
 
 
@@ -46,6 +47,7 @@ class Worker(threading.Thread):
         self.target: devices.Target | None = None  # what the device is connected to
         self.battle: AutoBattle | None = None
         self.battle_stop = threading.Event()
+        self.stop_after_victory = False
         self.watch = False
         self.last_watch = 0.0
         self.last_page = None  # thumbnail of the story box of the last page auto read showed
@@ -153,8 +155,17 @@ class Worker(threading.Thread):
             self.cb.battle(Status(Phase.STOPPED, plan, 0, "還沒連上模擬器或 PC 版"))
             return
         self.battle_stop.clear()
-        self.battle = AutoBattle(self.device, plan, self.battle_stop, self.cb.battle, hold=self.holds(hold))
+        self.battle = AutoBattle(self.device, plan, self.battle_stop, self.cb.battle, hold=self.holds(hold),
+                                 on_fight=self.fought, stop_after_victory=self.stop_after_victory)
         self.battle.emit(Phase.WAITING)
+
+    def fought(self, fight):
+        self.cb.fight(fight, self.target.name if self.target else "")
+
+    def do_set_stop_after_victory(self, on):
+        self.stop_after_victory = on
+        if self.battle is not None:
+            self.battle.stop_after_victory = on
 
     def holds(self, asked):
         """Whether turns are held: when asked, and the device can hold without taking the user's mouse along."""
