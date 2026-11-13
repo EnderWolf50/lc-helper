@@ -1,0 +1,38 @@
+# lc-helper
+
+Limbus Company 的浮動小工具：一個置頂的小視窗，放在 MuMu 模擬器旁邊用。
+
+- **自動戰鬥**：每回合按 Win Rate 或 Damage，再按 START；回合播放時按住畫面角落，讓 E.G.O 動畫快轉。
+- **防禦回合**：先防禦指定回合數（或無限防禦），用完接著自動戰鬥。專注戰鬥沒有防禦鏈，那回合改用自動選技能，防禦回合數保留到下一場。
+- **鏡牢事件**：在事件選項頁按「讀取畫面」（或開自動讀取），或輸入記得的中英文字，列出每個選項的效果：給什麼飾品、判定成功或失敗的結果、機率分支、後續頁。
+
+辨識與點擊的位置、等待時間都沿用 [maalc](../maalc) 實機調過的數字；事件資料來自 maalc 的事件表，中文取自都市零漢化組。
+
+## 執行
+
+```powershell
+uv sync
+uv run --group sync python tools/sync_maalc.py   # 第一次，和每季 maalc 更新事件表後
+uv run lc-helper
+```
+
+`uv run lc-helper` 開的視窗沒有主控台；要看錯誤輸出改用 `uv run python -m lc_helper`。
+
+熱鍵：F8 開始／停止自動戰鬥，F9 讀取畫面上的事件。設定（模擬器、勝率或傷害、防禦回合、熱鍵、視窗位置）存在 `.local/settings.json`，熱鍵在 `hotkeys` 裡改。
+
+`tools/sync_maalc.py` 從 maalc 的資料夾讀資料：預設是本 repo 旁邊的 `../maalc`，不在那裡就把路徑寫進 `.local/maalc_dir`。事件的完整英文故事與中文文字要 maalc 的 `.local/unpack` 與 `.local/llc`。
+
+## 檢查
+
+```powershell
+uv run --group sync pytest          # 辨識、戰鬥流程、事件、背景執行緒；需要 maalc 的 tests/screens
+uv run --group sync python tools/sweep_screens.py   # 每張截圖的辨識結果
+uv run --group sync python tools/render_window.py   # 視窗各狀態的截圖，存到 .local/evidence
+uv run python tools/launch_check.py                 # 真的開視窗、量啟動時間、送熱鍵，不碰模擬器
+```
+
+## 授權
+
+- 事件與飾品的中文文字：[都市零漢化組](https://github.com/LocalizeLimbusCompany/LocalizeLimbusCompany)，CC BY-NC-SA 4.0。
+- 遊戲資料與圖像 © Project Moon；非官方粉絲作品。
+- 移植自 maalc 的程式碼沿用 maalc 的授權（PolyForm Noncommercial 1.0.0）。
