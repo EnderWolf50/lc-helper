@@ -33,6 +33,8 @@ class FakeBattle:
     brown guard icon; a drag from the left gear through every acting slot's lower skill links the guard chain.
     """
 
+    can_hold = True
+
     def __init__(self, screen, clock, turns=3, turn_image="BattleTurn.png", play_s=2.0, max_shots=None,
                  start_works=True, menu_after_pick=False, popup_while_playing=False):
         self.screen, self.clock, self.turns, self.play_s = screen, clock, turns, play_s

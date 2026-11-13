@@ -23,7 +23,7 @@ from lc_helper.device import Target  # noqa: E402
 from lc_helper.worker import Worker  # noqa: E402
 
 
-def no_emulator(address):
+def no_emulator(address, **_):
     raise RuntimeError("launch_check: no emulator on purpose")
 
 

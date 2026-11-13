@@ -10,6 +10,8 @@ from fake_game import FakeBattle
 class Still:
     """A device that always shows one screen and takes taps without effect."""
 
+    can_hold = True
+
     def __init__(self, image):
         self.image = image
 
@@ -21,7 +23,7 @@ class Still:
 
 
 def started(device, **callbacks):
-    w = Worker(Callbacks(**callbacks), connect=lambda address: (device, Target("fake", "127.0.0.1:1")),
+    w = Worker(Callbacks(**callbacks), connect=lambda address, **_: (device, Target("fake", "127.0.0.1:1")),
                find=lambda: [])
     w.start()
     w.send("connect", None)
@@ -48,6 +50,39 @@ def test_a_battle_runs_until_stopped_and_reports_each_turn(screen):
     w.send("quit")
     w.join(3)
     assert not w.is_alive()
+
+
+def test_a_device_that_cannot_hold_plays_its_turns_without_holding(screen):
+    """The PC client with a cursor or window input: a held touch would drag the user's mouse along."""
+    fake = FakeBattle(screen, Clock(), turns=2, play_s=1.0)
+    fake.can_hold = False
+    w = started(fake)
+    w.send("start_battle", Plan(), True)
+    w.send("set_hold", True)
+    assert fake.stop.wait(20), "the fake battle reached VICTORY"
+    assert fake.starts() == ["win_rate", "win_rate"]
+    assert "hold" not in fake.log
+
+
+def test_a_new_pc_input_reconnects_the_pc_client_with_it(screen):
+    calls, readings, states = [], [], []
+
+    def connect(address, pc_input):
+        calls.append((address, pc_input))
+        return Still(screen("EventChoices.png")), Target("Limbus PC", address)
+
+    w = Worker(Callbacks(event=readings.append, device=lambda state, text: states.append(state)), connect=connect,
+               find=lambda: [])
+    w.start()
+    w.send("set_address", "pc")
+    w.send("read_event")
+    wait_for(lambda: len(readings) == 1)
+    w.send("set_pc_input", "touch")  # unchanged: the connection stays
+    w.send("set_pc_input", "window")
+    w.send("read_event")
+    wait_for(lambda: len(readings) == 2)
+    assert calls == [("pc", "touch"), ("pc", "window")]
+    assert "idle" in states
 
 
 def test_read_event_reads_the_page_on_screen(screen):
@@ -86,7 +121,7 @@ def test_a_battle_queued_before_closing_never_starts(screen):
     fake = FakeBattle(screen, Clock(), turns=2, play_s=0.3)
     statuses = []
 
-    def slow_connect(address):
+    def slow_connect(address, **_):
         time.sleep(0.5)
         return fake, Target("fake", "x")
 
@@ -105,7 +140,7 @@ def test_opening_the_window_does_not_reach_the_emulator_until_first_use(screen):
     calls = []
     readings = []
 
-    def connect(address):
+    def connect(address, **_):
         calls.append(address)
         return Still(screen("EventChoices.png")), Target("fake", address)
 

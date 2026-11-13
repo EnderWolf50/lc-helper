@@ -35,6 +35,8 @@ class Worker(threading.Thread):
         self.commands: queue.Queue = queue.Queue()
         self.device = None
         self.address: str | None = None  # the emulator to connect to on first use; None: the first one found
+        self.pc_input = devices.PC_INPUT  # how taps reach the PC client (devices.PC_INPUTS)
+        self.target: devices.Target | None = None  # what the device is connected to
         self.battle: AutoBattle | None = None
         self.battle_stop = threading.Event()
         self.watch = False
@@ -110,18 +112,33 @@ class Worker(threading.Thread):
         self.device, self.address = None, address
         self.cb.device("connecting", address or "自動")
         try:
-            self.device, target = self.connect_fn(address)
-            self.cb.device("connected", f"{target.name} {target.address}")
+            self.device, self.target = self.connect_fn(address, pc_input=self.pc_input)
+            pc = self.target.address == devices.PC
+            self.cb.device("connected", self.target.name if pc else f"{self.target.name} {self.target.address}")
         except Exception as e:
             self.cb.device("error", str(e))
 
+    def do_set_pc_input(self, method):
+        """A new way to tap the PC client: a PC connection is dropped (ending its battle) and made again on next use."""
+        method = method if method in devices.PC_INPUTS else devices.PC_INPUT  # a hand-edited settings.json
+        changed = method != self.pc_input
+        self.pc_input = method
+        if changed and self.device is not None and self.target.address == devices.PC:
+            self.end_battle("換了 PC 版點擊方式，請重新開始")
+            self.device = None
+            self.cb.device("idle", "換了點擊方式：下次開始戰鬥或讀取事件時重新連線")
+
     def do_start_battle(self, plan: Plan, hold: bool):
         if not self.ready():
-            self.cb.battle(Status(Phase.STOPPED, plan, 0, "還沒連上模擬器"))
+            self.cb.battle(Status(Phase.STOPPED, plan, 0, "還沒連上模擬器或 PC 版"))
             return
         self.battle_stop.clear()
-        self.battle = AutoBattle(self.device, plan, self.battle_stop, self.cb.battle, hold=hold)
+        self.battle = AutoBattle(self.device, plan, self.battle_stop, self.cb.battle, hold=self.holds(hold))
         self.battle.emit(Phase.WAITING)
+
+    def holds(self, asked):
+        """Whether turns are held: when asked, and the device can hold without taking the user's mouse along."""
+        return asked and self.device.can_hold
 
     def do_stop_battle(self):
         self.end_battle()
@@ -139,7 +156,7 @@ class Worker(threading.Thread):
 
     def do_set_hold(self, hold):
         if self.battle is not None:
-            self.battle.hold = hold
+            self.battle.hold = self.holds(hold)
 
     def do_set_watch(self, on):
         self.watch, self.last_page = on, None
