@@ -248,7 +248,8 @@ def test_the_gift_search_finds_gifts_by_chinese_or_english_name_and_shows_one_in
     search_icon(box).click()
     assert rows(box)[0].startswith(gifts.label(found[0])), "the gift field's icon searches too"
     click_row(box, 0)
-    first_line = w.gift_detail.toPlainText().splitlines()[0]
+    first_line = next(line for line in w.gift_detail.toPlainText().splitlines()
+                      if line.strip("\ufffc "))  # the picture's cell has no words
     assert gifts.label(found[0]) in first_line and w.detail.toPlainText() == event_text
     w.sections["gift"].head.click()
     assert w.sections["gift"].summary.text() == f"最近：{found[0]['zh']}"
@@ -279,7 +280,7 @@ def test_a_gift_shows_its_keywords_icon_beside_its_name_and_a_keywordless_one_a_
     assert grown.width() / grown.devicePixelRatio() > side, "it grows with the text"
 
 
-def test_a_gift_search_row_carries_the_gifts_keyword_icon(tmp_path, monkeypatch):
+def test_a_gift_search_row_carries_the_gifts_picture(tmp_path, monkeypatch):
     w = shown(tmp_path, monkeypatch, open_sections=["gift"])
     box = w.gift_search
     box.field.setText("burn")
@@ -289,8 +290,10 @@ def test_a_gift_search_row_carries_the_gifts_keyword_icon(tmp_path, monkeypatch)
     icons = [model.index(i, 0).data(Qt.DecorationRole) for i in range(model.rowCount())]
     assert all(not icon.isNull() for icon in icons)
     size = box.list.popup().iconSize()
+    assert size.width() == ui.GIFT_ROW * ui.glyph_side(w.text_font()), "two lines of text tall"
     lit, plain = (icons[0].pixmap(size, mode).toImage() for mode in (QIcon.Selected, QIcon.Normal))
     assert lit == plain, "the lit row keeps the icon's colours"
+    assert len(inked_colours(plain)) > 200, "the game's picture of the gift, not a keyword icon alone"
 
 
 def test_a_gift_screen_read_shows_in_the_gift_pane_and_leaves_the_event_shown(tmp_path, monkeypatch, screen):
@@ -416,3 +419,21 @@ def test_each_post_boss_cards_worth_is_drawn_on_the_game_scored_by_the_keywords(
     w.settings["overlay"] = False
     w.on_trials(post_boss_page())
     assert not w.overlay.trials, "the worth is drawn on the game only: nothing with the hints off"
+
+
+def test_a_gift_in_the_gift_pane_leads_with_its_picture_which_grows_with_the_text(tmp_path, monkeypatch):
+    from lc_helper import gifts
+
+    w = shown(tmp_path, monkeypatch, open_sections=["event", "gift"])
+    w.show_gifts([gifts.book()[9001]])
+    page = w.gift_detail.toHtml()
+    assert page.index("gift:9001") < page.index("keyword:Burn") < page.index("地獄蝶之夢")
+    doc = w.gift_detail.document()
+    picture = doc.resource(QTextDocument.ImageResource, QUrl("gift:9001"))
+    assert len(inked_colours(picture.toImage())) > 200
+    side = picture.width() / picture.devicePixelRatio()
+    w.set_text_size("large")
+    grown = doc.resource(QTextDocument.ImageResource, QUrl("gift:9001"))
+    assert grown.width() / grown.devicePixelRatio() > side and "地獄蝶之夢" in w.gift_detail.toPlainText()
+    w.clear_gifts()
+    assert w.gift_view is None

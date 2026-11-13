@@ -104,20 +104,28 @@ def gets_html(gets):
     return "&nbsp;&nbsp;".join(parts)
 
 
-def gift_html(gid, how, desc_lines, desc_width, small):
-    """A gift: its keyword icon, name, keyword and tier, and its effect cut to desc_lines lines of desc_width px."""
+def picture_side(font, desc_lines):
+    """A gift's picture on an event card, px: beside its name and its effect's first line, or its name alone."""
+    return font.pixelSize() * (2.3 if desc_lines else 1.4)
+
+
+def gift_html(gid, how, desc_lines, width, font, small):
+    """A gift in width px: the game's picture of it (gift:ID, its keyword in the corner), then its name, keyword and
+    tier, and under them its effect cut to desc_lines lines."""
     g = gifts.book().get(gid) or {}
     name = html.escape(g.get("zh") or g.get("en") or f"飾品 {gid}")
     keyword = g.get("keyword", "Keywordless")
     tier = events.ROMAN.get(g.get("tier"), "")
     tail = " ".join(x for x in (events.KEYWORDS.get(keyword, keyword), tier, how) if x)
-    row = (f"<img src='kw:{keyword}' style='vertical-align: middle'> <span style='color:#f3cf7e'>{name}</span>"
-           f" <span style='color:#a8977a'>{html.escape(tail)}</span>")
+    side = picture_side(font, desc_lines)
+    text = f"<span style='color:#f3cf7e'>{name}</span> <span style='color:#a8977a'>{html.escape(tail)}</span>"
     desc = " ".join((g.get("desc_zh") or g.get("desc_en") or "").split())
     if desc_lines and desc:
-        cut = QFontMetricsF(small).elidedText(desc, Qt.ElideRight, desc_width * desc_lines - small.pixelSize() * 2)
-        row += f"<br><span style='color:#cbbd9f;font-size:{small.pixelSize()}px'>{html.escape(cut)}</span>"
-    return row
+        room = (width - side - 4) * desc_lines - small.pixelSize() * 2
+        cut = QFontMetricsF(small).elidedText(desc, Qt.ElideRight, room)
+        text += f"<br><span style='color:#cbbd9f;font-size:{small.pixelSize()}px'>{html.escape(cut)}</span>"
+    return (f"<table cellspacing='0' cellpadding='0'><tr><td width='{side + 4:.0f}' valign='middle'>"
+            f"<img src='gift:{gid}'></td><td valign='middle'>{text}</td></tr></table>")
 
 
 def card_html(label, font, small, width, desc_lines):
@@ -140,11 +148,11 @@ def card_html(label, font, small, width, desc_lines):
     tag_w = max((metrics.horizontalAdvance(f.when) for f in found), default=0) + font.pixelSize() * 0.6
     rows = []
     for f in found:
-        what = [gift_html(gid, how, desc_lines, width - tag_w, small) for gid, how in f.gifts]
+        what = [gift_html(gid, how, desc_lines, width - tag_w, font, small) for gid, how in f.gifts]
         if f.gets:
-            what.append(gets_html(f.gets))
+            what.append(f"<p style='margin:0'>{gets_html(f.gets)}</p>")  # under the gifts, which are blocks
         rows.append(f"<tr><td width='{tag_w:.0f}' style='color:{TONES[f.tone]}'>{html.escape(f.when)}</td>"
-                    f"<td>{'<br>'.join(what) or NOTHING}</td></tr>")
+                    f"<td>{''.join(what) or NOTHING}</td></tr>")
     body = f"<table width='100%' cellspacing='0' cellpadding='1'>{''.join(rows)}</table>" if rows else ""
     if not any(f.gifts for f in found) and (rest := hint_rest(o) or ("" if rows else "沒有記錄效果")):
         body += f"<p style='margin:0;color:#cbbd9f'>{html.escape(rest)}</p>"
@@ -378,10 +386,11 @@ class Overlay(QWidget):
         doc.setDefaultFont(font)
         side, ratio = font.pixelSize() * 1.2, self.devicePixelRatioF()
         doc.addResource(QTextDocument.ImageResource, QUrl("icon:star"), icons.pixmap("star", "#f0c674", side, ratio))
+        picture = picture_side(font, desc_lines)
         for f in events.outcomes(label.option):
             for gid, _ in f.gifts:
                 k = (gifts.book().get(gid) or {}).get("keyword", "Keywordless")
-                doc.addResource(QTextDocument.ImageResource, QUrl(f"kw:{k}"), icons.keyword(k, side, ratio))
+                doc.addResource(QTextDocument.ImageResource, QUrl(f"gift:{gid}"), icons.gift(gid, k, picture, ratio))
         doc.setTextWidth(width)
         doc.setHtml(card_html(label, font, small, width, desc_lines))
         return doc

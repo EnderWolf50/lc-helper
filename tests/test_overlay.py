@@ -4,7 +4,7 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPoint, Qt  # noqa: E402
+from PySide6.QtCore import QPoint, Qt, QUrl  # noqa: E402
 from PySide6.QtGui import QColor, QImage, QRegion, QTextDocument  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
@@ -194,4 +194,15 @@ def test_each_post_boss_cards_worth_sits_above_its_card_and_fits(qt):
                for w, _, rect in laid), "above the card (its tags from y 152), under the top bar's buttons"
     assert all(a.right() < b.left() for (_, _, a), (_, _, b) in zip(laid, laid[1:]))
     assert all(doc.size().height() <= rect.height() for _, doc, rect in laid)
+    o.close()
+
+
+def test_a_gift_on_an_event_card_leads_with_its_picture(qt):
+    push = events.by_id()[901069]["options"][1]
+    o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
+    o.resize(1280, 720)
+    doc = o.document(overlay.Label((730, 327, 191, 22), push), 600, 1)
+    assert "gift:9069" in doc.toHtml()
+    picture = doc.resource(QTextDocument.ImageResource, QUrl("gift:9069"))
+    assert not picture.isNull() and picture.width() / picture.devicePixelRatio() >= 2 * overlay.TEXT_PX
     o.close()

@@ -104,3 +104,12 @@ def test_auto_read_shows_a_gift_screen_once(screen):
 def test_a_simplified_query_finds_gifts_by_their_llc_name():
     assert gifts.search("地狱蝶")[0]["id"] == 9001  # 狱 is the Simplified 獄
     assert gifts.search("地獄蝶")[0]["id"] == 9001
+
+
+def test_every_gift_has_the_games_picture_of_it():
+    from PySide6.QtWidgets import QApplication
+
+    from lc_helper import icons
+
+    QApplication.instance() or QApplication([])
+    assert [i for i in gifts.book() if icons.gift_picture(i).isNull()] == []

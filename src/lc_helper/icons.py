@@ -1,4 +1,4 @@
-"""The window's icons, drawn on a 24-unit grid in one stroke weight, and the game's keyword icons, as pixmaps for the
+"""The window's icons, drawn on a 24-unit grid in one stroke weight, and the game's keyword icons and gift pictures, as pixmaps for the
 screen's pixel ratio."""
 
 from functools import cache
@@ -173,6 +173,44 @@ def keyword(name, side, ratio):
     p.end()
     pix.setDevicePixelRatio(ratio)  # after painting: the painter worked in device pixels
     return pix
+
+
+@cache
+def gift_picture(gift_id):
+    """The game's picture of gift gift_id (assets/gift_icons, tools/sync_maalc.py), at the size it comes in; null when
+    there is none."""
+    return QImage(str(ASSETS / "gift_icons" / f"{gift_id}.webp"))
+
+
+BADGE = 0.45  # the keyword icon's share of a gift picture's side, in its bottom-right corner
+
+
+def gift(gift_id, kw, side, ratio, badge=True):
+    """The game's picture of a gift, fitted whole and centred in a square side logical pixels across, with ratio device
+    pixels to each; with badge, its keyword kw's icon in the bottom-right corner, as the game's shop marks a gift. The
+    keyword's icon alone when the game has no picture of the gift."""
+    if gift_picture(gift_id).isNull():
+        return keyword(kw, side, ratio)
+    pix = QPixmap(round(side * ratio), round(side * ratio))
+    pix.fill(Qt.transparent)
+    fitted = gift_picture(gift_id).scaled(pix.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    p = QPainter(pix)
+    p.setRenderHint(QPainter.SmoothPixmapTransform)
+    p.drawImage((pix.width() - fitted.width()) // 2, (pix.height() - fitted.height()) // 2, fitted)
+    if badge:
+        corner = keyword(kw, side * BADGE, ratio)
+        p.drawPixmap(pix.width() - corner.width(), pix.height() - corner.height(), corner)
+    p.end()
+    pix.setDevicePixelRatio(ratio)  # after painting: the painter worked in device pixels
+    return pix
+
+
+def gift_icon(gift_id, kw, side, ratio):
+    """A gift's picture with its keyword badge as a QIcon that keeps its colours on a lit list row."""
+    pix = gift(gift_id, kw, side, ratio)
+    icon = QIcon(pix)
+    icon.addPixmap(pix, QIcon.Selected)
+    return icon
 
 
 def keyword_icon(name, side, ratio):

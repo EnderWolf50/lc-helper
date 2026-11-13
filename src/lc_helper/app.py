@@ -63,6 +63,9 @@ LIST_CHOICES = {"keywords": (recommend.CHOICES, MAX_KEYWORDS), "open_sections": 
 ICON, ICON_ON, HEAD_ICON, THEN = "#b9ab93", "#e7b45a", "#c9a165", "#8f8270"  # THEN: the mark between two chips
 # The detail pane's icons, set in its text as images: <img src='icon:NAME'>, in these colours.
 PANE_ICONS = {"star": "#f0c674", "bullet": "#eadcc4"}
+# A gift's picture, in glyph sides (glyph_side): in the gift pane, beside its name and the start of its effect; on a
+# gift search row, its keyword in the corner.
+GIFT_PICTURE, GIFT_ROW = 3.2, 2
 DOT = {"idle": "#6b6152", "connecting": "#e7b45a", "connected": "#6cc070", "error": "#d9534f"}
 EVENT_PLACEHOLDER = "<p style='color:#8f8270'>在事件的選項頁按「讀取」，或輸入記得的幾個字查詢。</p>"
 GIFT_PLACEHOLDER = "<p style='color:#8f8270'>在選飾品或獲得飾品的畫面按「讀取」，或輸入飾品名字查詢。</p>"
@@ -279,28 +282,31 @@ def event_html(event, read_text="", pick=None):
     return "".join(rows)
 
 
-def gift_html(gift_list, heading=""):
-    """Gifts and their effects, as the detail pane shows them: each gift's keyword icon and its name, Chinese first,
-    English under it."""
+def gift_html(gift_list, heading="", picture=0):
+    """Gifts and their effects, as the detail pane shows them: each gift's picture (gift:ID, picture px across) at the
+    left, and beside it its keyword icon and its name, Chinese first, English after, then its effects."""
     rows = [f"<p style='color:#8f8270;margin:0'>{html.escape(heading)}</p>"] if heading else []
     names = gifts.book()
     for g in gift_list:
-        rows.append(f"<p style='margin:6px 0 0 0'><img src='keyword:{g['keyword']}' style='vertical-align: middle'> "
-                    f"<b style='color:#e7b45a'>{html.escape(gifts.label(g))}</b> "
-                    f"<span style='color:#8f8270'>{html.escape(g['en'])}</span></p>")
+        body = [f"<p style='margin:0'><img src='keyword:{g['keyword']}' style='vertical-align: middle'> "
+                f"<b style='color:#e7b45a'>{html.escape(gifts.label(g))}</b> "
+                f"<span style='color:#8f8270'>{html.escape(g['en'])}</span></p>"]
         if g["desc_zh"]:
-            rows.append(f"<p style='color:#eadcc4;margin:0 0 0 14px'>{html.escape(g['desc_zh']).replace(chr(10), '<br>')}</p>")
+            body.append(f"<p style='color:#eadcc4;margin:0'>{html.escape(g['desc_zh']).replace(chr(10), '<br>')}</p>")
         elif g["desc_en"]:
-            rows.append(f"<p style='color:#a99c86;margin:0 0 0 14px'>{html.escape(g['desc_en']).replace(chr(10), '<br>')}</p>")
+            body.append(f"<p style='color:#a99c86;margin:0'>{html.escape(g['desc_en']).replace(chr(10), '<br>')}</p>")
         plus = g["plus_zh"] or g["plus_en"]
         if plus:
-            rows.append(f"<p style='color:#9fc1d9;margin:2px 0 0 14px'>強化後：{html.escape(plus).replace(chr(10), '<br>')}</p>")
+            body.append(f"<p style='color:#9fc1d9;margin:2px 0 0 0'>強化後：{html.escape(plus).replace(chr(10), '<br>')}</p>")
         for ids in (g.get("recipe") or {}).get("recipes", []):
             parts = " ＋ ".join(html.escape((names.get(i) or {}).get("zh") or str(i)) for i in ids)
-            rows.append(f"<p style='color:#a99c86;margin:0 0 0 14px'>融合：{parts}</p>")
+            body.append(f"<p style='color:#a99c86;margin:0'>融合：{parts}</p>")
         for group in (g.get("recipe") or {}).get("groups", []):
             parts = "、".join(html.escape((names.get(i) or {}).get("zh") or str(i)) for i in group["ids"])
-            rows.append(f"<p style='color:#a99c86;margin:0 0 0 14px'>融合：以下任 {group['need']} 個：{parts}</p>")
+            body.append(f"<p style='color:#a99c86;margin:0'>融合：以下任 {group['need']} 個：{parts}</p>")
+        rows.append(f"<table cellspacing='0' cellpadding='0' style='margin-top:6px'><tr>"
+                    f"<td width='{picture + 8:.0f}' valign='top'><img src='gift:{g['id']}'></td>"
+                    f"<td valign='top'>{''.join(body)}</td></tr></table>")
     return "".join(rows)
 
 
@@ -639,6 +645,7 @@ class Window(QWidget):
         self.tray = None
         self.last_reading = None  # the event page last read, ranked again on new keywords
         self.last_trials = None  # the post-boss gift choice last read, while it is up: scored again on new keywords
+        self.gift_view = None  # (gifts, heading) the gift pane shows, drawn again at a new text size or screen
         self.shown_event = None
         self.running = False
         self.drag_from: QPoint | None = None
@@ -819,7 +826,7 @@ class Window(QWidget):
         self.gift_search = SearchBox("搜尋飾品名字（中/英）", "找不到符合的飾品",
                                      lambda query: [(f"{gifts.label(g)}  {g['en']}", g)
                                                     for g in gifts.search(query, limit=8)],
-                                     icon=lambda g: self.keyword_icon(g["keyword"]))
+                                     icon=self.gift_icon)
         self.gift_search.picked.connect(lambda gift: self.show_gifts([gift]))
         self.gift_search.cleared.connect(self.clear_gifts)
         self.controls.append(self.gift_search.field)
@@ -980,12 +987,17 @@ class Window(QWidget):
         inside = field_icon_side(self.text_font())  # the field's own font is Qt's default until the window shows
         for box in (self.event_search, self.gift_search):
             box.go.setIcon(icons.icon("search", ICON, inside, ratio))
-        beside = glyph_side(self.text_font())
-        self.gift_search.list.popup().setIconSize(QSize(beside, beside))
+        row = GIFT_ROW * glyph_side(self.text_font())
+        self.gift_search.list.popup().setIconSize(QSize(row, row))
         for section in self.sections.values():
             arrow = "unfolded" if section.head.isChecked() else "folded"
             section.arrow.setPixmap(icons.pixmap(arrow, HEAD_ICON, side, ratio))
         self.apply_keyword_icons()
+
+    def gift_icon(self, gift):
+        """A gift search row's icon: the game's picture of the gift, its keyword in the corner."""
+        return icons.gift_icon(gift["id"], gift["keyword"], GIFT_ROW * glyph_side(self.text_font()),
+                               self.devicePixelRatioF())
 
     def keyword_icon(self, keyword):
         """The game's icon for keyword, as tall as the text beside it, drawn for the screen's pixel ratio."""
@@ -1024,6 +1036,8 @@ class Window(QWidget):
             for url, pix in pixmaps.items():
                 text.addResource(QTextDocument.ImageResource, QUrl(url), pix)
             text.markContentsDirty(0, text.characterCount())  # addResource alone leaves the old size in the layout
+        if self.gift_view is not None:
+            self.render_gifts()  # the pictures and their column at the new size
 
     def event(self, e):
         if e.type() == QEvent.DevicePixelRatioChange:  # moved to a screen of another scale
@@ -1334,10 +1348,22 @@ class Window(QWidget):
 
     def show_gifts(self, gift_list, heading=""):
         """Gifts in the gift pane; the folded section names them."""
-        self.gift_detail.setHtml(gift_html(gift_list, heading))
+        self.gift_view = (list(gift_list), heading)
+        self.render_gifts()
         self.sections["gift"].set_summary("最近：" + "、".join(g["zh"] or g["en"] for g in gift_list))
 
+    def render_gifts(self):
+        """The shown gifts in the gift pane, each with the game's picture of it (gift:ID) at the text's size."""
+        gift_list, heading = self.gift_view
+        side, ratio = GIFT_PICTURE * glyph_side(self.text_font()), self.devicePixelRatioF()
+        doc = self.gift_detail.document()
+        for g in gift_list:
+            doc.addResource(QTextDocument.ImageResource, QUrl(f"gift:{g['id']}"),
+                            icons.gift(g["id"], g["keyword"], side, ratio, badge=False))
+        self.gift_detail.setHtml(gift_html(gift_list, heading, side))
+
     def clear_gifts(self):
+        self.gift_view = None
         self.gift_detail.setHtml(GIFT_PLACEHOLDER)
         self.sections["gift"].set_summary("")
 
