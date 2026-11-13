@@ -11,10 +11,11 @@ import sys
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-os.environ.setdefault("QT_QPA_FONTDIR", os.path.join(os.environ.get("WINDIR", "C:/Windows"), "Fonts"))
+FONTS = Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts"
+os.environ.setdefault("QT_QPA_FONTDIR", str(FONTS))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from PySide6.QtGui import QColor, QPainter, QPixmap  # noqa: E402
+from PySide6.QtGui import QColor, QFontDatabase, QPainter, QPixmap  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from lc_helper import app as ui  # noqa: E402
@@ -118,6 +119,8 @@ def main():
     ui.SETTINGS = out / "render-settings.json"
     ui.SETTINGS.unlink(missing_ok=True)
     QApplication(sys.argv)
+    for name in ("msjh.ttc", "msjhbd.ttc"):  # offscreen Qt finds no system fonts: load the app's own face, or the
+        QFontDatabase.addApplicationFont(str(FONTS / name))  # renders show a fallback with other metrics
     w = ui.Window(worker_factory=StandIn)
     w.show()
     w.on_device("connected", "MuMuPlayer12 127.0.0.1:16384")
