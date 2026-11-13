@@ -11,6 +11,9 @@ dependencies = [
     "rapidfuzz",
 ]
 
+[project.gui-scripts]
+lc-helper = "lc_helper.app:main"
+
 [dependency-groups]
 dev = ["pytest", "ruff"]
 # tools/sync_maalc.py: Simplified to Traditional Chinese for the LLC event text.
