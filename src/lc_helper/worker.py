@@ -11,10 +11,11 @@ from dataclasses import dataclass, replace
 from typing import Callable
 
 from . import device as devices
-from . import events, ocr, vision
+from . import event_skip, events, ocr, vision
 from .battle import AutoBattle, Fight, Phase, Plan, Status, Stopped
 
 WATCH_EVERY = 1.0  # s between looks for a new event page while auto read is on
+SKIP_EVERY = 0.3  # s between looks while skipping an event's story (maalc taps every 0.15 s, reads every 0.45 s)
 # s without an event read before the OCR model is dropped (auto read off). tools/ocr_memory.py, 2026-11-13: a read of
 # the story box takes private memory from ~40 to ~975 MB, a release brings it back to 326-353 MB, and the next read
 # loads again in 1.2-1.3 s.
@@ -29,6 +30,7 @@ class Callbacks:
     event: Callable[[events.Reading], None] = lambda reading: None
     page_left: Callable[[], None] = lambda: None  # auto read saw the Choices page it had read go away
     fight: Callable[[Fight, str], None] = lambda fight, device: None  # a battle ended (and on which device)
+    skip: Callable[[str], None] = lambda what: None  # what the story skipper did or waits for, when it changes
     error: Callable[[str], None] = lambda text: None
 
 
@@ -49,6 +51,9 @@ class Worker(threading.Thread):
         self.battle_stop = threading.Event()
         self.stop_after_victory = False
         self.watch = False
+        self.skip = False
+        self.skipper = event_skip.Skipper(self.read_text)
+        self.last_skip, self.skip_said = 0.0, None
         self.last_watch = 0.0
         self.last_page = None  # thumbnail of the story box of the last page auto read showed
         self.alive = True
@@ -68,7 +73,7 @@ class Worker(threading.Thread):
 
     def run(self):
         while self.alive:
-            busy = self.battle is not None or (self.watch and self.device is not None)
+            busy = self.battle is not None or ((self.watch or self.skip) and self.device is not None)
             try:
                 name, args = self.commands.get(timeout=0.05 if busy else self.until_ocr_idle())
             except queue.Empty:
@@ -85,8 +90,8 @@ class Worker(threading.Thread):
             try:
                 if self.battle is not None:
                     self.battle_tick()
-                elif self.watch and self.device is not None:
-                    self.watch_tick()
+                elif self.device is not None:
+                    self.page_tick()
             except Exception as e:  # the emulator went away mid-turn, or a screenshot failed
                 self.end_battle(f"出錯：{e}")
                 self.cb.error(str(e))
@@ -216,17 +221,47 @@ class Worker(threading.Thread):
         except Stopped:
             self.end_battle()
             return
-        if self.watch and self.battle is not None and self.battle.last and self.battle.last.phase is Phase.WAITING:
+        if self.battle is not None and self.battle.last and self.battle.last.phase is Phase.WAITING:
             try:
-                self.watch_tick()
-            except Exception as e:  # auto read failing must not end the battle
-                self.cb.error(f"自動讀取事件失敗：{e}")
+                self.page_tick()
+            except Exception as e:  # auto read or skip failing must not end the battle
+                self.cb.error(f"事件處理失敗：{e}")
 
     def end_battle(self, note=""):
         if self.battle is None:
             return
         battle, self.battle = self.battle, None
         battle.emit(Phase.STOPPED, note or battle.stop_note)
+
+    def page_tick(self):
+        """Between battle turns, or with no battle: skip an event's story, and read its Choices page."""
+        if self.skip:
+            self.skip_tick()
+        if self.watch:
+            self.watch_tick()
+
+    def do_set_skip(self, on):
+        self.skip, self.skipper.pressed, self.skip_said = on, None, None
+        if on:
+            self.ready()
+
+    def read_text(self, image, roi, only_rec=False):
+        self.ocr_used = time.monotonic()
+        return [text for text, _ in ocr.lines(image, roi, only_rec=only_rec)]
+
+    def skip_tick(self):
+        """One look while skipping a story: tap what the skipper says, and tell the window when that changes."""
+        now = time.monotonic()
+        if now - self.last_skip < SKIP_EVERY:
+            return
+        self.last_skip = now
+        what, point = self.skipper.step(self.device.screenshot(), now)
+        if point is not None:
+            self.device.tap(*point)
+        said = {"press": "按下一步", "card": "打開判定卡", "text": "推進文字"}.get(what, what)
+        if said != self.skip_said:
+            self.skip_said = said
+            self.cb.skip(said)
 
     def watch_tick(self):
         """Read the event page once a new one shows or its option list moves (a scroll, a lit row): a Choices page

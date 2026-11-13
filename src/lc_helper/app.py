@@ -26,7 +26,7 @@ from .worker import Callbacks, Worker
 
 SETTINGS = LOCAL / "settings.json"
 DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard": 0, "forever": False,
-            "hold": True, "watch": False, "overlay": True, "stop_after_victory": False, "notify": True, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
+            "hold": True, "watch": False, "skip": False, "overlay": True, "stop_after_victory": False, "notify": True, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 
 STYLE = """
@@ -131,11 +131,12 @@ class Bridge(QObject):
     event = Signal(object)
     page_left = Signal()
     fight = Signal(object, str)
+    skip = Signal(str)
     error = Signal(str)
 
     def callbacks(self):
         return Callbacks(device=self.device.emit, targets=self.targets.emit, battle=self.battle.emit,
-                         event=self.event.emit, page_left=self.page_left.emit, fight=self.fight.emit,
+                         event=self.event.emit, page_left=self.page_left.emit, fight=self.fight.emit, skip=self.skip.emit,
                          error=self.error.emit)
 
 
@@ -266,6 +267,7 @@ class Window(QWidget):
         self.bridge.event.connect(self.on_event)
         self.bridge.page_left.connect(lambda: self.overlay.hide_labels())
         self.bridge.fight.connect(self.on_fight)
+        self.bridge.skip.connect(lambda what: self.skip_state.setText(f"自動跳過：{what}"))
         self.bridge.error.connect(lambda text: self.status.setText(text))
         self.search_timer = QTimer(self, singleShot=True, interval=120, timeout=self.run_search)
 
@@ -372,6 +374,11 @@ class Window(QWidget):
         self.watch = QCheckBox("自動讀取：畫面出現事件選項就顯示", checked=s["watch"])
         self.watch.toggled.connect(self.set_watch)
         ev.addWidget(self.watch)
+        self.skip_box = QCheckBox("自動跳過劇情：一路推進到選項頁（不替你選）", checked=s["skip"])
+        self.skip_box.toggled.connect(self.set_skip)
+        ev.addWidget(self.skip_box)
+        self.skip_state = QLabel(objectName="status")
+        ev.addWidget(self.skip_state)
         self.overlay_box = QCheckBox("疊加顯示：把選項效果直接標在遊戲畫面上", checked=s["overlay"])
         self.overlay_box.toggled.connect(self.set_overlay)
         ev.addWidget(self.overlay_box)
@@ -486,6 +493,11 @@ class Window(QWidget):
     def set_watch(self, on):
         self.settings["watch"] = on
         self.worker.send("set_watch", on)
+
+    def set_skip(self, on):
+        self.settings["skip"] = on
+        self.skip_state.setText("")
+        self.worker.send("set_skip", on)
 
     def set_overlay(self, on):
         self.settings["overlay"] = on
@@ -636,6 +648,8 @@ def main(worker_factory=Worker):
     window.worker.send("set_stop_after_victory", window.settings["stop_after_victory"])
     if window.settings["watch"]:  # auto read loads the OCR model now; otherwise the first event read does
         window.worker.send("set_watch", True)
+    if window.settings["skip"]:
+        window.worker.send("set_skip", True)
     code = app.exec()
     hotkeys.clear()
     if sys.stdout is not None:  # None in the built lc-helper.exe, which has no console
