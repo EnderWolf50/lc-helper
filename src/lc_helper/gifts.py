@@ -42,7 +42,8 @@ def plain(text):
 @cache
 def _names():
     gifts = list(book().values())
-    return gifts, [plain(g["en"]) for g in gifts], [g["zh"] or "" for g in gifts], [key_cn(g["cn"]) for g in gifts]
+    zh = [f"{g['zh'] or ''} {g['cn'] or ''}" for g in gifts]  # Traditional and LLC's Simplified, as typed on either client
+    return gifts, [plain(g["en"]) for g in gifts], zh, [key_cn(g["cn"]) for g in gifts]
 
 
 def search(query, limit=8):

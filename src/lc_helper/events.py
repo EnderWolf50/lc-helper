@@ -105,7 +105,10 @@ def _haystacks():
     en, zh = [], []
     for e in book()["events"]:
         en.append(" ".join([e["story"]] + [f"{o['text']} {o['hint']}" for o in e["options"]]).lower())
-        zh.append(" ".join([e["story_zh"]] + [f"{o['text_zh']} {o['hint_zh']}" for o in e["options"]]))
+        # Traditional and LLC's Simplified both: a player on an LLC client types what the game shows.
+        zh.append(" ".join([e["story_zh"], e.get("story_cn") or ""]
+                           + [f"{o['text_zh']} {o['hint_zh']} {o.get('text_cn', '')} {o.get('hint_cn', '')}"
+                              for o in e["options"]]))
     return en, zh
 
 

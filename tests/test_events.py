@@ -113,3 +113,10 @@ def test_a_gift_a_branch_names_gets_no_second_line_that_contradicts_it():
     take = events.by_id()[971105]["options"][0]
     assert [(e.when, e.what) for e in events.effects(take)] == [
         ("判定失敗", "開始戰鬥、戰鬥勝利獲得 「萬物的骨架」（流血 II）")]
+
+
+def test_a_simplified_query_finds_events_by_their_llc_text():
+    """A player on an LLC client types what the game shows: Simplified text, which today's Traditional-only search
+    can miss outright (镜像迷宫里见过的 found nothing)."""
+    assert events.search("镜像迷宫里见过的")[0]["id"] == 130802
+    assert events.search("交織而成的蜘蛛巢")[0]["id"] == 901028

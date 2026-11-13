@@ -99,3 +99,8 @@ def test_auto_read_shows_a_gift_screen_once(screen):
     time.sleep(2.2)  # two more looks at the same window
     assert [[g["en"] for g, _ in r.gifts] for r in shown] == [["Wound Clerid"]]
     assert shown[0].source == "x"
+
+
+def test_a_simplified_query_finds_gifts_by_their_llc_name():
+    assert gifts.search("地狱蝶")[0]["id"] == 9001  # 狱 is the Simplified 獄
+    assert gifts.search("地獄蝶")[0]["id"] == 9001
