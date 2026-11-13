@@ -765,8 +765,8 @@ class Window(QWidget):
                                                  toolTip="自動跳過劇情：一路推進到選項頁（不替你選）"))
         self.skip_box.toggled.connect(self.set_skip)
         row.addWidget(self.skip_box)
-        self.overlay_box = self.control(QPushButton("疊加顯示", objectName="pill", checkable=True,
-                                                    checked=s["overlay"], toolTip="疊加顯示：把選項效果直接標在遊戲畫面上"))
+        self.overlay_box = self.control(QPushButton("遊戲內提示", objectName="pill", checkable=True,
+                                                    checked=s["overlay"], toolTip="遊戲內提示：把選項效果直接標在遊戲畫面上"))
         self.overlay_box.toggled.connect(self.set_overlay)
         row.addWidget(self.overlay_box)
         row.addStretch()

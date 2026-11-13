@@ -171,8 +171,9 @@ def test_auto_read_sits_beside_read_and_the_helpers_are_one_row_of_pills_that_sh
     top = lambda widget: widget.mapTo(w, QPoint()).y()  # noqa: E731
     assert w.watch.text() == "自動" and top(w.watch) == top(w.read_button) and w.watch.height() == w.read_button.height()
     assert w.read_button.text() == "讀取畫面  F9"
-    pills = {"跳過劇情": w.skip_box, "疊加顯示": w.overlay_box}
+    pills = {"跳過劇情": w.skip_box, "遊戲內提示": w.overlay_box}
     assert [p.text() for p in pills.values()] == list(pills)
+    assert not any("疊加" in b.text() + b.toolTip() for b in w.findChildren(QAbstractButton)), "the old name is gone"
     assert len({top(p) for p in pills.values()}) == 1, "one row"
     assert "畫面出現事件選項" in w.watch.toolTip()
     assert "一路推進到選項頁（不替你選）" in w.skip_box.toolTip()
