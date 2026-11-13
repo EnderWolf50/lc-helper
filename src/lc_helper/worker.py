@@ -325,7 +325,7 @@ class Worker(threading.Thread):
         what, point = self.skipper.step(self.device.screenshot(), now)
         if point is not None:
             self.device.tap(*point)
-        said = {"press": "按下一步", "card": "打開判定卡", "text": "推進文字"}.get(what, what)
+        said = {"press": "按下一步", "card": "打開判定卡"}.get(what, what)
         if said != self.skip_said:
             self.skip_said = said
             self.cb.skip(said)
