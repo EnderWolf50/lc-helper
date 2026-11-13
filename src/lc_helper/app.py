@@ -643,7 +643,7 @@ class Window(QWidget):
         self.bridge.targets.connect(self.on_targets)
         self.bridge.battle.connect(self.on_battle)
         self.bridge.event.connect(self.on_event)
-        self.bridge.page_left.connect(lambda: self.overlay.hide_labels())
+        self.bridge.page_left.connect(self.on_page_left)
         self.bridge.fight.connect(self.on_fight)
         self.bridge.gifts.connect(self.on_gifts)
         self.bridge.skip.connect(lambda what: self.say_skip(f"自動跳過：{what}"))
@@ -1266,12 +1266,19 @@ class Window(QWidget):
         else:
             self.overlay.hide_labels()
 
+    def on_page_left(self):
+        """The Choices page read off the game went away: its hints leave the game, and the pane goes back to saying
+        how to fill it, unless it shows an event the user looked up."""
+        self.overlay.hide_labels()
+        if self.last_reading is not None:
+            self.clear_event()
+
     def show_found_event(self, event):
         self.last_reading = None
         self.show_event(event)
 
     def clear_event(self):
-        """The search field emptied: the pane goes back to saying how to fill it."""
+        """The search field emptied, or the page read gone: the pane goes back to saying how to fill it."""
         self.shown_event = self.last_reading = None
         self.detail.setHtml(EVENT_PLACEHOLDER)
 

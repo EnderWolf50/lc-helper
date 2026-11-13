@@ -28,7 +28,7 @@ class Callbacks:
     targets: Callable[[list], None] = lambda targets: None
     battle: Callable[[Status], None] = lambda status: None
     event: Callable[[events.Reading], None] = lambda reading: None
-    page_left: Callable[[], None] = lambda: None  # auto read saw the Choices page it had read go away
+    page_left: Callable[[], None] = lambda: None  # the Choices page auto read or F9 read went away
     fight: Callable[[Fight, str], None] = lambda fight, device: None  # a battle ended (and on which device)
     skip: Callable[[str], None] = lambda what: None  # what the story skipper did or waits for, when it changes
     gifts: Callable[["gifts.GiftReading"], None] = lambda reading: None  # the gifts a gift screen shows
@@ -78,7 +78,8 @@ class Worker(threading.Thread):
 
     def run(self):
         while self.alive:
-            busy = self.battle is not None or ((self.watch or self.skip) and self.device is not None)
+            busy = self.battle is not None or ((self.watch or self.skip or self.left_choices)
+                                               and self.device is not None)
             try:
                 name, args = self.commands.get(timeout=0.05 if busy else self.until_ocr_idle())
             except queue.Empty:
@@ -234,7 +235,8 @@ class Worker(threading.Thread):
             self.ocr_used = time.monotonic()
 
     def do_read_event(self):
-        """F9: the gifts on a gift screen, else the event page."""
+        """F9: the gifts on a gift screen, else the event page. An event found on a Choices page is watched until the
+        page goes (watch_tick), as auto read does, so the window can let it go then."""
         if not self.ready():
             return
         image = self.device.screenshot()
@@ -242,7 +244,9 @@ class Worker(threading.Thread):
         if page:
             self.cb.gifts(self.read_gift_screen(image, page))
         else:
-            self.cb.event(self.read(image))
+            reading = self.read(image)
+            self.left_choices = reading.event is not None and events.on_choices_page(image)
+            self.cb.event(reading)
 
     def read_gift_screen(self, image, page):
         reading = gifts.read_gifts(image, page, ocr.lines)
@@ -274,10 +278,11 @@ class Worker(threading.Thread):
         battle.emit(Phase.STOPPED, note or battle.stop_note)
 
     def page_tick(self):
-        """Between battle turns, or with no battle: skip an event's story, and read its Choices page."""
+        """Between battle turns, or with no battle: skip an event's story, and read its Choices page or see the page
+        read go."""
         if self.skip:
             self.skip_tick()
-        if self.watch:
+        if self.watch or self.left_choices:
             self.watch_tick()
 
     def do_set_skip(self, on):
@@ -304,19 +309,24 @@ class Worker(threading.Thread):
             self.cb.skip(said)
 
     def watch_tick(self):
-        """Read the event page once a new one shows or its option list moves (a scroll, a lit row): a Choices page
-        whose story box or option list differs from the last read; leaving it is told once. Off it, read a gift
-        screen whose gifts differ from the last shown."""
+        """A look at the screen once a second, while auto read is on or a Choices page F9 read is shown: that page
+        going is told once. Auto read also reads the event page once a new one shows or its option list moves (a
+        scroll, a lit row): a Choices page whose story box or option list differs from the last read; off it, a gift
+        screen whose gifts differ from the last shown. F9's page alone costs the header's OCR, nothing more."""
         now = time.monotonic()
         if now - self.last_watch < WATCH_EVERY:
             return
         self.last_watch = now
         image = self.device.screenshot()
-        if not events.on_choices_page(image):
+        on_page = events.on_choices_page(image)
+        self.ocr_used = now  # the header's OCR: the model is dropped once the page goes and stays gone a while
+        if not on_page:
             self.last_page = None
             if self.left_choices:
                 self.left_choices = False
                 self.cb.page_left()
+            if not self.watch:
+                return
             if page := gifts.gift_page(image, self.read_text):
                 reading = self.read_gift_screen(image, page)
                 shown = (page, tuple(g["id"] for g, _ in reading.gifts))
@@ -326,6 +336,8 @@ class Worker(threading.Thread):
             else:
                 self.last_gifts = None
             return
+        if not self.watch:
+            return  # the page F9 read, still there
         self.left_choices = True
         page = [vision.thumb(vision.crop(image, roi)) for roi in (vision.EVENT_STORY, vision.CHOICE_ROWS)]
         if self.last_page is not None and all(vision.same_screen(a, b) for a, b in zip(self.last_page, page)):

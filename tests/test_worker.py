@@ -106,13 +106,15 @@ def test_a_new_pc_input_reconnects_the_pc_client_with_it(screen):
     assert "idle" in states
 
 
-def ocr_watched(monkeypatch, screen, **callbacks):
-    """A worker on the Choices capture whose OCR drops after 0.3 s idle; the drops are counted, not done."""
+def ocr_watched(monkeypatch, game, **callbacks):
+    """A worker on game whose OCR drops after 0.3 s idle; the drops are counted, not done.
+
+    The page a read finds stays watched, its header read once a second, until it goes: give game a screen to go to,
+    or this worker keeps dropping and loading the model on every look and counts drops into later tests' lists."""
     from lc_helper import worker as worker_module
     drops = []
     monkeypatch.setattr(worker_module.ocr, "release", lambda: drops.append(time.monotonic()))
-    w = Worker(Callbacks(**callbacks), connect=lambda address, **_: (Still(screen("EventChoices.png")),
-                                                                     Target("fake", "x")),
+    w = Worker(Callbacks(**callbacks), connect=lambda address, **_: (game, Target("fake", "x")),
                find=lambda: [], ocr_idle=0.3)
     w.start()
     return w, drops
@@ -120,7 +122,8 @@ def ocr_watched(monkeypatch, screen, **callbacks):
 
 def test_the_ocr_model_is_dropped_once_reads_stop(monkeypatch, screen):
     readings = []
-    w, drops = ocr_watched(monkeypatch, screen, event=readings.append)
+    game = Slides([screen("EventChoices.png"), screen("MirrorMap.png")])
+    w, drops = ocr_watched(monkeypatch, game, event=readings.append)
     w.send("read_event")
     wait_for(lambda: readings)
     time.sleep(1.0)
@@ -128,11 +131,14 @@ def test_the_ocr_model_is_dropped_once_reads_stop(monkeypatch, screen):
 
 
 def test_auto_read_keeps_the_ocr_model_until_it_is_turned_off(monkeypatch, screen):
-    readings = []
-    w, drops = ocr_watched(monkeypatch, screen, event=readings.append)
+    readings, left = [], []
+    game = Still(screen("EventChoices.png"))
+    w, drops = ocr_watched(monkeypatch, game, event=readings.append, page_left=lambda: left.append(1))
     w.send("set_watch", True)
     wait_for(lambda: readings)
     time.sleep(1.0)
+    game.image = screen("MirrorMap.png")  # the page goes first, so nothing is left to watch once auto read is off
+    wait_for(lambda: left)
     assert drops == []
     w.send("set_watch", False)
     time.sleep(1.0)
@@ -166,6 +172,37 @@ def test_read_event_reads_the_page_on_screen(screen):
     w.send("read_event")
     wait_for(lambda: readings)
     assert readings[0].event["id"] == 901069
+
+
+class Counted(Slides):
+    """Slides that count the screenshots taken."""
+
+    shots = 0
+
+    def screenshot(self):
+        self.shots += 1
+        return super().screenshot()
+
+
+def test_an_event_page_read_by_hand_is_watched_until_it_goes_and_then_left_alone(screen):
+    """Auto read off: the page F9 read is looked at about once a second, and its leaving is told once."""
+    readings, left = [], []
+    game = Counted([screen("EventChoices.png"), screen("EventChoices.png"), screen("MirrorMap.png")])
+    started(game, event=readings.append, page_left=lambda: left.append(game.shots)).send("read_event")
+    wait_for(lambda: left)
+    assert [r.event["id"] for r in readings] == [901069]
+    assert left == [3], "told on the look that saw the map, not while the page was still there"
+    time.sleep(1.5)
+    assert left == [3] and game.shots == 3, "no more looks once it is told"
+
+
+def test_a_read_that_found_no_event_is_not_watched(screen):
+    readings, left = [], []
+    game = Counted([screen("MirrorMap.png")])
+    started(game, event=readings.append, page_left=lambda: left.append(1)).send("read_event")
+    wait_for(lambda: readings)
+    time.sleep(1.5)
+    assert readings[0].event is None and left == [] and game.shots == 1
 
 
 def test_auto_read_shows_a_page_once_not_on_every_look(screen):

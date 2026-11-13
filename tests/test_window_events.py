@@ -1,5 +1,6 @@
 import os
 import re
+import time
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -10,6 +11,8 @@ from PySide6.QtWidgets import QAbstractButton, QApplication, QLabel, QToolButton
 
 from lc_helper import app as ui  # noqa: E402
 from lc_helper import events  # noqa: E402
+from lc_helper.device import Target  # noqa: E402
+from lc_helper.worker import Worker  # noqa: E402
 
 
 class StandIn:
@@ -127,6 +130,65 @@ def test_the_search_icon_and_enter_search_at_once_and_enter_on_the_list_picks_th
     assert not search_icon(box).icon().isNull() and search_icon(box).toolTip() == "查詢"
     search_icon(box).click()
     assert len(searches) == 2 and rows(box)[0] == ui.result_text(first), "the icon searches"
+
+
+class Slides:
+    """A game that shows each screen in turn, one per screenshot, then stays on the last; taps do nothing."""
+
+    can_hold = True
+
+    def __init__(self, images):
+        self.images = list(images)
+
+    def screenshot(self):
+        return self.images.pop(0) if len(self.images) > 1 else self.images[0]
+
+    def __getattr__(self, name):
+        return lambda *a: None
+
+
+def wait_until(predicate, timeout=20):
+    """Let the window take the worker's news until predicate holds."""
+    end = time.monotonic() + timeout
+    while not predicate():
+        assert time.monotonic() < end, "timed out"
+        QTest.qWait(50)
+
+
+def test_an_event_read_by_hand_leaves_the_pane_and_the_game_once_its_page_goes(tmp_path, monkeypatch, screen):
+    """自動 off: F9 reads the Choices page, and the window lets the event go once the game shows the map."""
+    game = Slides([screen("EventChoices.png"), screen("EventChoices.png"), screen("MirrorMap.png")])
+    worker = lambda callbacks: Worker(callbacks, connect=lambda address, **_: (game, Target("fake", "127.0.0.1:1")),  # noqa: E731
+                                      find=lambda: [])
+    QApplication.instance() or QApplication([])
+    monkeypatch.setattr(ui, "SETTINGS", tmp_path / "settings.json")
+    ui.save_settings(ui.DEFAULTS | {"watch": False, "overlay": True})
+    w = ui.Window(worker)
+    w.overlay.locate = lambda source: (0, 0, 1280, 720)  # never the real game window
+    w.show()
+    placeholder = w.detail.toPlainText()
+    w.worker.start()
+    try:
+        w.read_button.click()
+        wait_until(lambda: w.detail.toPlainText().startswith("事件 901069"))
+        wait_until(lambda: w.detail.toPlainText() == placeholder)
+        assert not w.overlay.isVisible() and not w.overlay.items, "the hints on the game go too"
+    finally:
+        w.worker.shutdown()
+        w.worker.join(3)
+        w.overlay.hide_labels()
+
+
+def test_an_event_looked_up_stays_when_the_page_read_goes(tmp_path, monkeypatch, screen):
+    w = shown(tmp_path, monkeypatch)
+    w.on_event(events.read_screen(screen("EventChoices.png")))
+    box = w.event_search
+    box.field.setText("hand")
+    search_icon(box).click()
+    click_row(box, 0)
+    looked_up = w.detail.toPlainText()
+    w.bridge.page_left.emit()
+    assert w.detail.toPlainText() == looked_up and not w.overlay.isVisible()
 
 
 def test_clearing_the_event_search_empties_the_pane(tmp_path, monkeypatch, screen):
