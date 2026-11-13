@@ -38,6 +38,11 @@ def test_an_old_folded_window_opens_folded_and_an_unfolded_one_as_a_fresh_one(tm
     assert "compact" not in load(tmp_path, monkeypatch, {"compact": True})
 
 
+def test_a_pc_size_outside_the_choices_is_the_default(tmp_path, monkeypatch):
+    assert load(tmp_path, monkeypatch, {"pc_size": "8k"})["pc_size"] == "1440"
+    assert load(tmp_path, monkeypatch, {})["pc_size"] == "1440"
+
+
 def test_todays_keys_win_over_old_ones_left_beside_them(tmp_path, monkeypatch):
     settings = load(tmp_path, monkeypatch, {"guard_mode": "none", "guard": 4, "forever": True, "keywords": ["Burn"],
                                             "keyword": "Bleed", "open_sections": ["gift"], "compact": False})

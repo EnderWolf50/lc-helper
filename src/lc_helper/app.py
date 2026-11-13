@@ -36,7 +36,7 @@ SETTINGS = LOCAL / "settings.json"
 GUARD_MODES = {"none": ("不防禦", lambda turns: 0), "turns": ("防禦前幾回合", lambda turns: turns),
                "forever": ("全程防禦", lambda turns: FOREVER)}
 SECTIONS = {"event": "鏡牢事件", "gift": "飾品"}  # the main page's folding sections: key, title
-DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard_mode": "none", "guard": 1,
+DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pc_size": devices.PC_SIZE, "pick": "win_rate", "guard_mode": "none", "guard": 1,
             "hold": True, "watch": False, "skip": False, "overlay": True, "keywords": [], "stop_after_victory": False,
             "notify": True, "open_sections": ["event"], "text_size": "normal", "pin": True, "pos": None,
             "hotkeys": {"battle": "F8", "read": "F9"}}
@@ -55,7 +55,7 @@ PIN = {True: (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool, "pin",
               "置頂中：點一下取消置頂，視窗改成一般視窗，被蓋住時從工作列或 Alt+Tab 叫回"),
        False: (Qt.FramelessWindowHint | Qt.Window, "unpinned", "沒有置頂：點一下讓視窗固定在最上層")}
 # The settings whose value must be one of a set (load_settings): the keys of each table, or the listed values.
-SETTING_CHOICES = {"text_size": TEXT_SIZES, "pc_input": devices.PC_INPUTS, "pin": PIN, "guard_mode": GUARD_MODES,
+SETTING_CHOICES = {"text_size": TEXT_SIZES, "pc_input": devices.PC_INPUTS, "pc_size": devices.PC_SIZES, "pin": PIN, "guard_mode": GUARD_MODES,
                    "guard": range(1, 100)}
 MAX_KEYWORDS = 4  # the chips that fit on one row at every text size
 # The settings that are a list of distinct values from a set, in the user's order: the set, and how many at most.
@@ -852,6 +852,13 @@ class Window(QWidget):
                                    s["pc_input"], "PC 版點擊方式")
         self.pc_inputs.chosen.connect(self.set_pc_input)
         lay.addLayout(self.labelled("PC 點擊", self.pc_inputs))
+        self.pc_sizes = self.control(QComboBox(accessibleName="PC 版戰鬥時的解析度",
+                                               toolTip="自動戰鬥時把 PC 版遊戲畫面調成這個大小，停下後還原"))
+        for key, (name, _) in devices.PC_SIZES.items():
+            self.pc_sizes.addItem(name, key)
+        self.pc_sizes.setCurrentIndex(self.pc_sizes.findData(s["pc_size"]))
+        self.pc_sizes.activated.connect(lambda i: self.set_pc_size(self.pc_sizes.itemData(i)))
+        lay.addLayout(self.labelled("PC 解析度", self.pc_sizes))
 
         group("顯示")
         self.sizes = Segmented({key: (name, "") for key, (name, _) in TEXT_SIZES.items()}, s["text_size"], "字級")
@@ -1137,6 +1144,11 @@ class Window(QWidget):
         self.pc_inputs.show_choice(key)
         self.worker.send("set_pc_input", key)
 
+    def set_pc_size(self, key):
+        self.settings["pc_size"] = key
+        self.pc_sizes.setCurrentIndex(self.pc_sizes.findData(key))
+        self.worker.send("set_pc_size", key)
+
     def set_watch(self, on):
         self.settings["watch"] = on
         self.show_event_summary()
@@ -1383,6 +1395,7 @@ def main(worker_factory=Worker):
     window.worker.send("scan")
     window.worker.send("set_address", window.settings["address"])
     window.worker.send("set_pc_input", window.settings["pc_input"])
+    window.worker.send("set_pc_size", window.settings["pc_size"])
     window.worker.send("set_stop_after_victory", window.settings["stop_after_victory"])
     if window.settings["watch"]:  # auto read loads the OCR model now; otherwise the first event read does
         window.worker.send("set_watch", True)

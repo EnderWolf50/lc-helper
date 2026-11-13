@@ -271,7 +271,7 @@ def test_the_settings_page_holds_the_battle_device_display_and_hotkey_settings_i
     settled(w)
     assert page_parts(w.settings_page) == [
         ("戰鬥", ["回合播放時按住畫面（加快 E.G.O 動畫）", "勝利後停止自動戰鬥", "戰鬥結束時跳出 Windows 通知", "戰鬥紀錄…"]),
-        ("裝置", ["重新尋找", "PC 點擊", "觸控", "移視窗", "借游標", "前景"]),
+        ("裝置", ["重新尋找", "PC 點擊", "觸控", "移視窗", "借游標", "前景", "PC 解析度"]),
         ("顯示", ["字級", "小", "標準", "大"]),
         ("熱鍵", ["開始／停止  F8　　讀取畫面  F9", "修改…"]),
     ]
@@ -308,17 +308,28 @@ def test_the_pc_click_and_text_size_rows_show_the_current_choice_and_explain_eac
     assert on(["小", "標準", "大"]) == ["大"]
 
 
+def test_the_pc_size_row_shows_the_saved_size_and_sends_a_new_one(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch, pc_size="1080")
+    assert w.pc_sizes.currentText() == "1920×1080"
+    assert [w.pc_sizes.itemText(i) for i in range(w.pc_sizes.count())] == \
+        ["不調整", "1280×720", "1600×900", "1920×1080", "2560×1440"]
+    w.pc_sizes.activated.emit(w.pc_sizes.findData("720"))
+    assert w.worker.sent[-1] == ("set_pc_size", "720") and w.settings["pc_size"] == "720"
+    assert w.pc_sizes.currentText() == "1280×720"
+
+
 def test_the_settings_rows_start_at_one_left_edge_and_their_controls_share_one_height(tmp_path, monkeypatch):
     w = window(tmp_path, monkeypatch)
     w.gear.click()
     settled(w)
     page = w.settings_page
     left = lambda widget: widget.mapTo(page, QPoint()).x()  # noqa: E731
-    assert left(button(page, "觸控")) == left(button(page, "小")), "the choices line up after their labels"
+    assert left(button(page, "觸控")) == left(w.pc_sizes) == left(button(page, "小")), \
+        "the choices line up after their labels"
     assert len({left(widget) for widget in (w.device_box, button(page, "回合播放時按住畫面（加快 E.G.O 動畫）"),
                                             w.hotkey_text, *page.findChildren(QLabel, "section"))}) == 1
     heights = {widget.height() for widget in (w.device_box, button(page, "重新尋找"), button(page, "觸控"),
-                                              button(page, "大"), button(page, "修改…"))}
+                                              w.pc_sizes, button(page, "大"), button(page, "修改…"))}
     assert len(heights) == 1, heights
 
 
