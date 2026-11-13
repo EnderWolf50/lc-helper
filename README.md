@@ -1,6 +1,6 @@
 # lc-helper
 
-Limbus Company 的浮動小工具：一個置頂的小視窗，放在 MuMu 模擬器旁邊用。
+Limbus Company 的浮動小工具：一個置頂的小視窗，放在 MuMu 模擬器或 PC（Steam）版旁邊用。
 
 - **自動戰鬥**：每回合按 Win Rate 或 Damage，再按 START；回合播放時按住畫面角落，讓 E.G.O 動畫快轉。
 - **防禦回合**：先防禦指定回合數（或無限防禦），用完接著自動戰鬥。專注戰鬥沒有防禦鏈，那回合改用自動選技能，防禦回合數保留到下一場。
@@ -18,7 +18,9 @@ uv run lc-helper
 
 `uv run lc-helper` 開的視窗沒有主控台；要看錯誤輸出改用 `uv run python -m lc_helper`。
 
-熱鍵：F8 開始／停止自動戰鬥，F9 讀取畫面上的事件。設定（模擬器、勝率或傷害、防禦回合、熱鍵、視窗位置）存在 `.local/settings.json`，熱鍵在 `hotkeys` 裡改。
+熱鍵：F8 開始／停止自動戰鬥，F9 讀取畫面上的事件。設定（模擬器或 PC 版、PC 版點擊方式、勝率或傷害、防禦回合、熱鍵、視窗位置）存在 `.local/settings.json`，熱鍵在 `hotkeys` 裡改。
+
+PC 版：裝置選單裡選「Limbus PC」。遊戲視窗要 16:9（1280×720 或 1920×1080），不能縮到最小，可以被別的視窗蓋住。點擊方式在「⋯」選單的「PC 版點擊方式」，預設「合成觸控」不動滑鼠；遊戲不吃觸控的話改「移動視窗」，再不行改「借用游標」。小工具不要擋在遊戲視窗上面：合成觸控點到被蓋住的地方時，會把遊戲視窗暫時提到最上層。
 
 `tools/sync_maalc.py` 從 maalc 的資料夾讀資料：預設是本 repo 旁邊的 `../maalc`，不在那裡就把路徑寫進 `.local/maalc_dir`。事件的完整英文故事與中文文字要 maalc 的 `.local/unpack` 與 `.local/llc`。
 
@@ -29,6 +31,7 @@ uv run --group sync pytest          # 辨識、戰鬥流程、事件、背景執
 uv run --group sync python tools/sweep_screens.py   # 每張截圖的辨識結果
 uv run --group sync python tools/render_window.py   # 視窗各狀態的截圖，存到 .local/evidence
 uv run python tools/launch_check.py                 # 真的開視窗、量啟動時間、送熱鍵，不碰模擬器
+uv run python tools/pc_input_check.py touch         # PC 版點擊方式在自己的探測視窗上點、長按、拖曳，看游標有沒有動
 ```
 
 ## 授權
