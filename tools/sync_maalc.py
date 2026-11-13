@@ -17,6 +17,8 @@ Writes:
   localization).
 - assets/gifts.json: every gift in maalc's gift search and fusion recipes (and the event table), with its effect in
   English and Chinese, its enhanced effect, its fusion recipe, and its Simplified name, cn (build_gifts).
+- assets/trials.json: maalc's trial table (assets/resource/base/data/trials.yaml) with each trial's English text and
+  its Chinese name and text (build_trials).
 """
 
 import json
@@ -29,6 +31,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import opencc
+import yaml
 
 REPO = Path(__file__).resolve().parent.parent
 TEMPLATES = {
@@ -248,6 +251,28 @@ def build_gifts(maalc, llc, event_ids):
     return {"note": note, "gifts": {str(k): v for k, v in sorted(rows.items())}}
 
 
+def build_trials(maalc, llc):
+    """assets/trials.json: maalc's trial table (data/trials.yaml: the Mounting Trials of every pool, what each adds to
+    the enemies, its score in pt and the scoring model), with the English text the game shows (desc_en) and LLC's
+    Simplified name and text (cn, desc_cn), converted with OpenCC s2twp (zh, desc_zh); joined by the trial's buff id."""
+    table = yaml.safe_load((maalc / "assets/resource/base/data/trials.yaml").read_text(encoding="utf-8"))
+    en, cn = {}, {}
+    for f in sorted((maalc / LOCALIZE_EN).glob("EN_Bufs_Mirror*.json")):
+        for b in load(f).get("dataList") or []:
+            en.setdefault(b.get("id"), b)
+    for name in llc.names("Bufs_Mirror"):
+        for i, row in llc.rows(name).items():
+            cn.setdefault(i, row)
+    trials = {}
+    for name, t in table["trials"].items():
+        c = cn.get(t["id"], {})
+        trials[name] = {**t, "desc_en": plain(en.get(t["id"], {}).get("desc")), "cn": plain(c.get("name")),
+                        "desc_cn": plain(c.get("desc")), "zh": zh(c.get("name")), "desc_zh": zh(c.get("desc"))}
+    note = ("Mirror Dungeon trials for lc-helper, written by tools/sync_maalc.py from maalc's trial table (client "
+            f"{table['client']}) and the unpacked game text. Chinese: {llc_credit(llc)}. Game data (c) Project Moon.")
+    return {"note": note, "client": table["client"], "model": table["model"], "trials": trials}
+
+
 def llc_credit(llc):
     return (f"Localize Limbus Company {llc.version} from {llc.source} (CC BY-NC-SA 4.0), the Simplified original in "
             "cn and the _cn fields, converted with OpenCC s2twp in zh and the _zh fields")
@@ -322,6 +347,13 @@ def main():
           f"{[i for i, g in rows.items() if not g['desc_en']] or 'none'}; without Chinese effect: "
           f"{[i for i, g in rows.items() if not g['desc_zh']] or 'none'}; without a Simplified name: "
           f"{[i for i, g in rows.items() if not g['cn']] or 'none'}")
+    trials = build_trials(maalc, llc)
+    out = REPO / "assets/trials.json"
+    out.write_text(json.dumps(trials, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    rows = trials["trials"]
+    print(f"{len(rows)} trials -> {out} ({out.stat().st_size} bytes); without English text: "
+          f"{[n for n, t in rows.items() if not t['desc_en']] or 'none'}; without Chinese: "
+          f"{[n for n, t in rows.items() if not t['cn'] or not t['desc_cn']] or 'none'}")
 
 
 if __name__ == "__main__":

@@ -20,7 +20,10 @@ build = [
 ]
 dev = ["pytest", "ruff"]
 # tools/sync_maalc.py: Simplified to Traditional Chinese for the LLC event text.
-sync = ["opencc-python-reimplemented"]
+sync = [
+    "opencc-python-reimplemented",
+    "pyyaml>=6.0.3",
+]
 
 [build-system]
 requires = ["hatchling"]
