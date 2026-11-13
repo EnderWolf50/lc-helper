@@ -45,6 +45,9 @@ uv run lc-helper
 **語言與框架：Python 3.12 + MaaFramework 5.14.3 + OpenCV + PySide6。**
 戰鬥的點擊位置、等待時間、防禦拖曳都是 maalc 實機調出來的數字，同一個語言可以原樣移植，風險最低。速度的瓶頸是截圖與遊戲動畫，不是介面語言。實測：視窗在 Python 啟動後 1.04 到 1.77 秒出現（`tools/launch_check.py` 量 4 次；經過 `uv run` 那次是 2.59 秒）。MaaFramework 載入約 2 秒，放在背景執行緒，不擋視窗。maalc ADR 0009 建議常駐 GUI 用 GPUI；如果你在意記憶體，可以叫我之後把介面換成 Rust，辨識部分保留。
 
+**記憶體（11-13 量的）。**
+量法和 maalc ADR 0009 一樣：視窗出現 8 秒後的 private memory，各量 3 次。只開視窗 82 MB；載入 OCR 後 538 到 540 MB。原本是 565 MB 與 1018 到 1022 MB，多出來的約 480 MB 是 numpy 的 OpenBLAS 替 16 個 CPU 執行緒各預留一塊緩衝區，lc-helper 用不到，已改成單執行緒（`src/lc_helper/__init__.py`）。剩下的大頭是 OCR：模型載入加第一次辨識約 455 MB。這和語言無關，Rust、Go、C# 的 MaaFramework binding 載的是同一套原生函式庫和模型。
+
 **模擬器操作用 MaaFramework 的 ADB 控制器，辨識直接用 OpenCV。**
 MaaFramework 會自動選最快的截圖方式（MuMu 擷圖 API，測速 19 ms 一張）。模板比對不經過 pipeline，直接用和 MaaFramework 相同的演算法，所以 maalc 的門檻可以沿用。maalc 全部 229 張截圖掃過：回合畫面只在 17 張回合截圖觸發，回合播放中只在 `BattlePause.png` 觸發，混亂（Stagger）判斷和檔名完全吻合（`tests/test_vision.py`）。
 
