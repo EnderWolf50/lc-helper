@@ -129,6 +129,7 @@ class Reading:
     others: tuple[dict, ...] = ()  # events the screen reads the same as event
     lines: tuple = ()  # the option list's OCR lines as (text, (x, y, w, h)) in 1280x720 pixels
     source: str | None = None  # the device address it was read from (device.PC for the PC client)
+    closed: tuple[str, ...] = ()  # option texts shown grey: answered in an earlier round, a tap does nothing
 
 
 def on_choices_page(image):
@@ -146,7 +147,16 @@ def read_screen(image):
     lines = tuple(ocr.lines(image, vision.CHOICE_ROWS))
     options = tuple(t for t, _ in lines)
     found = candidates(story, options)
-    return Reading(found[0] if found else None, story, options, tuple(found[1:]), lines)
+    event = found[0] if found else None
+    closed = tuple(o["text"] for o, box in option_rows(event, lines) if not choice_open(image, box[1] + box[3] // 2))
+    return Reading(event, story, options, tuple(found[1:]), lines, closed=closed)
+
+
+def choice_open(image, y):
+    """Whether the option whose first line is at y can be taken: its frame left of the text is red-brown (maalc
+    rewards.choice_open, live #34: an answer taken in an earlier round turns grey, red - blue ~0)."""
+    b, _, r = image[y - 5:y + 5, 700:728].reshape(-1, 3).mean(0)
+    return bool(r - b > 10)
 
 
 def option_rows(event, lines):

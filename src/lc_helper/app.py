@@ -19,14 +19,14 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
 
 from . import device as devices
 from .paths import LOCAL
-from . import events, fights, gifts
+from . import events, fights, gifts, recommend
 from .overlay import Overlay, labels
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
 
 SETTINGS = LOCAL / "settings.json"
 DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard": 0, "forever": False,
-            "hold": True, "watch": False, "skip": False, "overlay": True, "stop_after_victory": False, "notify": True, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
+            "hold": True, "watch": False, "skip": False, "overlay": True, "keyword": None, "stop_after_victory": False, "notify": True, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 
 STYLE = """
@@ -89,8 +89,8 @@ def status_text(status: Status):
     return f"{text}\n{status.note}" if status.note else text
 
 
-def event_html(event, read_text=""):
-    """An event and what each option does, as the detail pane shows it."""
+def event_html(event, read_text="", pick=None):
+    """An event and what each option does, as the detail pane shows it; pick (option, why) gets a star."""
     if event is None:
         shown = html.escape(read_text.strip()[:200]) or "（沒讀到文字，確認畫面停在事件的選項頁）"
         return f"<p style='color:#d9a441'>沒對到事件</p><p style='color:#8f8270'>讀到：{shown}</p>"
@@ -101,11 +101,14 @@ def event_html(event, read_text=""):
     for i, o in enumerate(event["options"], 1):
         if not (o["text"] or o["text_zh"]):
             continue
-        title = html.escape(o["text_zh"] or o["text"])
+        picked = pick is not None and o is pick[0]
+        title = ("★ " if picked else "") + html.escape(o["text_zh"] or o["text"])
         en = html.escape(o["text"]) if o["text_zh"] else ""
         rows.append(f"<p style='margin:6px 0 0 0'><b style='color:#e7b45a'>{i}. {title}</b> "
                     f"<span style='color:#7d715f'>{en}</span> "
                     f"<span style='background:#3a2c1f;color:#d8c7a6'>&nbsp;{events.kind_text(o)}&nbsp;</span></p>")
+        if picked:
+            rows.append(f"<p style='color:#f0c674;margin:0 0 0 14px'>推薦：{html.escape(pick[1])}</p>")
         hint = o["hint_zh"] or o["hint"]
         if hint:
             rows.append(f"<p style='color:#a99c86;margin:0 0 0 14px'>{html.escape(hint)}</p>")
@@ -278,6 +281,7 @@ class Window(QWidget):
         self.hotkeys_taken = []
         self.overlay = Overlay()
         self.tray = None
+        self.last_reading = None  # the event page last read, ranked again on a new keyword
         self.shown_event = None
         self.running = False
         self.drag_from: QPoint | None = None
@@ -406,6 +410,16 @@ class Window(QWidget):
         self.overlay_box = QCheckBox("疊加顯示：把選項效果直接標在遊戲畫面上", checked=s["overlay"])
         self.overlay_box.toggled.connect(self.set_overlay)
         ev.addWidget(self.overlay_box)
+        row = QHBoxLayout()
+        row.addWidget(QLabel("推薦選項，依主要體系：", objectName="status"))
+        self.keyword_box = QComboBox()
+        self.keyword_box.addItem("不推薦", None)
+        for k in recommend.CHOICES:
+            self.keyword_box.addItem(f"{events.KEYWORDS.get(k, k)}  {k}", k)
+        self.keyword_box.setCurrentIndex(max(self.keyword_box.findData(s["keyword"]), 0))
+        self.keyword_box.activated.connect(self.set_keyword)
+        row.addWidget(self.keyword_box, 1)
+        ev.addLayout(row)
         self.results = QListWidget()
         self.results.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.results.setTextElideMode(Qt.ElideRight)
@@ -529,6 +543,15 @@ class Window(QWidget):
         self.skip_state.setVisible(bool(text) and self.skip_box.isChecked())
         QTimer.singleShot(0, self.adjustSize)
 
+    def set_keyword(self, index):
+        """A new main keyword: the event shown is ranked again."""
+        self.settings["keyword"] = self.keyword_box.itemData(index)
+        if self.last_reading is not None:
+            self.shown_event = None
+            self.on_event(self.last_reading)
+        elif self.shown_event is not None:
+            self.show_event(self.shown_event)
+
     def set_overlay(self, on):
         self.settings["overlay"] = on
         if not on:
@@ -579,15 +602,20 @@ class Window(QWidget):
         """A read event page: its effects in the window (unless it is the page already shown, read again for a
         scroll or a lit row) and, with the overlay on, beside the options on the game."""
         self.results.hide()
+        self.last_reading = reading
         if not (reading.event and reading.event is self.shown_event and not reading.others):
-            self.show_event(reading.event, " ".join([reading.story, *reading.options]), reading.others)
+            self.show_event(reading.event, " ".join([reading.story, *reading.options]), reading.others, reading.closed)
             self.shown_event = reading.event
         if self.settings["overlay"] and reading.event and not reading.others:
-            self.overlay.show_labels(labels(reading), reading.source, hold_ms=0 if self.settings["watch"] else 60_000)
+            pick = recommend.best(reading.event, self.settings["keyword"], reading.closed)
+            star = (lambda o: "★" if pick and o is pick[0] else "")
+            self.overlay.show_labels(labels(reading, star), reading.source,
+                                     hold_ms=0 if self.settings["watch"] else 60_000)
         else:
             self.overlay.hide_labels()
 
     def show_hit(self, kind, found):
+        self.last_reading = None
         if kind == "gift":
             self.detail.setHtml(gift_html([found]))
         else:
@@ -596,16 +624,20 @@ class Window(QWidget):
     def on_gifts(self, reading):
         """A gift screen read: its gifts in Chinese, with the effects once enhanced and their fusion recipes."""
         self.results.hide()
-        self.shown_event = None
+        self.shown_event = self.last_reading = None
         heading = {"choice": "畫面上可以選的飾品", "get": "剛獲得的飾品"}.get(reading.page, "")
         self.detail.setHtml(gift_html([g for g, _ in reading.gifts], heading) if reading.gifts
                             else "<p style='color:#d9a441'>飾品畫面上沒讀到飾品名字</p>")
 
-    def show_event(self, event, read_text="", others=()):
-        page = event_html(event, read_text)
+    def show_event(self, event, read_text="", others=(), closed=()):
+        """An event in the detail pane, its recommended option starred when a main keyword is set; closed are
+        option texts shown grey on screen."""
+        self.shown_event = event
+        pick = (lambda e: recommend.best(e, self.settings["keyword"], closed))
+        page = event_html(event, read_text, pick(event))
         if others:
             page = ("<p style='color:#d9a441;margin:0 0 4px 0'>畫面上的文字對到不只一個事件，選項效果各列一份</p>"
-                    + "<hr>".join(event_html(e) for e in (event, *others)))
+                    + "<hr>".join(event_html(e, pick=pick(e)) for e in (event, *others)))
         self.detail.setHtml(page)
 
     def run_search(self):

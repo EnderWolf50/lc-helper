@@ -1356,6 +1356,7 @@
      "hint": "Weakens the Poise Passive 「Adaptation」 for this Encounter",
      "text_zh": "實際上，你不覺得自己錯了嗎？",
      "hint_zh": "選擇後，本場戰鬥中弱化呼吸法相關被動技能 “適應”",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1363,6 +1364,7 @@
      "hint": "Weakens the Shield Passive 「Defense Mechanism」 for this Encounter",
      "text_zh": "你似乎在逃避著什麼。",
      "hint_zh": "選擇後，本場戰鬥中弱化護盾相關被動技能 “防禦機制”",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1370,6 +1372,7 @@
      "hint": "Weakens the SP Passive 「Confirmation Bias」 for this Encounter",
      "text_zh": "你所展示的過去是有另一面的。",
      "hint_zh": "選擇後，本場戰鬥中弱化理智值相關被動技能 “驗證偏差”",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1387,6 +1390,7 @@
      "hint": "Weakens the Poise Passive 「Adaptation」 for this Encounter",
      "text_zh": "實際上，你不覺得自己錯了嗎？",
      "hint_zh": "選擇後，本場戰鬥中弱化呼吸法相關被動技能 “適應”",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1394,6 +1398,7 @@
      "hint": "Weakens the Shield Passive 「Defense Mechanism」 for this Encounter",
      "text_zh": "你似乎在逃避著什麼。",
      "hint_zh": "選擇後，本場戰鬥中弱化護盾相關被動技能 “防禦機制”",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1401,6 +1406,7 @@
      "hint": "Weakens the SP Passive 「Confirmation Bias」 for this Encounter",
      "text_zh": "你所展示的過去是有另一面的。",
      "hint_zh": "選擇後，本場戰鬥中弱化理智值相關被動技能 “驗證偏差”",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1418,6 +1424,7 @@
      "hint": "Weakens the Poise Passive 「Adaptation」 for this Encounter",
      "text_zh": "實際上，你不覺得自己錯了嗎？",
      "hint_zh": "選擇後，本場戰鬥中弱化呼吸法相關被動技能 “適應”",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1425,6 +1432,7 @@
      "hint": "Weakens the Shield Passive 「Defense Mechanism」 for this Encounter",
      "text_zh": "你似乎在逃避著什麼。",
      "hint_zh": "選擇後，本場戰鬥中弱化護盾相關被動技能 “防禦機制”",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1432,6 +1440,7 @@
      "hint": "Weakens the SP Passive 「Confirmation Bias」 for this Encounter",
      "text_zh": "你所展示的過去是有另一面的。",
      "hint_zh": "選擇後，本場戰鬥中弱化理智值相關被動技能 “驗證偏差”",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1449,6 +1458,7 @@
      "hint": "A strange power courses through me.",
      "text_zh": "將手伸向黑暗。",
      "hint_zh": "感受到一股神秘的力量。",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1466,6 +1476,7 @@
      "hint": "Gain max HP & HP Healing Boost",
      "text_zh": "拿走裝配了野外維生單元的小幫手。",
      "hint_zh": "獲得體力上限提升，體力恢復量增加效果",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1473,6 +1484,7 @@
      "hint": "Enhances the effects of The Hand of the Saint",
      "text_zh": "拿走裝配了家政輔助模組的小幫手。",
      "hint_zh": "獲得強化聖徒之手的效果",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1480,6 +1492,7 @@
      "hint": "Gain safeguarding effects against Stagger",
      "text_zh": "拿走裝配了運動增量韌體的小幫手。",
      "hint_zh": "獲得一定程度抵禦混亂的效果",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1487,6 +1500,7 @@
      "hint": "Gain an effect that counteracts the Nethersea Brand's influence on Sinners",
      "text_zh": "拿走裝配了迷你去汙套組的小幫手。",
      "hint_zh": "罪人獲得不受溟痕影響的效果",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1494,6 +1508,7 @@
      "hint": "Gain temporary power boost",
      "text_zh": "拿走裝配了外接強力升級的小幫手。",
      "hint_zh": "獲得臨時強化效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1511,6 +1526,7 @@
      "hint": "",
      "text_zh": "繼續閱讀記錄",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1528,6 +1544,7 @@
      "hint": "Press the button to proceed.",
      "text_zh": "是。",
      "hint_zh": "按下進行強化的按鈕。",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1535,6 +1552,7 @@
      "hint": "Press the button to stop.",
      "text_zh": "不是。",
      "hint_zh": "按下停止強化的按鈕。",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1552,6 +1570,7 @@
      "hint": "Press the button to proceed.",
      "text_zh": "是。",
      "hint_zh": "按下進行強化的按鈕。",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1559,6 +1578,7 @@
      "hint": "Press the button to stop.",
      "text_zh": "不是。",
      "hint_zh": "按下停止強化的按鈕。",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1576,6 +1596,7 @@
      "hint": "Select to heal HP for all allies.",
      "text_zh": "第二型再生反應堆",
      "hint_zh": "選擇以為全體友方單位恢復體力。",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1583,6 +1604,7 @@
      "hint": "Select to heal SP for all allies.",
      "text_zh": "精神汙染中和氣體",
      "hint_zh": "選擇以為全體友方單位恢復理智。",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1600,6 +1622,7 @@
      "hint": "",
      "text_zh": "拒絕。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1607,6 +1630,7 @@
      "hint": "",
      "text_zh": "接受提議。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     }
    ]
@@ -1624,6 +1648,7 @@
      "hint": "",
      "text_zh": "那凝視似乎燃盡一切。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -1631,6 +1656,7 @@
      "hint": "",
      "text_zh": "那凝視似乎折磨一切。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -1638,6 +1664,7 @@
      "hint": "",
      "text_zh": "那凝視似乎目見一切。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -1645,6 +1672,7 @@
      "hint": "",
      "text_zh": "那凝視似乎吞噬一切。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -1652,6 +1680,7 @@
      "hint": "",
      "text_zh": "那凝視似乎停滯一切。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -1659,6 +1688,7 @@
      "hint": "",
      "text_zh": "那凝視似乎蔑視一切。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -1666,6 +1696,7 @@
      "hint": "",
      "text_zh": "那凝視似乎嫉妒一切。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     }
    ]
@@ -1683,6 +1714,7 @@
      "hint": "Select to gain increased Max Speed, SP heal for all allies, and Grand Welcome for this Encounter.",
      "text_zh": "戴上喜悅的假面。",
      "hint_zh": "選擇後，本場戰鬥中獲得最大速度值提升，全體友方單位理智值恢復以及盛情款待。",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1690,6 +1722,7 @@
      "hint": "Select to gain Clash Power, SP heal for all allies, and Grand Welcome for this Encounter.",
      "text_zh": "戴上哀傷的假面。",
      "hint_zh": "選擇後，本場戰鬥中獲得拼點威力提升，全體友方單位理智值恢復以及盛情款待。",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1697,6 +1730,7 @@
      "hint": "Select to deal more damage, gain SP heal for all allies and Grand Welcome for this Encounter.",
      "text_zh": "戴上憤怒的假面。",
      "hint_zh": "選擇後，本場戰鬥中獲得傷害強化，全體友方單位理智值恢復以及盛情款待。",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1714,6 +1748,7 @@
      "hint": "Select to heal SP for all allies.",
      "text_zh": "戴上喜悅的假面。",
      "hint_zh": "選擇後，全體友方單位恢復理智值。",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -1721,6 +1756,7 @@
      "hint": "Select to gain E.G.O resources.",
      "text_zh": "戴上哀傷的假面。",
      "hint_zh": "選擇後，獲得E.G.O資源。",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -1728,6 +1764,7 @@
      "hint": "Select to gain Damage UP for this Encounter.",
      "text_zh": "戴上憤怒的假面。",
      "hint_zh": "選擇後，本場戰鬥中獲得傷害強化。",
+     "gift_keywords": [],
      "kind": "check_other"
     }
    ]
@@ -1745,6 +1782,12 @@
      "hint": "Select to gain a Burn E.G.O Gift",
      "text_zh": "伸手觸碰。",
      "hint_zh": "選擇後，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -1758,6 +1801,7 @@
      "hint": "",
      "text_zh": "轉身離開。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1765,6 +1809,12 @@
      "hint": "Win the battle to earn 2 Burn E.G.O Gifts",
      "text_zh": "走入煙火。",
      "hint_zh": "戰鬥勝利後，獲得2件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -1792,6 +1842,7 @@
      "hint": "",
      "text_zh": "緊緊注視。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -1799,6 +1850,12 @@
      "hint": "Wrath & Gloom Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "移開視線。",
      "hint_zh": "暴怒、憂鬱優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -1829,6 +1886,16 @@
      "hint": "Win the battle to earn a Keywordless E.G.O Gift and a Bleed E.G.O Gift",
      "text_zh": "抓住螺旋。",
      "hint_zh": "戰鬥勝利後，獲得1件泛用E.G.O飾品和1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "win_battle"
+      ],
+      [
+       "Keywordless",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -1856,6 +1923,12 @@
      "hint": "Wrath & Lust Advantage check. Pass to gain a Burn E.G.O Gift.",
      "text_zh": "步入濃霧。",
      "hint_zh": "暴怒、色慾優勢判定 成功時，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -1875,6 +1948,7 @@
      "hint": "",
      "text_zh": "凝視濃霧。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -1904,6 +1978,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "接受血液。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -1917,6 +1997,7 @@
      "hint": "",
      "text_zh": "捐獻血液。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -1934,6 +2015,12 @@
      "hint": "Wrath & Gluttony Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "開啟棺材。",
      "hint_zh": "暴怒、暴食優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -1959,6 +2046,7 @@
      "hint": "",
      "text_zh": "保持原樣。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -1993,6 +2081,7 @@
      "hint": "",
      "text_zh": "點頭。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -2017,6 +2106,12 @@
      "hint": "Lust & Sloth Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "搖頭。",
      "hint_zh": "色慾、怠惰優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2057,6 +2152,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "稍事歇息。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -2070,6 +2171,7 @@
      "hint": "",
      "text_zh": "無視離開。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -2087,6 +2189,12 @@
      "hint": "Lust & Gloom Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "拔出釘子。",
      "hint_zh": "色慾、憂鬱優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2111,6 +2219,7 @@
      "hint": "",
      "text_zh": "裹上繃帶。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -2118,6 +2227,12 @@
      "hint": "Win the battle to earn 2 Bleed E.G.O Gifts",
      "text_zh": "擁抱罪人。",
      "hint_zh": "戰鬥勝利後，獲得2件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2145,6 +2260,12 @@
      "hint": "Select to gain a Burn E.G.O Gift",
      "text_zh": "熄滅蠟燭。",
      "hint_zh": "選擇後，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -2158,6 +2279,7 @@
      "hint": "",
      "text_zh": "窺視書本。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -2165,6 +2287,12 @@
      "hint": "Win the battle to earn 2 Burn E.G.O Gifts",
      "text_zh": "將蠟燭聚在一起。",
      "hint_zh": "戰鬥勝利後，獲得2件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2192,6 +2320,7 @@
      "hint": "",
      "text_zh": "側耳傾聽。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other",
      "odds": [
       {
@@ -2220,6 +2349,12 @@
      "hint": "Lust & Gluttony Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "摘下黃銅戒指。",
      "hint_zh": "色慾、暴食優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2239,6 +2374,16 @@
      "hint": "Win the battle to earn a Keywordless E.G.O Gift and a Sinking E.G.O Gift",
      "text_zh": "放上錢幣。",
      "hint_zh": "戰鬥勝利後，獲得1件泛用E.G.O飾品和1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "win_battle"
+      ],
+      [
+       "Sinking",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2266,6 +2411,7 @@
      "hint": "",
      "text_zh": "拔出雨傘。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -2273,6 +2419,12 @@
      "hint": "Lust & Sloth & Pride Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "撫摸狐狸。",
      "hint_zh": "怠惰、色慾、傲慢優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2298,6 +2450,16 @@
      "hint": "Win the battle to earn a Keywordless E.G.O Gift and a Rupture E.G.O Gift",
      "text_zh": "移走堆積的雨傘。",
      "hint_zh": "戰鬥勝利後，獲得1件泛用E.G.O飾品和1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "win_battle"
+      ],
+      [
+       "Rupture",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2325,6 +2487,7 @@
      "hint": "",
      "text_zh": "我認為要微笑。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -2332,6 +2495,12 @@
      "hint": "Select to gain a Blunt E.G.O Gift",
      "text_zh": "不做任何表情。",
      "hint_zh": "選擇後，獲得1件打擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Blunt",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -2345,6 +2514,7 @@
      "hint": "",
      "text_zh": "哭泣，直至沉淪。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -2362,6 +2532,12 @@
      "hint": "Select to gain a Rupture E.G.O Gift",
      "text_zh": "撕下木偶身上的符咒。",
      "hint_zh": "選擇後，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -2375,6 +2551,12 @@
      "hint": "Sloth & Wrath Advantage check. Then, maybe gain a Poise E.G.O Gift depending on the subsequent choice",
      "text_zh": "撕下牆壁上的符咒。",
      "hint_zh": "怠惰、暴怒優勢判定 成功時，根據後續選項獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2399,6 +2581,16 @@
      "hint": "Win the battle to earn a Rupture E.G.O Gift and a Poise E.G.O Gift",
      "text_zh": "撕下所有的符咒。",
      "hint_zh": "戰鬥勝利後，獲得1件破裂E.G.O飾品和1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "win_battle"
+      ],
+      [
+       "Rupture",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2426,6 +2618,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "給它水。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -2439,6 +2637,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "不給它水。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -2452,6 +2656,16 @@
      "hint": "Win the battle to earn a Keywordless E.G.O Gift and a Burn E.G.O Gift",
      "text_zh": "喝掉水。",
      "hint_zh": "戰鬥勝利後，獲得1件泛用E.G.O飾品和1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "win_battle"
+      ],
+      [
+       "Keywordless",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2479,6 +2693,7 @@
      "hint": "",
      "text_zh": "我喜歡。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -2503,6 +2718,12 @@
      "hint": "Select to gain a Tremor E.G.O Gift",
      "text_zh": "我不喜歡。",
      "hint_zh": "選擇後，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -2516,6 +2737,16 @@
      "hint": "Run a Sloth & Gluttony Advantage check to gain an E.G.O Gift.",
      "text_zh": "我從未想過沒有酒的生活。",
      "hint_zh": "進行怠惰、暴食優勢判定，獲得1件E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_fail"
+      ],
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2558,6 +2789,7 @@
      "hint": "",
      "text_zh": "點頭。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "followup_other",
      "next": [
       90101601
@@ -2568,6 +2800,12 @@
      "hint": "Select to gain a Tremor E.G.O Gift",
      "text_zh": "搖頭。",
      "hint_zh": "選擇後，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -2581,6 +2819,12 @@
      "hint": "Win the battle to earn 2 Tremor E.G.O Gifts",
      "text_zh": "拍開它的手。",
      "hint_zh": "戰鬥勝利後，獲得2件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2608,6 +2852,16 @@
      "hint": "Run a Gluttony & Pride Advantage check to gain a Keywordless E.G.O Gift.",
      "text_zh": "閱讀石板上的文字。",
      "hint_zh": "進行暴食、傲慢優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_fail"
+      ],
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2641,6 +2895,7 @@
      "hint": "",
      "text_zh": "抹去石板上的文字。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -2658,6 +2913,12 @@
      "hint": "Gluttony & Envy Advantage check. Pass to gain a Rupture E.G.O Gift.",
      "text_zh": "折下玫瑰。",
      "hint_zh": "暴食、嫉妒優勢判定 成功時，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2697,6 +2958,7 @@
      "hint": "",
      "text_zh": "解開棘蔓。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -2704,6 +2966,16 @@
      "hint": "Win the battle to earn a Rupture E.G.O Gift and a Bleed E.G.O Gift",
      "text_zh": "推倒告示牌。",
      "hint_zh": "戰鬥勝利後，獲得1件破裂E.G.O飾品和1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "win_battle"
+      ],
+      [
+       "Rupture",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2731,6 +3003,12 @@
      "hint": "Gluttony & Gloom Advantage check. Pass to gain a Pierce E.G.O Gift.",
      "text_zh": "取走一些綠色物質。",
      "hint_zh": "暴食、憂鬱優勢判定 成功時，獲得1件突刺E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Pierce",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2756,6 +3034,7 @@
      "hint": "",
      "text_zh": "靠近蚌殼。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -2763,6 +3042,16 @@
      "hint": "Win the battle to earn a Pierce E.G.O Gift and a Tremor E.G.O Gift",
      "text_zh": "把綠色物質扔過去。",
      "hint_zh": "戰鬥勝利後，獲得1件突刺E.G.O飾品和1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Pierce",
+       "win_battle"
+      ],
+      [
+       "Tremor",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2790,6 +3079,16 @@
      "hint": "Run a Gluttony & Lust Advantage check to gain a Bleed E.G.O Gift.",
      "text_zh": "靠近花甸。",
      "hint_zh": "進行暴食、色慾優勢判定，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_fail"
+      ],
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2849,6 +3148,12 @@
      "hint": "Win the battle to earn 2 Bleed E.G.O Gifts",
      "text_zh": "招手回應。",
      "hint_zh": "戰鬥勝利後，獲得2件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2866,6 +3171,7 @@
      "hint": "",
      "text_zh": "無視。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -2883,6 +3189,12 @@
      "hint": "Gloom & Sloth Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "為它指明方向。",
      "hint_zh": "憂鬱、怠惰優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2902,6 +3214,16 @@
      "hint": "Win the battle to earn a Keywordless E.G.O Gift and a Charge E.G.O Gift",
      "text_zh": "站立不動。",
      "hint_zh": "戰鬥勝利後，獲得1件泛用E.G.O飾品和1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "win_battle"
+      ],
+      [
+       "Keywordless",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -2919,6 +3241,12 @@
      "hint": "Gloom & Lust Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "直接帶它去出口。",
      "hint_zh": "憂鬱、色慾優勢判定 成功時，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -2953,6 +3281,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "握住伸來的手。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -2966,6 +3300,12 @@
      "hint": "Gloom & Gluttony & Pride Advantage check. Pass to gain a Tremor E.G.O Gift.",
      "text_zh": "拒絕它。",
      "hint_zh": "憂鬱、暴食、傲慢優勢判定 成功時，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3001,6 +3341,16 @@
      "hint": "Select for a chance to gain a Rupture E.G.O Gift",
      "text_zh": "為它澆水。",
      "hint_zh": "選擇後，有機率獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "later_direct"
+      ],
+      [
+       "Rupture",
+       "later_direct_random"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -3021,6 +3371,12 @@
      "hint": "Select to gain a Rupture E.G.O Gift",
      "text_zh": "折斷樹枝。",
      "hint_zh": "選擇後，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3044,6 +3400,7 @@
      "hint": "",
      "text_zh": "模仿叫聲。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other",
      "odds": [
       {
@@ -3072,6 +3429,12 @@
      "hint": "Select to gain a Tremor E.G.O Gift",
      "text_zh": "坐下慢慢等待。",
      "hint_zh": "選擇後，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3085,6 +3448,12 @@
      "hint": "Win the battle to earn 2 Tremor E.G.O Gifts",
      "text_zh": "捂住耳朵。",
      "hint_zh": "戰鬥勝利後，獲得2件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -3112,6 +3481,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "接近。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3125,6 +3500,7 @@
      "hint": "",
      "text_zh": "臥倒。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -3142,6 +3518,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "閉上雙眼。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3155,6 +3537,7 @@
      "hint": "",
      "text_zh": "還以對視。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -3172,6 +3555,12 @@
      "hint": "Select to gain a Blunt E.G.O Gift",
      "text_zh": "前進。",
      "hint_zh": "選擇後，獲得1件打擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Blunt",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3185,6 +3574,7 @@
      "hint": "",
      "text_zh": "被推開。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -3192,6 +3582,7 @@
      "hint": "",
      "text_zh": "急忙離開。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -3209,6 +3600,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "摘下一朵花。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3222,6 +3619,7 @@
      "hint": "",
      "text_zh": "扯斷棘蔓。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other",
      "odds": [
       {
@@ -3261,6 +3659,7 @@
      "hint": "",
      "text_zh": "選擇在笑的骷髏頭。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -3285,6 +3684,12 @@
      "hint": "Wrath & Envy Advantage check. Pass to gain a Rupture E.G.O Gift.",
      "text_zh": "選擇憤怒的骷髏頭。",
      "hint_zh": "暴怒、嫉妒優勢判定 成功時，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3315,6 +3720,12 @@
      "hint": "Lust & Gloom Advantage check. Pass to gain a Pierce E.G.O Gift.",
      "text_zh": "選擇發狂的骷髏頭。",
      "hint_zh": "色慾、憂鬱優勢判定 成功時，獲得1件突刺E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Pierce",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3355,6 +3766,12 @@
      "hint": "Envy & Gluttony & Sloth Advantage check. Pass to gain a Tremor E.G.O Gift.",
      "text_zh": "命令它搬執行李。",
      "hint_zh": "嫉妒、暴食、怠惰優勢判定 成功時，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3380,6 +3797,7 @@
      "hint": "",
      "text_zh": "命令它什麼都不做。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -3387,6 +3805,12 @@
      "hint": "Win the battle to earn 2 Tremor E.G.O Gifts",
      "text_zh": "命令它快點搬執行李。",
      "hint_zh": "戰鬥勝利後，獲得2件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -3414,6 +3838,12 @@
      "hint": "Select to gain a Slash E.G.O Gift",
      "text_zh": "切斷電纜。",
      "hint_zh": "選擇後，獲得1件斬擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Slash",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3427,6 +3857,7 @@
      "hint": "",
      "text_zh": "接入另一根電纜。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -3444,6 +3875,12 @@
      "hint": "Select to gain a Rupture E.G.O Gift",
      "text_zh": "按下閃電狀的按鈕。",
      "hint_zh": "選擇後，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3457,6 +3894,12 @@
      "hint": "Envy & Wrath Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "按下水滴狀的按鈕。",
      "hint_zh": "嫉妒、暴怒優勢判定 成功時，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3487,6 +3930,16 @@
      "hint": "Win the battle to earn a Rupture E.G.O Gift and a Charge E.G.O Gift",
      "text_zh": "連按所有按鈕。",
      "hint_zh": "戰鬥勝利後，獲得1件破裂E.G.O飾品和1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "win_battle"
+      ],
+      [
+       "Rupture",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -3514,6 +3967,12 @@
      "hint": "Select to gain a Burn E.G.O Gift",
      "text_zh": "輸入“你好”。",
      "hint_zh": "選擇後，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3530,6 +3989,7 @@
      "hint": "",
      "text_zh": "輸入“再見”。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -3537,6 +3997,16 @@
      "hint": "Win the battle to earn a Burn E.G.O Gift and a Charge E.G.O Gift",
      "text_zh": "輸入“蠢貨”。",
      "hint_zh": "戰鬥勝利後，獲得1件燒傷E.G.O飾品和1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "win_battle"
+      ],
+      [
+       "Charge",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -3564,6 +4034,7 @@
      "hint": "",
      "text_zh": "出石頭。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -3571,6 +4042,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "出布。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3584,6 +4061,7 @@
      "hint": "",
      "text_zh": "出剪刀。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -3601,6 +4079,7 @@
      "hint": "",
      "text_zh": "堵住溪流，讓它無法繼續飲血。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -3608,6 +4087,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "把泉水的入口破壞拓寬，讓它喝到更多的血。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3621,6 +4106,12 @@
      "hint": "Select to gain a Bleed E.G.O Gift",
      "text_zh": "用罪人的血餵它。",
      "hint_zh": "選擇後，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3644,6 +4135,12 @@
      "hint": "Lust & Pride Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "安撫粉色液滴。",
      "hint_zh": "色慾、傲慢優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3684,6 +4181,7 @@
      "hint": "",
      "text_zh": "把粉色液滴放回玻璃瓶內。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -3707,6 +4205,7 @@
      "hint": "",
      "text_zh": "你是特別的。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -3714,6 +4213,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "你不是特別的。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -3737,6 +4242,12 @@
      "hint": "Gain a Keywordless E.G.O Gift depending on the result of the following choice",
      "text_zh": "告訴它你們很樂意聽些故事。",
      "hint_zh": "根據後續選項，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "later_direct"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -3750,6 +4261,7 @@
      "hint": "",
      "text_zh": "不聽故事離開。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -3767,6 +4279,7 @@
      "hint": "",
      "text_zh": "直言那是玻璃珠。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -3790,6 +4303,12 @@
      "hint": "Lust & Pride Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "同意那是星星。",
      "hint_zh": "色慾、傲慢優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3829,6 +4348,7 @@
      "hint": "",
      "text_zh": "詢問它信仰什麼。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -3836,6 +4356,12 @@
      "hint": "Run a Wrath & Gluttony Advantage check. Pass to gain a Sinking E.G.O Gift.",
      "text_zh": "從它的身上拿一本祈禱書。",
      "hint_zh": "暴怒、暴食優勢判定 成功時，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3865,6 +4391,12 @@
      "hint": "Wrath & Pride Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "偷偷摸摸地取下一部分鐵絲。",
      "hint_zh": "暴怒、傲慢優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3890,6 +4422,7 @@
      "hint": "",
      "text_zh": "割破指尖將血滴在鐵絲網上。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -3913,6 +4446,16 @@
      "hint": "Run a Gloom & Envy Advantage check to gain a Charge E.G.O Gift.",
      "text_zh": "切斷環形墊圈。",
      "hint_zh": "進行憂鬱、嫉妒優勢判定，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3941,6 +4484,7 @@
      "hint": "",
      "text_zh": "不切斷環形墊圈。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -3958,6 +4502,12 @@
      "hint": "Wrath & Envy Advantage check. Pass to gain a Rupture E.G.O Gift.",
      "text_zh": "告知真相。",
      "hint_zh": "暴怒、嫉妒優勢判定 成功時，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -3988,6 +4538,12 @@
      "hint": "Win the battle to earn 2 Rupture E.G.O Gifts",
      "text_zh": "說並不知情。",
      "hint_zh": "戰鬥勝利後，獲得2件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -4005,6 +4561,12 @@
      "hint": "Pride & Envy Advantage check. Pass to gain a Rupture E.G.O Gift.",
      "text_zh": "指示錯誤的方向。",
      "hint_zh": "傲慢、嫉妒優勢判定 成功時，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4040,6 +4602,7 @@
      "hint": "",
      "text_zh": "我命令其死。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -4064,6 +4627,7 @@
      "hint": "",
      "text_zh": "我命令其生。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -4082,6 +4646,12 @@
      "hint": "Gloom & Pride Advantage check. Pass to gain a Sinking E.G.O Gift.",
      "text_zh": "不下達命令。",
      "hint_zh": "憂鬱、傲慢優勢判定 成功時，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4122,6 +4692,12 @@
      "hint": "Sloth & Gloom Advantage check. Pass to gain a Poise E.G.O Gift.",
      "text_zh": "在塔上放一塊石頭。",
      "hint_zh": "怠惰、憂鬱優勢判定 成功時，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4152,6 +4728,7 @@
      "hint": "",
      "text_zh": "推倒石冢。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -4181,6 +4758,7 @@
      "hint": "",
      "text_zh": "是鴨子。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -4200,6 +4778,12 @@
      "hint": "Sloth & Envy Advantage check. Pass to gain a Sinking E.G.O Gift.",
      "text_zh": "是兔子。",
      "hint_zh": "怠惰、嫉妒優勢判定 成功時，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4240,6 +4824,12 @@
      "hint": "Win the battle to earn 2 Poise E.G.O Gifts",
      "text_zh": "走到傘底下，等待雨停。",
      "hint_zh": "戰鬥勝利後，獲得2件呼吸法飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -4257,6 +4847,12 @@
      "hint": "Gluttony & Gloom Advantage check. Pass to gain a Poise E.G.O Gift.",
      "text_zh": "冒雨離開這裡。",
      "hint_zh": "暴食、憂鬱優勢判定 成功時，獲得1件呼吸法飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4292,6 +4888,12 @@
      "hint": "Gain a Charge E.G.O Gift depending on the result of the following choice",
      "text_zh": "按下按鈕。",
      "hint_zh": "根據後續選項，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "later_direct"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -4305,6 +4907,7 @@
      "hint": "",
      "text_zh": "不按按鈕離開房間。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -4322,6 +4925,7 @@
      "hint": "Gluttony & Wrath Advantage check. Pass to level up currently deployed Identities",
      "text_zh": "被束縛的一方更可憐。",
      "hint_zh": "暴食、暴怒優勢判定 成功時，編隊中的所有人格等級提升",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -4341,6 +4945,12 @@
      "hint": "Gluttony & Envy Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "束縛著的一方更可憐。",
      "hint_zh": "暴食、嫉妒優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4370,6 +4980,12 @@
      "hint": "Gain a Sinking E.G.O Gift depending on the result of the following choice",
      "text_zh": "稍作休息。",
      "hint_zh": "根據後續選項，獲得沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "later_win_battle"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -4387,6 +5003,12 @@
      "hint": "Select to gain a Sinking E.G.O Gift",
      "text_zh": "不作休息，繼續前進。",
      "hint_zh": "選擇後，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -4400,6 +5022,12 @@
      "hint": "Select to gain a Sinking E.G.O Gift",
      "text_zh": "原地休息。",
      "hint_zh": "選擇後，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -4423,6 +5051,12 @@
      "hint": "Gloom & Gluttony Advantage check. Pass to gain a Sinking E.G.O Gift.",
      "text_zh": "尋找聲音從何而來。",
      "hint_zh": "憂鬱、暴食優勢判定 成功時，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4453,6 +5087,12 @@
      "hint": "",
      "text_zh": "無視聲音，繼續走。",
      "hint_zh": "",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4487,6 +5127,12 @@
      "hint": "Select to gain a Charge E.G.O Gift",
      "text_zh": "告訴它真相。",
      "hint_zh": "選擇後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -4500,6 +5146,7 @@
      "hint": "",
      "text_zh": "告訴它它合格了。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -4507,6 +5154,12 @@
      "hint": "Gloom & Pride Advantage check. Pass to gain a Sinking E.G.O Gift.",
      "text_zh": "安慰。",
      "hint_zh": "憂鬱、傲慢優勢判定 成功時，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4542,6 +5195,12 @@
      "hint": "Select to gain a Poise E.G.O Gift",
      "text_zh": "告訴射手看看它脖子上的吊墜。",
      "hint_zh": "選擇後，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -4555,6 +5214,12 @@
      "hint": "Gloom & Pride Advantage check. Pass to gain a Pierce E.G.O Gift.",
      "text_zh": "說自己站在射手這邊。",
      "hint_zh": "憂鬱、傲慢優勢判定 成功時，獲得1件突刺E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Pierce",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4580,6 +5245,16 @@
      "hint": "Win the battle to earn a Poise E.G.O Gift and a Pierce E.G.O Gift",
      "text_zh": "說自己不站在射手這邊。",
      "hint_zh": "戰鬥勝利後，獲得1件呼吸法E.G.O飾品和1件突刺E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Pierce",
+       "win_battle"
+      ],
+      [
+       "Poise",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -4607,6 +5282,12 @@
      "hint": "Pride & Gloom Advantage check. Pass to gain a Poise E.G.O Gift.",
      "text_zh": "將地上的呼吸器戴在它嘴上。",
      "hint_zh": "傲慢、憂鬱優勢判定 成功時，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4626,6 +5307,7 @@
      "hint": "",
      "text_zh": "只是觀察。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -4643,6 +5325,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "說你從來沒有逾期上交過作業。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -4656,6 +5344,7 @@
      "hint": "",
      "text_zh": "說你有逾期上交過作業。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -4673,6 +5362,12 @@
      "hint": "Pride & Wrath Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "這是繃帶。",
      "hint_zh": "傲慢、暴怒優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4703,6 +5398,7 @@
      "hint": "Pride & Envy Advantage check. Pass to level up currently deployed Identities.",
      "text_zh": "這是枷鎖。",
      "hint_zh": "傲慢、嫉妒優勢判定 成功時，編隊中的所有人格等級提升",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -4726,6 +5422,7 @@
      "hint": "",
      "text_zh": "和它握手。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -4739,6 +5436,12 @@
      "hint": "Pride & Envy Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "推開手。",
      "hint_zh": "傲慢、嫉妒優勢判定 成功時，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4779,6 +5482,12 @@
      "hint": "Sloth & Gloom Advantage check. Pass to gain a Rupture E.G.O Gift.",
      "text_zh": "和它一起下潛。",
      "hint_zh": "怠惰、憂鬱優勢判定 成功時，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4809,6 +5518,12 @@
      "hint": "Sloth & Envy Advantage check. Pass to gain a Poise E.G.O Gift.",
      "text_zh": "為它修好微弱的熒光燈。",
      "hint_zh": "怠惰、嫉妒優勢判定 成功時，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4839,6 +5554,16 @@
      "hint": "Win the battle to earn a Rupture E.G.O Gift and a Poise E.G.O Gift",
      "text_zh": "拔出熒光燈。",
      "hint_zh": "戰鬥勝利後，獲得1件破裂E.G.O飾品和1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "win_battle"
+      ],
+      [
+       "Rupture",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -4866,6 +5591,12 @@
      "hint": "Envy & Pride Advantage check. Pass to gain a Sinking E.G.O Gift.",
      "text_zh": "說看不見。",
      "hint_zh": "嫉妒、傲慢優勢判定 成功時，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4896,6 +5627,7 @@
      "hint": "Envy & Sloth Advantage check. Pass to level up currently deployed Identities.",
      "text_zh": "說看得清。",
      "hint_zh": "嫉妒、怠惰優勢判定 成功時，編隊中的所有人格等級提升",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -4920,6 +5652,12 @@
      "hint": "Gloom & Sloth Advantage check. Pass to gain a Poise E.G.O Gift.",
      "text_zh": "說因灰塵而看不清。",
      "hint_zh": "憂鬱、怠惰優勢判定 成功時，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4960,6 +5698,12 @@
      "hint": "Wrath & Lust Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "拔出它身上的靜脈輸液管。",
      "hint_zh": "暴怒、色慾優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -4985,6 +5729,7 @@
      "hint": "",
      "text_zh": "逃跑。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -5002,6 +5747,16 @@
      "hint": "Run a Sloth & Gloom Advantage check to gain a Keywordless E.G.O Gift.",
      "text_zh": "接受手術。",
      "hint_zh": "進行怠惰、憂鬱優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_fail"
+      ],
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5040,6 +5795,7 @@
      "hint": "",
      "text_zh": "打破無影燈並逃跑。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -5057,6 +5813,16 @@
      "hint": "Run a Lust & Gloom Advantage check to gain a Keywordless E.G.O Gift.",
      "text_zh": "把它用一名罪人的血灌滿。",
      "hint_zh": "進行色慾、憂鬱優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_fail"
+      ],
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5095,6 +5861,7 @@
      "hint": "",
      "text_zh": "讓罪人們強行抓著頭和瓶子把它抬起來。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -5112,6 +5879,7 @@
      "hint": "",
      "text_zh": "把它的頭從甕中拔出。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -5136,6 +5904,12 @@
      "hint": "Gluttony & Pride Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "擁抱它巨大的身體並握手。",
      "hint_zh": "暴食、傲慢優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5175,6 +5949,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "不走大路，沿來時的路折返。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -5188,6 +5968,7 @@
      "hint": "",
      "text_zh": "不走大路，走旁邊的小路。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -5205,6 +5986,12 @@
      "hint": "Gluttony & Lust Advantage check. Pass to gain a Slash E.G.O Gift.",
      "text_zh": "在雕像前面祈禱。",
      "hint_zh": "暴食、色慾優勢判定 成功時，獲得1件斬擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Slash",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5224,6 +6011,12 @@
      "hint": "Gluttony & Wrath Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "離開這裡。",
      "hint_zh": "暴食、暴怒優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5264,6 +6057,12 @@
      "hint": "Gloom & Lust Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "如實回答。",
      "hint_zh": "憂鬱、色慾優勢判定 成功時，獲得泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5294,6 +6093,12 @@
      "hint": "Gloom & Sloth Advantage check. Pass to gain a Blunt E.G.O Gift.",
      "text_zh": "說上面什麼都沒有寫。",
      "hint_zh": "憂鬱、怠惰優勢判定 成功時，獲得打擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Blunt",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5323,6 +6128,7 @@
      "hint": "Envy & Gluttony Advantage check. Pass to level up currently deployed Identities.",
      "text_zh": "幫它找回平衡。",
      "hint_zh": "嫉妒、暴食優勢判定 成功時，編隊中的所有人格等級提升",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -5336,6 +6142,12 @@
      "hint": "Envy & Sloth Advantage check. Pass to gain a Tremor E.G.O Gift.",
      "text_zh": "讓它傾倒得更厲害。",
      "hint_zh": "嫉妒、怠惰優勢判定 成功時，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5376,6 +6188,7 @@
      "hint": "",
      "text_zh": "向裂開的手所指的北方。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "followup_other"
     },
     {
@@ -5383,6 +6196,12 @@
      "hint": "Gain a Sinking E.G.O Gift depending on the result of the following choice",
      "text_zh": "向警告的手所指的東方。",
      "hint_zh": "根據後續選項，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "later_direct"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -5396,6 +6215,7 @@
      "hint": "",
      "text_zh": "向折斷的手所指的西方。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "followup_other"
     },
     {
@@ -5403,6 +6223,7 @@
      "hint": "",
      "text_zh": "返回。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -5420,6 +6241,7 @@
      "hint": "",
      "text_zh": "詢問是否還有別的市民。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "followup_other"
     },
     {
@@ -5427,6 +6249,12 @@
      "hint": "Gain a Charge E.G.O Gift depending on the result of the following choice",
      "text_zh": "要求握手。",
      "hint_zh": "根據後續選項，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "later_direct"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -5450,6 +6278,12 @@
      "hint": "Wrath & Lust Advantage check. Pass to gain a Rupture E.G.O Gift.",
      "text_zh": "拾起石塊。",
      "hint_zh": "暴怒、色慾優勢判定 成功時，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5475,6 +6309,7 @@
      "hint": "",
      "text_zh": "不拾起石塊。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -5492,6 +6327,12 @@
      "hint": "Pride & Envy Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "拿走一根小電線杆。",
      "hint_zh": "傲慢、嫉妒優勢判定 成功時，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5517,6 +6358,12 @@
      "hint": "Win the battle to earn a Charge E.G.O Gift",
      "text_zh": "拔掉所有電線杆。",
      "hint_zh": "戰鬥勝利後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -5540,6 +6387,12 @@
      "hint": "Select to gain a Charge E.G.O Gift",
      "text_zh": "撿走。",
      "hint_zh": "選擇後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -5553,6 +6406,7 @@
      "hint": "",
      "text_zh": "不撿。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -5560,6 +6414,16 @@
      "hint": "Win the battle to earn a Charge E.G.O Gift and a Tremor E.G.O Gift",
      "text_zh": "把螺絲丟到工廠裡。",
      "hint_zh": "戰鬥勝利後，獲得1件充能E.G.O飾品和1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "win_battle"
+      ],
+      [
+       "Tremor",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -5587,6 +6451,7 @@
      "hint": "",
      "text_zh": "把燉菜吃光。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -5594,6 +6459,16 @@
      "hint": "Run a Wrath & Lust Advantage check to gain a Burn E.G.O Gift.",
      "text_zh": "把鍋拿開。",
      "hint_zh": "進行暴怒、色慾優勢判定，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "check_fail"
+      ],
+      [
+       "Burn",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5627,6 +6502,12 @@
      "hint": "Select to gain a Burn E.G.O Gift",
      "text_zh": "帶走爐火。",
      "hint_zh": "選擇後，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -5650,6 +6531,7 @@
      "hint": "",
      "text_zh": "一起拍打水面。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -5657,6 +6539,12 @@
      "hint": "Win the battle to earn a Bleed E.G.O Gift",
      "text_zh": "嘗試弄破囊袋。",
      "hint_zh": "戰鬥勝利後，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -5680,6 +6568,16 @@
      "hint": "Select to gain a Burn E.G.O Gift and a Rupture E.G.O Gift",
      "text_zh": "雞肉就是雞肉嘍。",
      "hint_zh": "選擇後，獲得1件燒傷E.G.O飾品和1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "direct"
+      ],
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -5697,6 +6595,12 @@
      "hint": "Select to gain a Burn E.G.O Gift",
      "text_zh": "絕對是雞腿，滿滿的汁液。",
      "hint_zh": "選擇後，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -5710,6 +6614,12 @@
      "hint": "Select to gain a Rupture E.G.O Gift",
      "text_zh": "雞胸，肯定的，純淨無瑕。",
      "hint_zh": "選擇後，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -5733,6 +6643,12 @@
      "hint": "Gain a Bleed E.G.O Gift depending on the result of the following choice",
      "text_zh": "真心提醒。",
      "hint_zh": "選擇後，根據後續選項獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5752,6 +6668,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "視而不見。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -5765,6 +6687,12 @@
      "hint": "Select for a 50% chance to gain a Keywordless E.G.O Gift.",
      "text_zh": "暗暗提示。",
      "hint_zh": "選擇後，50%機率獲得1件泛用E.G.O飾品。",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct_random"
+      ]
+     ],
      "kind": "random",
      "gift_ids": [
       [
@@ -5803,6 +6731,12 @@
      "hint": "Gain a Keywordless E.G.O Gift depending on the result of the following choice",
      "text_zh": "救下居民。",
      "hint_zh": "選擇後，根據後續選項獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5832,6 +6766,7 @@
      "hint": "",
      "text_zh": "視而不見。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -5849,6 +6784,12 @@
      "hint": "Lust & Pride Advantage check. Pass to gain a Slash E.G.O Gift.",
      "text_zh": "是的。說到劍術那就是斬擊了。",
      "hint_zh": "色慾、傲慢優勢判定 成功時，獲得1件斬擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Slash",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5874,6 +6815,7 @@
      "hint": "",
      "text_zh": "不對。也有斬擊，穿刺，打擊一起用的方法。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -5891,6 +6833,12 @@
      "hint": "Lust & Gloom Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "做出拔劍的姿勢。",
      "hint_zh": "色慾、憂鬱優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5921,6 +6869,12 @@
      "hint": "Pride & Wrath Advantage check. Pass to gain a Poise E.G.O Gift.",
      "text_zh": "拔劍後垂在身側。",
      "hint_zh": "傲慢、暴怒優勢判定 成功時，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5951,6 +6905,7 @@
      "hint": "",
      "text_zh": "丟下劍逃跑。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -5968,6 +6923,12 @@
      "hint": "Gloom & Pride Advantage check. Pass to gain a Slash E.G.O Gift.",
      "text_zh": "城門失火，殃及池魚，在都市各處都是同理。",
      "hint_zh": "憂鬱、傲慢優勢判定 成功時，獲得1件斬擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Slash",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -5993,6 +6954,7 @@
      "hint": "",
      "text_zh": "無念無想。僅僅覺得可憐。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -6010,6 +6972,12 @@
      "hint": "Lust & Pride Advantage check. Pass to gain a Poise E.G.O Gift.",
      "text_zh": "是非真的重要嗎？重要的另有其事。",
      "hint_zh": "色慾、傲慢優勢判定 成功時，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6029,6 +6997,12 @@
      "hint": "Gloom & Pride Advantage check. Pass to gain a Slash E.G.O Gift.",
      "text_zh": "即便如此，是應言是。",
      "hint_zh": "憂鬱、傲慢優勢判定 成功時，獲得1件斬擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Slash",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6058,6 +7032,12 @@
      "hint": "Gluttony & Pride Advantage check. Pass to gain a Tremor E.G.O Gift.",
      "text_zh": "整體性地調查工廠。",
      "hint_zh": "暴食、傲慢優勢判定 成功時，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6083,6 +7063,12 @@
      "hint": "Gloom & Sloth Advantage check. Pass to gain a Tremor E.G.O Gift.",
      "text_zh": "仔細地調查廠長和員工。",
      "hint_zh": "憂鬱、怠惰優勢判定 成功時，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6118,6 +7104,12 @@
      "hint": "Gloom & Sloth Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "上前搭話。",
      "hint_zh": "憂鬱、怠惰優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6147,6 +7139,7 @@
      "hint": "",
      "text_zh": "越過他們。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -6164,6 +7157,12 @@
      "hint": "Pride & Gluttony Advantage check. Pass to gain a Tremor E.G.O Gift.",
      "text_zh": "跟著年輕人走。",
      "hint_zh": "傲慢、暴食優勢判定 成功時，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6183,6 +7182,12 @@
      "hint": "Sloth & Lust Advantage check. Pass to gain a Tremor E.G.O Gift.",
      "text_zh": "跟著老人走。",
      "hint_zh": "怠惰、色慾優勢判定 成功時，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6202,6 +7207,7 @@
      "hint": "",
      "text_zh": "不跟任何人走。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -6219,6 +7225,12 @@
      "hint": "Wrath & Envy & Gluttony Advantage check. Pass to gain a Tremor E.G.O Gift.",
      "text_zh": "都、都市的聖愚們，一起努力！",
      "hint_zh": "暴怒、嫉妒、暴食優勢判定 成功時，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6238,6 +7250,7 @@
      "hint": "",
      "text_zh": "不錯的想法，但實現起來很困難吧。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -6255,6 +7268,12 @@
      "hint": "Sloth & Gluttony & Pride Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "幫忙。",
      "hint_zh": "怠惰、暴食、傲慢優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6274,6 +7293,7 @@
      "hint": "",
      "text_zh": "無視。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -6291,6 +7311,12 @@
      "hint": "Gain a Keywordless E.G.O Gift depending on the result of the following choice",
      "text_zh": "勸那人坐頭等艙。",
      "hint_zh": "選擇後，根據後續選項獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6304,6 +7330,7 @@
      "hint": "",
      "text_zh": "說經濟艙也不壞。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -6321,6 +7348,12 @@
      "hint": "Gain a Keywordless E.G.O Gift depending on the result of the following choice",
      "text_zh": "“你是從北部來的嗎？”",
      "hint_zh": "選擇後，根據後續選項獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "later_direct"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -6334,6 +7367,12 @@
      "hint": "Gain a Keywordless E.G.O Gift depending on the result of the following choice",
      "text_zh": "“擁有四隻手臂會帶來什麼益處嗎？”",
      "hint_zh": "選擇後，根據後續選項獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "later_direct"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -6347,6 +7386,7 @@
      "hint": "",
      "text_zh": "“祝你旅途愉快。”",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -6364,6 +7404,7 @@
      "hint": "",
      "text_zh": "安靜地透過。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -6371,6 +7412,16 @@
      "hint": "Envy & Gluttony Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "趁著經過時順走能用的裝備。",
      "hint_zh": "嫉妒、暴食優勢判定 成功時，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6412,6 +7463,12 @@
      "hint": "Begin a combat encounter. Win to gain a Charge E.G.O Gift.",
      "text_zh": "先下手為強。",
      "hint_zh": "觸發遭遇戰。勝利後，獲得2件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -6439,6 +7496,16 @@
      "hint": "Gloom & Pride Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "接受認證。",
      "hint_zh": "憂鬱、傲慢優勢判定 成功時，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6477,6 +7544,12 @@
      "hint": "Select to gain a Charge E.G.O Gift",
      "text_zh": "拒絕認證。",
      "hint_zh": "選擇後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -6500,6 +7573,16 @@
      "hint": "Pride & Envy & Gloom Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "尋找幫助他們的方法。",
      "hint_zh": "傲慢、嫉妒、憂鬱優勢判定 成功時，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6528,6 +7611,12 @@
      "hint": "Select to gain a Bleed E.G.O Gift",
      "text_zh": "調查是否與血魔的能力相關。",
      "hint_zh": "選擇後，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -6551,6 +7640,12 @@
      "hint": "Select to gain a Bleed E.G.O Gift",
      "text_zh": "凝視蜘蛛網。",
      "hint_zh": "選擇後，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -6564,6 +7659,12 @@
      "hint": "Select to gain a Charge E.G.O Gift",
      "text_zh": "檢查發電機。",
      "hint_zh": "選擇後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -6577,6 +7678,24 @@
      "hint": "Envy & Lust Advantage check. Pass to gain a Bleed & Charge E.G.O Gift.",
      "text_zh": "凝視蜘蛛網，並且檢查發電機。",
      "hint_zh": "進行嫉妒、色慾優勢判定，獲得1件流血E.G.O飾品和1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_fail"
+      ],
+      [
+       "Bleed",
+       "check_pass"
+      ],
+      [
+       "Charge",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6637,6 +7756,12 @@
      "hint": "Select to gain a Sinking E.G.O Gift",
      "text_zh": "帶走灑落的腦啡肽。",
      "hint_zh": "選擇後，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -6650,6 +7775,12 @@
      "hint": "Select to gain a Sinking E.G.O Gift",
      "text_zh": "帶走氣體。",
      "hint_zh": "選擇後，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -6663,6 +7794,16 @@
      "hint": "Lust & Sloth Advantage check. Pass to gain 2 Sinking E.G.O Gifts (failing begins a combat Encounter)",
      "text_zh": "全都帶走。",
      "hint_zh": "進行色慾、怠惰優勢判定，根據結果獲得2件沉淪E.G.O飾品 （失敗後會觸發遭遇戰）",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_fail"
+      ],
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6717,6 +7858,16 @@
      "hint": "Sloth & Gloom Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "向一罪與百善祈禱。",
      "hint_zh": "進行怠惰、憂鬱優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_fail"
+      ],
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6755,6 +7906,16 @@
      "hint": "Sloth & Gloom Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "向一罪與百善搭話。",
      "hint_zh": "進行怠惰、憂鬱優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_fail"
+      ],
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6798,6 +7959,7 @@
      "hint": "",
      "text_zh": "說“不開棺材，直接經過”。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -6805,6 +7967,12 @@
      "hint": "Select to gain a Sinking E.G.O Gift",
      "text_zh": "說“開啟棺材看看”。",
      "hint_zh": "選擇後，獲得沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -6828,6 +7996,16 @@
      "hint": "Run a Sloth & Gluttony Advantage check to gain a Keywordless E.G.O Gift.",
      "text_zh": "再靠近一些。",
      "hint_zh": "進行怠惰、暴食優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_fail"
+      ],
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6865,6 +8043,7 @@
      "hint": "",
      "text_zh": "經過。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -6882,6 +8061,16 @@
      "hint": "Run a Sloth & Gluttony Advantage check to gain a Tremor E.G.O Gift.",
      "text_zh": "靠近床。",
      "hint_zh": "進行怠惰、暴食優勢判定，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ],
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6916,6 +8105,7 @@
      "hint": "",
      "text_zh": "遠離床。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -6933,6 +8123,12 @@
      "hint": "Run a Pride & Envy Advantage check to gain a Keywordless E.G.O Gift.",
      "text_zh": "說不相信。",
      "hint_zh": "進行傲慢、嫉妒優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6958,6 +8154,12 @@
      "hint": "Run a Wrath & Pride Advantage check to gain a Pierce E.G.O Gift.",
      "text_zh": "說想要自己試著射擊。",
      "hint_zh": "進行暴怒、傲慢優勢判定，獲得1件突刺E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Pierce",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -6998,6 +8200,16 @@
      "hint": "Run a Pride & Envy Advantage check to gain a Poise E.G.O Gift.",
      "text_zh": "坐在椅子上。",
      "hint_zh": "進行傲慢、嫉妒優勢判定，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_fail"
+      ],
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7031,6 +8243,7 @@
      "hint": "",
      "text_zh": "經過。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7048,6 +8261,12 @@
      "hint": "Run a Pride & Envy Advantage check to gain a Pierce E.G.O Gift.",
      "text_zh": "調查桌子。",
      "hint_zh": "進行傲慢、嫉妒優勢判定，獲得1件突刺E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Pierce",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7067,6 +8286,7 @@
      "hint": "",
      "text_zh": "跟著人們出去。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7084,6 +8304,12 @@
      "hint": "Run a Wrath & Lust Advantage check to gain a Poise E.G.O Gift.",
      "text_zh": "學習CQB。",
      "hint_zh": "進行暴怒、色慾優勢判定，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7109,6 +8335,12 @@
      "hint": "Run a Wrath & Envy Advantage check to gain a Keywordless E.G.O Gift.",
      "text_zh": "學習指揮方法。",
      "hint_zh": "進行暴怒、嫉妒優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_fail"
+      ]
+     ],
      "kind": "check_fail_gift",
      "gift_ids": [
       [
@@ -7143,6 +8375,12 @@
      "hint": "Select to gain a Burn E.G.O Gift",
      "text_zh": "帶走燃燒著的手套。",
      "hint_zh": "選擇後，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -7156,6 +8394,12 @@
      "hint": "Select to gain a Rupture E.G.O Gift",
      "text_zh": "帶走裝飾著尖刺的戰鬥靴。",
      "hint_zh": "選擇後，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -7169,6 +8413,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "帶走清潔噴霧。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -7192,6 +8442,7 @@
      "hint": "",
      "text_zh": "你認錯人了。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -7199,6 +8450,16 @@
      "hint": "Run a Wrath & Lust Advantage check to gain a Burn E.G.O Gift.",
      "text_zh": "我們就是樣本。",
      "hint_zh": "進行暴怒、色慾優勢判定，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "check_fail"
+      ],
+      [
+       "Burn",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7247,6 +8508,16 @@
      "hint": "Run a Gluttony & Gloom Advantage check to gain a Rupture E.G.O Gift.",
      "text_zh": "嚐嚐看。",
      "hint_zh": "進行暴食、憂鬱優勢判定，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_fail"
+      ],
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7285,6 +8556,7 @@
      "hint": "",
      "text_zh": "我們不能在不知道它是什麼的情況下吃下它。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7302,6 +8574,7 @@
      "hint": "Select the right answer to gain a Burn E.G.O Gift",
      "text_zh": "水中花",
      "hint_zh": "選擇正確答案後，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -7309,6 +8582,12 @@
      "hint": "Select the right answer to gain a Burn E.G.O Gift",
      "text_zh": "地獄蝶之夢",
      "hint_zh": "選擇正確答案後，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -7332,6 +8611,12 @@
      "hint": "Select the right answer to gain a Rupture E.G.O Gift",
      "text_zh": "仲冬夜之噩夢",
      "hint_zh": "選擇正確答案後，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -7345,6 +8630,7 @@
      "hint": "Select the right answer to gain a Rupture E.G.O Gift",
      "text_zh": "凹陷",
      "hint_zh": "選擇正確答案後，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7362,6 +8648,12 @@
      "hint": "Heal all allies Run a Pride & Envy Advantage check to gain a Keywordless E.G.O Gift.",
      "text_zh": "同意調查。",
      "hint_zh": "全體友方單位恢復體力\n進行傲慢、嫉妒優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7387,6 +8679,7 @@
      "hint": "",
      "text_zh": "拒絕。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7404,6 +8697,7 @@
      "hint": "",
      "text_zh": "刀有那麼厲害嗎。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -7411,6 +8705,12 @@
      "hint": "Lust & Pride Advantage check. Pass to gain a Slash E.G.O Gift.",
      "text_zh": "刀正是百兵之首。",
      "hint_zh": "色慾、傲慢優勢判定 成功時，獲得1件斬擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Slash",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7446,6 +8746,12 @@
      "hint": "Lust & Pride Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "雖然很可惜，但是看上去只能和劍契組開戰了。",
      "hint_zh": "色慾、傲慢優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7471,6 +8777,7 @@
      "hint": "",
      "text_zh": "就像是被牽扯進了無妄之災。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7488,6 +8795,12 @@
      "hint": "Run a Gluttony & Pride Advantage check to gain a Rupture E.G.O Gift.",
      "text_zh": "抓住逃跑的人。",
      "hint_zh": "進行暴食、傲慢優勢判定，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7512,6 +8825,7 @@
      "hint": "",
      "text_zh": "只是注視著逃跑的人。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7529,6 +8843,16 @@
      "hint": "Run a Gluttony, Pride, & Envy Advantage check to gain a Blunt E.G.O Gift.",
      "text_zh": "說感覺好像見過。",
      "hint_zh": "進行暴食、傲慢、嫉妒優勢判定，獲得1件打擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Blunt",
+       "check_fail"
+      ],
+      [
+       "Blunt",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7557,6 +8881,7 @@
      "hint": "",
      "text_zh": "說從來沒見過這張臉。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7574,6 +8899,16 @@
      "hint": "Run a Gluttony & Pride Advantage check to gain a Rupture E.G.O Gift.",
      "text_zh": "等待命令。",
      "hint_zh": "進行暴食、傲慢優勢判定，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_fail"
+      ],
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7602,6 +8937,16 @@
      "hint": "Run a Gluttony & Pride Advantage check to gain a Rupture E.G.O Gift.",
      "text_zh": "跟著任務隊出發。",
      "hint_zh": "進行暴食、傲慢優勢判定，獲得破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_fail"
+      ],
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7648,6 +8993,16 @@
      "hint": "Run a Gluttony & Pride Advantage check to gain a Keywordless E.G.O Gift.",
      "text_zh": "躲進附近的住所。",
      "hint_zh": "進行暴食、傲慢優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_fail"
+      ],
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7685,6 +9040,12 @@
      "hint": "50% chance to begin a combat encounter. Win to gain a Keywordless E.G.O Gift.",
      "text_zh": "全速返回巴士。",
      "hint_zh": "50%機率觸發遭遇戰。勝利後獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -7731,6 +9092,7 @@
      "hint": "",
      "text_zh": "帶走硬幣。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -7738,6 +9100,12 @@
      "hint": "???",
      "text_zh": "將硬幣投入投幣口。",
      "hint_zh": "？？？",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct_random"
+      ]
+     ],
      "kind": "random",
      "gift_ids": [
       [
@@ -7781,6 +9149,12 @@
      "hint": "Lust & Sloth Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "阻止他們。",
      "hint_zh": "色慾、怠惰優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7811,6 +9185,7 @@
      "hint": "",
      "text_zh": "無視。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7828,6 +9203,12 @@
      "hint": "Lust & Sloth Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "抓住旋轉木馬。",
      "hint_zh": "色慾、怠惰優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7853,6 +9234,7 @@
      "hint": "",
      "text_zh": "看起來很危險。還是離開吧。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7870,6 +9252,16 @@
      "hint": "Run a Pride & Envy Advantage check. Pass to gain a Poise E.G.O Gift.",
      "text_zh": "聆聽喘息聲。",
      "hint_zh": "傲慢、嫉妒優勢判定 成功時，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "check_fail"
+      ],
+      [
+       "Poise",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7903,6 +9295,7 @@
      "hint": "",
      "text_zh": "捂住耳朵。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7920,6 +9313,12 @@
      "hint": "Lust & Envy Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "折斷荊棘。",
      "hint_zh": "色慾、嫉妒優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7945,6 +9344,7 @@
      "hint": "",
      "text_zh": "不那麼做。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -7962,6 +9362,16 @@
      "hint": "Run a Gloom, Pride, & Envy Advantage check to gain a Sinking E.G.O Gift.",
      "text_zh": "一切最終都會改變。",
      "hint_zh": "進行憂鬱、傲慢、嫉妒優勢判定，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_fail"
+      ],
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -7995,6 +9405,16 @@
      "hint": "Run a Gloom, Pride, & Envy Advantage check to gain an E.G.O Gift.",
      "text_zh": "我也有過未能守護之物。",
      "hint_zh": "進行憂鬱、傲慢、嫉妒優勢判定，獲得1件E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ],
+      [
+       "Sinking",
+       "check_fail"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8038,6 +9458,16 @@
      "hint": "Run a Wrath, Pride, & Envy Advantage check to gain a Charge E.G.O Gift.",
      "text_zh": "這個世界不是非善即惡。",
      "hint_zh": "進行暴怒、傲慢、嫉妒優勢判定，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8071,6 +9501,12 @@
      "hint": "Select to gain a Charge E.G.O Gift",
      "text_zh": "你只要結束和平不就好了嗎？",
      "hint_zh": "選擇後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8094,6 +9530,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "拿走它。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8107,6 +9549,7 @@
      "hint": "",
      "text_zh": "保持原樣。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8124,6 +9567,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "我們會順利解決的。一如既往。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8137,6 +9586,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "我們也有可能失敗。一如既往。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8160,6 +9615,16 @@
      "hint": "Run a Lust & Sloth Advantage check to gain a Tremor E.G.O Gift.",
      "text_zh": "尋找可以當作緩衝墊的東西。",
      "hint_zh": "進行色慾、怠惰優勢判定，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_fail"
+      ],
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8193,6 +9658,7 @@
      "hint": "",
      "text_zh": "伸出雙臂，準備接住下落的市民。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other",
      "odds": [
       {
@@ -8235,6 +9701,12 @@
      "hint": "Lust & Sloth Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "獲取許可。",
      "hint_zh": "色慾、怠惰優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8254,6 +9726,12 @@
      "hint": "Begin a combat encounter. Win to gain a Keywordless E.G.O Gift.",
      "text_zh": "接受委託。",
      "hint_zh": "觸發遭遇戰。勝利後獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -8267,6 +9745,12 @@
      "hint": "Begin a combat encounter. Win to gain a Keywordless E.G.O Gift.",
      "text_zh": "出示警告函。",
      "hint_zh": "觸發遭遇戰。勝利後獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -8290,6 +9774,16 @@
      "hint": "Run a Lust, Sloth, and Gluttony Advantage check to gain a Tremor E.G.O Gift.",
      "text_zh": "撕下海報，前往所寫的地點。",
      "hint_zh": "進行色慾、怠惰、暴食優勢判定，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_fail"
+      ],
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8322,6 +9816,7 @@
      "hint": "",
      "text_zh": "無視海報。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -8329,6 +9824,12 @@
      "hint": "Select to gain a Tremor E.G.O Gift",
      "text_zh": "拿出涓滴之杯。",
      "hint_zh": "選擇後，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8352,6 +9853,7 @@
      "hint": "Run a Lust & Sloth Advantage check. Pass to gain Cost.",
      "text_zh": "假裝加入。",
      "hint_zh": "色慾、怠惰優勢判定 成功時，獲得經費",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -8365,6 +9867,7 @@
      "hint": "",
      "text_zh": "拒絕。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8382,6 +9885,12 @@
      "hint": "Wrath & Gluttony Advantage check. Pass to gain a Burn E.G.O Gift.",
      "text_zh": "沒收黑獸 - 酉的前爪——血炎刀。",
      "hint_zh": "暴怒、暴食優勢判定 成功時，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8401,6 +9910,7 @@
      "hint": "",
      "text_zh": "為使其懺悔罪行，罰其在被拘束的狀態下禁足一週。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8418,6 +9928,12 @@
      "hint": "Pride & Gluttony Advantage check. Pass to gain a Slash E.G.O Gift.",
      "text_zh": "詢問如果她不需要的話，我們是否可以拿走。",
      "hint_zh": "傲慢、暴食優勢判定 成功時，獲得1件斬擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Slash",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8437,6 +9953,7 @@
      "hint": "",
      "text_zh": "說我們不需要。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8454,6 +9971,12 @@
      "hint": "Select to gain a Zhi (智) related E.G.O Gift",
      "text_zh": "對智進行講解。",
      "hint_zh": "選擇後，獲得1件與智有關的E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8467,6 +9990,12 @@
      "hint": "Select to gain a Yong (勇) related E.G.O Gift",
      "text_zh": "對勇進行講解。",
      "hint_zh": "選擇後，獲得1件與勇有關的E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8480,6 +10009,12 @@
      "hint": "Select to gain a Ren (仁) related E.G.O Gift",
      "text_zh": "對仁進行講解。",
      "hint_zh": "選擇後，獲得1件與仁有關的E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8503,6 +10038,12 @@
      "hint": "Sloth & Gluttony Advantage check. Pass to gain a Tremor E.G.O Gift.",
      "text_zh": "檢視裝備，並怒斥說這是我們自己的東西。",
      "hint_zh": "怠惰、暴食優勢判定 成功時，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8528,6 +10069,12 @@
      "hint": "Select to gain a Tremor E.G.O Gift",
      "text_zh": "花錢購買裝備。",
      "hint_zh": "選擇後，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8551,6 +10098,12 @@
      "hint": "Select to gain a Bleed E.G.O Gift",
      "text_zh": "撿起武器。",
      "hint_zh": "選擇後，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8564,6 +10117,7 @@
      "hint": "No particular effect",
      "text_zh": "不撿起武器。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8581,6 +10135,20 @@
      "hint": "Wrath & Gloom Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "扯下血肉。",
      "hint_zh": "暴怒、憂鬱優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_pass"
+      ],
+      [
+       "Charge",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8614,6 +10182,7 @@
      "hint": "No particular effect",
      "text_zh": "不去拿。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8631,6 +10200,16 @@
      "hint": "Lust & Envy Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "修理護手。",
      "hint_zh": "色慾、嫉妒優勢判定 成功時，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8663,6 +10242,7 @@
      "hint": "No particular effect",
      "text_zh": "放棄修理。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8680,6 +10260,7 @@
      "hint": "Spend Cost to heal all allies' HP & SP",
      "text_zh": "購買藥丸。",
      "hint_zh": "消耗經費，並恢復全體友方單位的體力與理智值",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -8687,6 +10268,7 @@
      "hint": "No particular effect",
      "text_zh": "只是看看，然後離開。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8704,6 +10286,12 @@
      "hint": "Select to gain a Charge E.G.O Gift",
      "text_zh": "將E型次元短劍借給他。",
      "hint_zh": "選擇後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8717,6 +10305,16 @@
      "hint": "Envy & Wrath Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "派一名罪人前往支援W公司清掃人員。",
      "hint_zh": "嫉妒、暴怒優勢判定 成功時，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8749,6 +10347,7 @@
      "hint": "All allies lose SP",
      "text_zh": "不派罪人前往。",
      "hint_zh": "全體友方單位受到理智傷害",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8766,6 +10365,12 @@
      "hint": "Select to gain a Cursed E.G.O Gift",
      "text_zh": "拿走刀。",
      "hint_zh": "選擇後，獲得1件詛咒E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8779,6 +10384,7 @@
      "hint": "",
      "text_zh": "不去拿。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8796,6 +10402,12 @@
      "hint": "Select to gain a Cursed E.G.O Gift",
      "text_zh": "使用裝置。",
      "hint_zh": "選擇後，獲得1件詛咒E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8809,6 +10421,7 @@
      "hint": "",
      "text_zh": "不使用裝置。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8826,6 +10439,12 @@
      "hint": "Select to gain a Cursed E.G.O Gift",
      "text_zh": "播放錄音。",
      "hint_zh": "選擇後，獲得1件詛咒E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8839,6 +10458,7 @@
      "hint": "",
      "text_zh": "離開這裡。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8856,6 +10476,12 @@
      "hint": "Choose to gain or lose Cost",
      "text_zh": "轉動輪盤。",
      "hint_zh": "選擇後，獲得或失去經費",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "later_direct"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -8889,6 +10515,7 @@
      "hint": "",
      "text_zh": "停手。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8906,6 +10533,12 @@
      "hint": "Select to gain a Bleed E.G.O Gift",
      "text_zh": "指派帶有灰色星座的加護的罪人進行洞察工作。\n持有E.G.O飾品“灰色星座的加護”時可選擇",
      "hint_zh": "選擇後，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8919,6 +10552,12 @@
      "hint": "Sloth & Wrath Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "指派罪人進行洞察工作。",
      "hint_zh": "怠惰、暴怒優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8944,6 +10583,7 @@
      "hint": "No particular effect",
      "text_zh": "離開走廊。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -8961,6 +10601,12 @@
      "hint": "Select to gain a Sinking E.G.O Gift",
      "text_zh": "指派帶有精神遮蔽力場的罪人進行壓迫工作。\n持有E.G.O飾品“精神遮蔽力場”時可選擇",
      "hint_zh": "選擇後，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -8974,6 +10620,12 @@
      "hint": "Lust & Gloom Advantage check. Pass to gain a Sinking E.G.O Gift.",
      "text_zh": "指派罪人進行壓迫工作。",
      "hint_zh": "色慾、憂鬱優勢判定 成功時，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -8999,6 +10651,7 @@
      "hint": "No particular effect",
      "text_zh": "離開走廊。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9016,6 +10669,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "說我們是從上層下來的，並展示E.G.O飾品。\n持有不少於5件“紫羅蘭的正午”、“憎惡與絕望”\n的主題卡包專屬E.G.O飾品時可選擇",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -9029,6 +10688,7 @@
      "hint": "No particular effect",
      "text_zh": "說我們是從懲戒部來的。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9046,6 +10706,12 @@
      "hint": "Gain a Sinking E.G.O Gift depending on the result of the following choice",
      "text_zh": "前去救援員工們。",
      "hint_zh": "根據後續選項，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "later_direct"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -9059,6 +10725,7 @@
      "hint": "No particular effect",
      "text_zh": "丟下員工們不管。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9076,6 +10743,12 @@
      "hint": "Gain a Sinking E.G.O Gift depending on the result of the following choice",
      "text_zh": "也去救援陷入恐慌的員工們。",
      "hint_zh": "根據後續選項，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "later_direct"
+      ]
+     ],
      "kind": "followup",
      "gift_ids": [
       [
@@ -9089,6 +10762,12 @@
      "hint": "Select to gain a Sinking E.G.O Gift",
      "text_zh": "這次就丟下他們不管了。",
      "hint_zh": "選擇後，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -9112,6 +10791,12 @@
      "hint": "Select to gain a Sinking E.G.O Gift",
      "text_zh": "鎮壓怪物。",
      "hint_zh": "選擇後，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -9125,6 +10810,12 @@
      "hint": "Select to gain a Sinking E.G.O Gift",
      "text_zh": "返回。",
      "hint_zh": "選擇後，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -9148,6 +10839,12 @@
      "hint": "Wrath & Sloth Advantage check. Pass to gain a Burn E.G.O Gift.",
      "text_zh": "接受提議。",
      "hint_zh": "暴怒、怠惰優勢判定 成功時，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9178,6 +10875,7 @@
      "hint": "No particular effect",
      "text_zh": "拒絕。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9195,6 +10893,16 @@
      "hint": "Wrath & Lust Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "同意幫忙，並把吉他帶回去。",
      "hint_zh": "暴怒、色慾優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_fail"
+      ],
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9245,6 +10953,16 @@
      "hint": "Wrath & Lust Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "同意幫忙，並把貝斯帶回去。",
      "hint_zh": "暴怒、色慾優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_fail"
+      ],
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9295,6 +11013,7 @@
      "hint": "No particular effect",
      "text_zh": "拒絕幫忙。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9312,6 +11031,16 @@
      "hint": "Wrath & Lust Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "接受提案。",
      "hint_zh": "暴怒、色慾優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_fail"
+      ],
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9345,6 +11074,7 @@
      "hint": "No particular effect",
      "text_zh": "滿足地離開。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9362,6 +11092,16 @@
      "hint": "Wrath & Lust Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "接受提案。",
      "hint_zh": "暴怒、色慾優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_fail"
+      ],
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9395,6 +11135,7 @@
      "hint": "No particular effect",
      "text_zh": "滿足地離開。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9412,6 +11153,16 @@
      "hint": "Wrath Advantage check. Pass to gain a Burn E.G.O Gift.",
      "text_zh": "協助鎮壓。",
      "hint_zh": "暴怒優勢判定 成功時，獲得1件燒傷E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Burn",
+       "check_fail"
+      ],
+      [
+       "Burn",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9444,6 +11195,7 @@
      "hint": "No particular effect",
      "text_zh": "交給他們。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9461,6 +11213,16 @@
      "hint": "Gluttony Advantage check. Pass to gain a Rupture E.G.O Gift.",
      "text_zh": "協助鎮壓。",
      "hint_zh": "暴食優勢判定 成功時，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_fail"
+      ],
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9493,6 +11255,7 @@
      "hint": "No particular effect",
      "text_zh": "避開陷阱。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9510,6 +11273,12 @@
      "hint": "Select the right answer to gain a Charge E.G.O Gift",
      "text_zh": "解除限制的除顫儀",
      "hint_zh": "選擇正確答案後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -9523,6 +11292,7 @@
      "hint": "Select the right answer to gain a Charge E.G.O Gift",
      "text_zh": "非標準負載電池",
      "hint_zh": "選擇正確答案後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9540,6 +11310,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "使用作戰批准卡開門。\n持有E.G.O飾品\"作戰批准卡\"時可選",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -9553,6 +11329,12 @@
      "hint": "Wrath & Envy Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "強行開啟門。",
      "hint_zh": "暴怒、嫉妒優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9572,6 +11354,7 @@
      "hint": "No particular effect",
      "text_zh": "越過它。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9589,6 +11372,12 @@
      "hint": "Lust & Envy Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "撿起由骨骼與肌肉製成的某物。",
      "hint_zh": "色慾、嫉妒優勢判定 成功時，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9608,6 +11397,12 @@
      "hint": "Lust & Gloom Advantage check. Pass to gain a Sinking E.G.O Gift.",
      "text_zh": "撿起由肉塊與獸皮製成的某物。",
      "hint_zh": "色慾、憂鬱優勢判定 成功時，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9627,6 +11422,7 @@
      "hint": "No particular effect",
      "text_zh": "返回。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9644,6 +11440,16 @@
      "hint": "Lust Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "拿走。",
      "hint_zh": "色慾優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_fail"
+      ],
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9676,6 +11482,7 @@
      "hint": "No particular effect",
      "text_zh": "不去拿。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9693,6 +11500,12 @@
      "hint": "Envy Advantage check. Pass to gain a Blunt E.G.O Gift.",
      "text_zh": "拿走。",
      "hint_zh": "嫉妒優勢判定 成功時，獲得1件打擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Blunt",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9718,6 +11531,7 @@
      "hint": "No particular effect",
      "text_zh": "不去拿。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9735,6 +11549,16 @@
      "hint": "Lust Advantage check. Pass to gain a Bleed E.G.O Gift.",
      "text_zh": "拿走。",
      "hint_zh": "色慾優勢判定 成功時，獲得1件流血E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Bleed",
+       "check_fail"
+      ],
+      [
+       "Bleed",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9767,6 +11591,7 @@
      "hint": "No particular effect",
      "text_zh": "不去拿。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9784,6 +11609,12 @@
      "hint": "Select to gain a Rupture E.G.O Gift",
      "text_zh": "展示卯足，說我們是新來的。\n持有E.G.O飾品“卯足”時可選",
      "hint_zh": "選擇後，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -9797,6 +11628,12 @@
      "hint": "Run a Gluttony & Pride Advantage check to gain a Rupture E.G.O Gift.",
      "text_zh": "說我們是從別處執行任務回來的兔子。",
      "hint_zh": "進行暴食、傲慢優勢判定 成功時，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9816,6 +11653,7 @@
      "hint": "No particular effect",
      "text_zh": "說我們只是路過。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9833,6 +11671,16 @@
      "hint": "Gluttony Advantage check. Pass to gain a Blunt E.G.O Gift.",
      "text_zh": "拿走音響。",
      "hint_zh": "暴食優勢判定 成功時，獲得1件打擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Blunt",
+       "check_fail"
+      ],
+      [
+       "Blunt",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9865,6 +11713,7 @@
      "hint": "No particular effect",
      "text_zh": "尋找其他道路。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -9882,6 +11731,7 @@
      "hint": "No particular effect",
      "text_zh": "很遺憾，我們也是第一次來，所以沒辦法幫忙。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -9889,6 +11739,12 @@
      "hint": "Run a Gluttony & Pride Advantage check to gain a Keywordless E.G.O Gift.",
      "text_zh": "向同行的人問問是否有能幫忙的辦法。",
      "hint_zh": "進行暴食、傲慢優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9918,6 +11774,12 @@
      "hint": "Select to gain a Slash E.G.O Gift",
      "text_zh": "讓金笠回答。",
      "hint_zh": "選擇後，獲得1件斬擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Slash",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -9931,6 +11793,7 @@
      "hint": "Run a Sloth & Pride Advantage check to heal the selected Identity.",
      "text_zh": "讓罪人回答。",
      "hint_zh": "進行怠惰、傲慢優勢判定，所選人格恢復體力",
+     "gift_keywords": [],
      "kind": "check_other",
      "fail": [
       {
@@ -9954,6 +11817,7 @@
      "hint": "No particular effect",
      "text_zh": "說我們是看守此處的人。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -9961,6 +11825,12 @@
      "hint": "Gain a Slash E.G.O Gift depending on the result of the following choice",
      "text_zh": "取出武器並進行警戒。",
      "hint_zh": "選擇後，根據後續選項獲得1件斬擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Slash",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -9984,6 +11854,16 @@
      "hint": "Lust & Gluttony Advantage check. Pass to gain a Keywordless E.G.O Gift (failing begins a combat Encounter)",
      "text_zh": "詢問是否可以拿走過了流行季的衣服。",
      "hint_zh": "進行色慾、暴食優勢判定，獲得1件泛用E.G.O飾品（失敗後會觸發遭遇戰）",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_fail"
+      ],
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -10016,6 +11896,7 @@
      "hint": "No particular effect",
      "text_zh": "無視。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10033,6 +11914,12 @@
      "hint": "Lust & Gluttony Advantage check. Pass to gain a Keywordless E.G.O Gift",
      "text_zh": "說想喝一杯。",
      "hint_zh": "進行色慾、暴食優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -10052,6 +11939,7 @@
      "hint": "All allies lose HP",
      "text_zh": "但是，還是有點……下不去嘴。",
      "hint_zh": "選擇後，全體友方單位失去體力。",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10069,6 +11957,12 @@
      "hint": "Sloth & Envy Advantage check. Pass to gain a Tremor E.G.O Gift",
      "text_zh": "說我們沒有眼球，但是能與黑派的美學產生共鳴來討價還價。",
      "hint_zh": "進行怠惰、嫉妒優勢判定，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -10088,6 +11982,7 @@
      "hint": "All allies lose SP",
      "text_zh": "說我們沒有眼球。",
      "hint_zh": "選擇後，全體友方單位理智值下降。",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10095,6 +11990,12 @@
      "hint": "Lust & Gluttony Advantage check. Pass to gain a Tremor E.G.O Gift",
      "text_zh": "紅派精品店的製作看起來更精緻一些吧……？",
      "hint_zh": "進行色慾、暴食優勢判定，獲得1件震顫E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Tremor",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -10130,6 +12031,12 @@
      "hint": "Sloth & Envy Advantage check. Pass to gain a Keywordless E.G.O Gift",
      "text_zh": "幫四腳人說話。",
      "hint_zh": "進行怠惰、嫉妒優勢判定，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -10155,6 +12062,7 @@
      "hint": "No particular effect",
      "text_zh": "無視，並安靜地透過。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10172,6 +12080,16 @@
      "hint": "Envy Advantage check. Pass to gain a Charge E.G.O Gift (failing begins a combat Encounter)",
      "text_zh": "說我們會去。",
      "hint_zh": "進行嫉妒優勢判定，獲得1件充能E.G.O飾品（失敗後會觸發遭遇戰）",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -10209,6 +12127,7 @@
      "hint": "No particular effect",
      "text_zh": "說我們也很忙。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10226,6 +12145,16 @@
      "hint": "Envy Advantage check. Pass to gain a Charge E.G.O Gift.",
      "text_zh": "接受。",
      "hint_zh": "進行嫉妒優勢判定，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "check_fail"
+      ],
+      [
+       "Charge",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -10259,6 +12188,7 @@
      "hint": "No particular effect",
      "text_zh": "拒絕。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10276,6 +12206,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "帶走這幅畫。",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -10289,6 +12225,7 @@
      "hint": "",
      "text_zh": "留下這幅畫。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10306,6 +12243,7 @@
      "hint": "",
      "text_zh": "伸手觸控它。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10313,6 +12251,12 @@
      "hint": "Select to gain a Charge E.G.O Gift",
      "text_zh": "離開房間。",
      "hint_zh": "選擇後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -10336,6 +12280,12 @@
      "hint": "Win the battle to earn 2 Sinking E.G.O Gifts",
      "text_zh": "靠得更近些。",
      "hint_zh": "戰鬥勝利後，獲得2件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "win_battle"
+      ]
+     ],
      "kind": "battle",
      "gift_ids": [
       [
@@ -10353,6 +12303,7 @@
      "hint": "",
      "text_zh": "離開。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10370,6 +12321,7 @@
      "hint": "",
      "text_zh": "進行調查。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10377,6 +12329,7 @@
      "hint": "",
      "text_zh": "越過它。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10394,6 +12347,12 @@
      "hint": "Select to gain a Sinking E.G.O Gift",
      "text_zh": "進行調查。",
      "hint_zh": "選擇後，獲得1件沉淪E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Sinking",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -10407,6 +12366,7 @@
      "hint": "",
      "text_zh": "走過它。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10424,6 +12384,7 @@
      "hint": "",
      "text_zh": "稍事休息。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10431,6 +12392,7 @@
      "hint": "",
      "text_zh": "越過它。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10448,6 +12410,7 @@
      "hint": "",
      "text_zh": "走過城市。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10455,6 +12418,7 @@
      "hint": "",
      "text_zh": "漫步於這片荒無人煙，見不到任何人的城市。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10472,6 +12436,12 @@
      "hint": "Select to gain a Charge E.G.O Gift",
      "text_zh": "仍舊嘗試握手。",
      "hint_zh": "選擇後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -10485,6 +12455,7 @@
      "hint": "",
      "text_zh": "收回手並退下。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10502,6 +12473,7 @@
      "hint": "",
      "text_zh": "說我們只是路過。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10509,6 +12481,12 @@
      "hint": "Pride Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "說我們是劍契組。",
      "hint_zh": "傲慢優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -10544,6 +12522,12 @@
      "hint": "Envy & Sloth Advantage check. Pass to gain a Keywordless E.G.O Gift.",
      "text_zh": "再次極力勸告。",
      "hint_zh": "嫉妒、怠惰優勢判定 成功時，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -10569,6 +12553,7 @@
      "hint": "",
      "text_zh": "我認為不至於。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10586,6 +12571,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "“擁有四隻手臂會帶來什麼益處嗎？”",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -10599,6 +12590,7 @@
      "hint": "",
      "text_zh": "“祝你旅途愉快。”",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10616,6 +12608,12 @@
      "hint": "Select to gain a Keywordless E.G.O Gift",
      "text_zh": "“你是從北部來的嗎？”",
      "hint_zh": "選擇後，獲得1件泛用E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -10629,6 +12627,7 @@
      "hint": "",
      "text_zh": "“祝你旅途愉快。”",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10646,6 +12645,12 @@
      "hint": "Select to gain a Charge E.G.O Gift",
      "text_zh": "看上去很強的武器",
      "hint_zh": "選擇後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -10659,6 +12664,12 @@
      "hint": "Select to gain a Charge E.G.O Gift",
      "text_zh": "看上去有用的裝備",
      "hint_zh": "選擇後，獲得1件充能E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Charge",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -10682,6 +12693,7 @@
      "hint": "Choose to gain or lose Cost",
      "text_zh": "繼續轉動輪盤。",
      "hint_zh": "選擇後，獲得或失去經費",
+     "gift_keywords": [],
      "kind": "followup_other",
      "odds": [
       {
@@ -10709,6 +12721,7 @@
      "hint": "Choose to gain Cost",
      "text_zh": "停手。",
      "hint_zh": "選擇後，獲得經費",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10716,6 +12729,12 @@
      "hint": "Select to gain an E.G.O Gift",
      "text_zh": "說想要輪盤。",
      "hint_zh": "選擇後，獲得1件E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Keywordless",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -10739,6 +12758,7 @@
      "hint": "Choose to gain or lose Cost",
      "text_zh": "繼續轉動輪盤。",
      "hint_zh": "選擇後，獲得或失去經費",
+     "gift_keywords": [],
      "kind": "other",
      "odds": [
       {
@@ -10766,6 +12786,7 @@
      "hint": "Choose to gain Cost",
      "text_zh": "停手。",
      "hint_zh": "選擇後，獲得經費",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10783,6 +12804,7 @@
      "hint": "No particular effect",
      "text_zh": "說我們不是。",
      "hint_zh": "無特殊效果",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10790,6 +12812,12 @@
      "hint": "Run a Lust & Pride Advantage check to gain a Slash E.G.O Gift.",
      "text_zh": "說是這樣，並說明前因後果。",
      "hint_zh": "進行色慾、傲慢優勢判定，獲得1件斬擊E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Slash",
+       "check_pass"
+      ]
+     ],
      "kind": "check",
      "gift_ids": [
       [
@@ -10830,6 +12858,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10837,6 +12866,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     }
    ]
@@ -10854,6 +12884,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10861,6 +12892,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     }
    ]
@@ -10878,6 +12910,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     }
    ]
@@ -10895,6 +12928,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10902,6 +12936,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10919,6 +12954,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10926,6 +12962,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10943,6 +12980,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -10950,6 +12988,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     }
    ]
@@ -10967,6 +13006,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -10974,6 +13014,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -10991,6 +13032,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -10998,6 +13040,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     },
     {
@@ -11005,6 +13048,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "check_other"
     }
    ]
@@ -11022,6 +13066,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -11029,6 +13074,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -11036,6 +13082,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -11043,6 +13090,7 @@
      "hint": "",
      "text_zh": "",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -11060,6 +13108,12 @@
      "hint": "Select to gain a Poise E.G.O Gift",
      "text_zh": "繼續撕下護身符。",
      "hint_zh": "選擇後，獲得1件呼吸法E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Poise",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -11073,6 +13127,7 @@
      "hint": "",
      "text_zh": "停手。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -11090,6 +13145,7 @@
      "hint": "",
      "text_zh": "讓所有人分享。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -11097,6 +13153,7 @@
      "hint": "",
      "text_zh": "讓一個人喝完。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -11114,6 +13171,12 @@
      "hint": "Select for a chance to gain a Rupture E.G.O Gift",
      "text_zh": "多澆些水。",
      "hint_zh": "選擇後，有機率獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct_random"
+      ]
+     ],
      "kind": "random",
      "gift_ids": [
       [
@@ -11160,6 +13223,12 @@
      "hint": "Select to gain a Rupture E.G.O Gift",
      "text_zh": "折斷樹枝。",
      "hint_zh": "選擇後，獲得1件破裂E.G.O飾品",
+     "gift_keywords": [
+      [
+       "Rupture",
+       "direct"
+      ]
+     ],
      "kind": "direct",
      "gift_ids": [
       [
@@ -11183,6 +13252,7 @@
      "hint": "",
      "text_zh": "輸入“請為我介紹小鎮”。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "followup_other",
      "next": [
       90103402
@@ -11193,6 +13263,7 @@
      "hint": "",
      "text_zh": "收下紀念品後離開。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]
@@ -11210,6 +13281,7 @@
      "hint": "",
      "text_zh": "說實話。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -11217,6 +13289,7 @@
      "hint": "",
      "text_zh": "回答“我參觀過小鎮了”。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     },
     {
@@ -11224,6 +13297,7 @@
      "hint": "",
      "text_zh": "不作回答，就此離開。",
      "hint_zh": "",
+     "gift_keywords": [],
      "kind": "other"
     }
    ]

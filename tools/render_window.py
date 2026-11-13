@@ -64,7 +64,7 @@ def menus(window, out, name):
     print(path)
 
 
-def overlay_shot(out, name, capture):
+def overlay_shot(out, name, capture, keyword=None):
     """The overlay's labels painted over a capture of the game, as the player would see them."""
     from PySide6.QtCore import QPoint
     from PySide6.QtGui import QImage, QRegion
@@ -76,7 +76,9 @@ def overlay_shot(out, name, capture):
     reading = events.read_screen(image)
     o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720))
     o.resize(1280, 720)
-    o.items = overlay.labels(reading)
+    from lc_helper import recommend
+    pick = recommend.best(reading.event, keyword, reading.closed)
+    o.items = overlay.labels(reading, lambda option: "★" if pick and option is pick[0] else "")
     rgb = image[:, :, ::-1].copy()
     canvas = QImage(rgb.data, 1280, 720, 3 * 1280, QImage.Format_RGB888).copy()
     o.render(canvas, QPoint(), QRegion(), QWidget.RenderFlag.DrawChildren)
@@ -125,7 +127,10 @@ def main():
     shot(w, out, "window-guarding.png")
     w.on_battle(Status(Phase.PLAYING, Plan(Pick.WIN_RATE, FOREVER), 7))
     image = vision.imread(maalc_dir() / "tests/screens/EventChoices.png")
+    w.settings["keyword"] = "Charge"
+    w.keyword_box.setCurrentIndex(w.keyword_box.findData("Charge"))
     w.on_event(events.read_screen(image))
+    w.overlay.hide_labels()
     shot(w, out, "window-event-read.png")
     w.query.setText("螺旋")
     w.run_search()
@@ -142,7 +147,7 @@ def main():
     w.on_battle(Status(Phase.STOPPED, Plan(), 4, "連續 3 個回合按 START 都沒開始，自動戰鬥停止"))
     w.toggle_compact()
     shot(w, out, "window-compact.png")
-    overlay_shot(out, "overlay-event.png", "EventChoices.png")
+    overlay_shot(out, "overlay-event.png", "EventChoices.png", keyword="Charge")
     overlay_shot(out, "overlay-event-scrolled.png", "EventChoicesLitTop.png")
     print("commands sent:", w.worker.sent)
 

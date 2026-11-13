@@ -199,7 +199,8 @@ def build(maalc):
             text_zh, hint_zh = option_zh(zrow, i)
             full = src["options"][i] if i < len(src["options"]) else {}
             options.append({"text": plain(full.get("text")) or o["text"], "hint": o["hint"], "text_zh": text_zh,
-                            "hint_zh": hint_zh, **{k: v for k, v in o.items() if k not in ("text", "hint", "gifts")}})
+                            "hint_zh": hint_zh, "gift_keywords": o.get("gifts", []),
+                            **{k: v for k, v in o.items() if k not in ("text", "hint", "gifts")}})
         rows.append({"id": e["id"], "page": page, "key": e.get("key", ""), "title": plain(src.get("title")),
                      "story": plain(src.get("desc")), "story_zh": zh((zrow or {}).get("desc") or (zrow or {}).get("eventDesc")),
                      "options": options})
