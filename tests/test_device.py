@@ -71,3 +71,15 @@ def test_without_a_cover_check_every_tap_goes_through():
     ctl = Clicks()
     device.MaaDevice(ctl).tap(966, 545)
     assert ctl.posted == [("post_click", (966, 545))]
+
+
+def test_a_window_moving_input_puts_the_game_window_back_after_every_touch():
+    """MaaFramework 5.14.3 keeps the game window where WithWindowPos moved it until the controller goes inactive
+    (MessageInput::touch_up)."""
+    ctl = Clicks()
+    moved = device.MaaDevice(ctl, can_hold=False, moves_window=True)
+    moved.tap(966, 545)
+    moved.touch_down(1, 1)
+    moved.touch_up()
+    assert [name for name, _ in ctl.posted] == ["post_click", "post_inactive", "post_touch_down", "post_touch_up",
+                                                 "post_inactive"]

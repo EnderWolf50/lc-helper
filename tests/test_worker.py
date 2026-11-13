@@ -77,11 +77,11 @@ def test_a_new_pc_input_reconnects_the_pc_client_with_it(screen):
     w.send("set_address", "pc")
     w.send("read_event")
     wait_for(lambda: len(readings) == 1)
-    w.send("set_pc_input", "touch")  # unchanged: the connection stays
-    w.send("set_pc_input", "window")
+    w.send("set_pc_input", "window")  # unchanged: the connection stays
+    w.send("set_pc_input", "touch")
     w.send("read_event")
     wait_for(lambda: len(readings) == 2)
-    assert calls == [("pc", "touch"), ("pc", "window")]
+    assert calls == [("pc", "window"), ("pc", "touch")]
     assert "idle" in states
 
 
@@ -222,3 +222,4 @@ def test_a_failed_read_is_reported_and_the_worker_goes_on(screen):
     w.send("start_battle", Plan(), False)
     wait_for(lambda: statuses)
     assert w.is_alive() and "截圖失敗" in errors[0]
+

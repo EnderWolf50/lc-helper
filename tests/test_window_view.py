@@ -64,7 +64,7 @@ def test_a_settings_file_with_unknown_choices_still_opens_the_window(tmp_path, m
     w = window(tmp_path, monkeypatch, text_size="huge", pc_input="laser", keywords=["Fire"], pin="yes",
                guard_mode="sometimes", guard=-2, open_sections="all")
     assert (w.settings["text_size"], w.settings["pc_input"], w.settings["keywords"], w.settings["pin"]) == \
-        ("normal", "touch", [], True)
+        ("normal", "window", [], True)
     assert (w.settings["guard_mode"], w.settings["guard"], w.settings["open_sections"]) == ("none", 1, ["event"])
     assert w.detail.font().pointSizeF() == 12
 
@@ -291,8 +291,8 @@ def test_the_pc_click_and_text_size_rows_show_the_current_choice_and_explain_eac
     page = w.settings_page
     on = lambda texts: [t for t in texts if button(page, t).isChecked()]  # noqa: E731
     assert on(["觸控", "移視窗", "借游標", "前景"]) == ["借游標"] and on(["小", "標準", "大"]) == ["小"]
-    assert button(page, "觸控").toolTip() == "合成觸控（不動滑鼠）"
-    assert button(page, "移視窗").toolTip() == "移動視窗（不動滑鼠，遊戲視窗會跳到游標下，回合播放時不按住）"
+    assert button(page, "觸控").toolTip() == "合成觸控（不動滑鼠，遊戲要露出來）"
+    assert button(page, "移視窗").toolTip() == "移動視窗（不動滑鼠，遊戲可在背景；點擊時視窗瞬間移到游標下再移回，回合播放時不按住）"
     button(page, "移視窗").click()
     assert on(["觸控", "移視窗", "借游標", "前景"]) == ["移視窗"]
     assert w.worker.sent[-1] == ("set_pc_input", "window") and w.settings["pc_input"] == "window"

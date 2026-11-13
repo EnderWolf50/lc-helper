@@ -64,21 +64,22 @@ PC_NAME = "Limbus PC"
 PC_CLASS, PC_TITLE = "UnityWndClass", "LimbusCompany"
 
 # How taps reach the PC client: (name, what it costs the user, MaaWin32InputMethodEnum name, can_hold).
-# None is tested on Limbus yet.
-# - touch: synthetic touch points (InjectSyntheticPointerInput); never moves the cursor or the focus. When another
-#   window covers the touched point, the game window is raised (nearly transparent) until the touch lifts.
-# - window: moves the game window so the target sits under the cursor (AALC's WindowMoveInput); the cursor stays.
-#   MaaFramework 5.14.3 leaves the window moved after the touch lifts, and a long touch drifts if the mouse moves.
+# maalc docs/research/win32-postmessage.md: Limbus reads the real cursor, so plain PostMessage clicks land under it.
+# - window: moves the game window so the target sits under the cursor (AALC's WindowMoveInput), posts the click to
+#   the game's window, and moves it back. Tested 2026-11-14 on the LLC client behind Discord, not in front: 胜率
+#   toggled twice, the cursor never moved.
+# - touch: synthetic touch points (InjectSyntheticPointerInput) at the screen point, so a window over the game
+#   there takes them; lc-helper then refuses the tap (Covered).
 # - cursor: moves the cursor to the target for each message, then back (sairaisaika/MaaLimbus's default).
 # - seize: real mouse input; the game takes the mouse.
-# maalc docs/research/win32-postmessage.md: Limbus reads the real cursor, so plain PostMessage clicks land under it.
 PC_INPUTS = {
-    "touch": ("合成觸控", "不動滑鼠", "AnchoredTouch", True),
-    "window": ("移動視窗", "不動滑鼠，遊戲視窗會跳到游標下", "PostMessageWithWindowPos", False),
+    "touch": ("合成觸控", "不動滑鼠，遊戲要露出來", "AnchoredTouch", True),
+    "window": ("移動視窗", "不動滑鼠，遊戲可在背景；點擊時視窗瞬間移到游標下再移回", "PostMessageWithWindowPos", False),
     "cursor": ("借用游標", "每次點擊游標會閃過去", "SendMessageWithCursorPos", False),
     "seize": ("前景操作", "戰鬥時佔用滑鼠", "Seize", True),
 }
-PC_INPUT = "touch"
+PC_INPUT = "window"
+WINDOW_BACK_AFTER = 0.05  # s from the lift to moving the window back; AALC waits 0.02 (input.py, WindowMoveInput)
 
 
 class Covered(RuntimeError):
@@ -86,11 +87,12 @@ class Covered(RuntimeError):
 
 
 class MaaDevice:
-    def __init__(self, controller, can_hold=True, what="模擬器", cover=None):
+    def __init__(self, controller, can_hold=True, what="模擬器", cover=None, moves_window=False):
         self.ctl = controller
         self.can_hold = can_hold
         self.what = what
         self.cover = cover  # (x, y) -> the program whose window covers that game point, or None when the game shows
+        self.moves_window = moves_window  # MaaFramework leaves the window moved after a touch until inactive
 
     def screenshot(self):
         job = self.ctl.post_screencap().wait()
@@ -104,9 +106,15 @@ class MaaDevice:
         if self.cover and (program := self.cover(x, y)):
             raise Covered(f"遊戲視窗在點擊位置被「{program}」蓋住，沒有點下去，請讓遊戲露出來")
 
+    def window_back(self):
+        if self.moves_window:
+            time.sleep(WINDOW_BACK_AFTER)
+            self.ctl.post_inactive().wait()
+
     def tap(self, x, y):
         self.uncovered(x, y)
         self.ctl.post_click(x, y).wait()
+        self.window_back()
 
     def touch_down(self, x, y):
         self.uncovered(x, y)
@@ -117,6 +125,7 @@ class MaaDevice:
 
     def touch_up(self):
         self.ctl.post_touch_up().wait()
+        self.window_back()
 
 
 def _maa():
@@ -220,7 +229,7 @@ def _connect_pc(toolkit, pc_input):
     # Touch and seized input land on the screen point: a window over the game there takes them (seen 2026-11-14:
     # the user's Discord window over 胜率 swallowed 16 taps). Window and cursor inputs post to the game's window.
     cover = covering(window.hwnd) if method in ("AnchoredTouch", "Seize") else None
-    device = MaaDevice(ctl, can_hold, "PC 版遊戲", cover)
+    device = MaaDevice(ctl, can_hold, "PC 版遊戲", cover, method.endswith("WithWindowPos"))
     if problem := screen_size_problem(device.screenshot()):
         raise RuntimeError(problem)
     return device, Target(f"{PC_NAME}（{name}）", PC)
