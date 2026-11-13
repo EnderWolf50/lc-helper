@@ -1,6 +1,7 @@
 """Start the real window (Windows platform, real hotkeys) without touching any emulator, and report how long until
 the window shows; then, pinned and unpinned, the native window's extended styles, whether a WM_HOTKEY for each hotkey
-reaches its action, and a capture of the window as the desktop shows it (.local/evidence/launch-pin-*.png).
+reaches its action, and the window's own pixels (.local/evidence/launch-pin-*.png). Those come from QWidget.grab,
+which paints only this window: the desktop is never captured, so no other window's content can end up in them.
 
 Usage: uv run python tools/launch_check.py
 
@@ -79,9 +80,7 @@ def main():
         QTimer.singleShot(500, lambda: report(window, states))
 
     def report(window, states):
-        g = window.frameGeometry()
-        window.screen().grabWindow(0, g.x(), g.y(), g.width(), g.height()).save(
-            str(evidence / f"launch-pin-{states[0].replace(' ', '-')}.png"))
+        window.grab().save(str(evidence / f"launch-pin-{states[0].replace(' ', '-')}.png"))
         print(f"pin {states[0]}: {styles(window)}; hotkeys fired: {', '.join(names[h] for h in fired) or 'none'}",
               flush=True)
         if len(states) > 1:
