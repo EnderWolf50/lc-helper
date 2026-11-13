@@ -12,6 +12,8 @@ Writes:
   the full English story and option text (maalc's .local/unpack/out/events-md8.json), their Chinese text from the
   newest Localize Limbus Company zip in maalc's .local/llc/ (Simplified, converted with OpenCC s2twp), and the
   name, keyword and tier of every gift an option gives (maalc's .local/unpack static data and localization).
+- assets/gifts.json: every gift in maalc's gift search and fusion recipes (and the event table), with its effect in
+  English and Chinese, its enhanced effect, and its fusion recipe (build_gifts).
 """
 
 import json
@@ -118,6 +120,55 @@ def gift_info(maalc, z, ids):
     return info
 
 
+def buff_names(maalc, z):
+    """The game's buff ids ([Combustion] in gift text) -> (English name, Chinese name)."""
+    en, zh_names = {}, {}
+    for f in sorted((maalc / LOCALIZE_EN).glob("EN_Bufs*.json")):
+        for b in load(f).get("dataList") or []:
+            en.setdefault(b.get("id"), plain(b.get("name")))
+    for name in sorted(n[len(LLC_LANG):] for n in z.namelist() if n.startswith(LLC_LANG + "Bufs")):
+        for i, b in llc_rows(z, name).items():
+            zh_names.setdefault(i, zh(b.get("name")))
+    return en, zh_names
+
+
+def gift_text(s, names):
+    """A gift's description for a reader: [BuffId] tags named, markup dropped, blank lines squeezed."""
+    s = re.sub(r"\[(\w+)\]", lambda m: f"「{names.get(m[1]) or m[1]}」", plain(s))
+    return re.sub(r"\n{3,}", "\n\n", s.replace("\r", "")).strip()
+
+
+def build_gifts(maalc, z, event_ids):
+    """assets/gifts.json: every gift maalc's gift search, fusion recipes and the event table name, with its effect in
+    English and Chinese, the effect once enhanced (the gift id + 10000), and the gifts it is fused from."""
+    data = maalc / "assets/resource/base/data"
+    search = load(data / "gift_search.json")["gifts"]
+    recipes = load(data / "gift_recipes.json")
+    rows = {g["id"]: {k: g.get(k) for k in ("en", "zh", "keyword", "tier")}
+            for g in search + recipes["materials"] + recipes["extra_gifts"] + recipes["vestiges"] + recipes["gifts"]}
+    for g in recipes["gifts"]:
+        # recipes: any one list of gift ids fuses it; groups: need of each group's ids (maalc gift_recipes.json note)
+        rows[g["id"]]["recipe"] = {k: g[k] for k in ("recipes", "groups") if k in g}
+    for i, g in gift_info(maalc, z, set(event_ids) - set(rows)).items():
+        rows[i] = dict(g)
+    en_buffs, zh_buffs = buff_names(maalc, z)
+    desc_en, desc_zh = {}, {}
+    for f in sorted((maalc / LOCALIZE_EN).glob("EN_EGOgift*.json")):
+        for g in load(f).get("dataList") or []:
+            desc_en.setdefault(g.get("id"), gift_text(g.get("desc"), en_buffs))
+    for name in sorted(n[len(LLC_LANG):] for n in z.namelist() if n.startswith(LLC_LANG + "EGOgift_")):
+        for i, g in llc_rows(z, name).items():
+            desc_zh.setdefault(i, zh(gift_text(g.get("desc"), zh_buffs)))
+    for i, row in rows.items():
+        row["en"] = (row.get("en") or "").replace("’", "'")
+        row.update(desc_en=desc_en.get(i, ""), desc_zh=desc_zh.get(i, ""),
+                   plus_en=desc_en.get(i + 10000, ""), plus_zh=desc_zh.get(i + 10000, ""))
+    note = ("E.G.O gifts for lc-helper, written by tools/sync_maalc.py from maalc's gift search and recipe data and "
+            f"the unpacked game text. Chinese: Localize Limbus Company {Path(z.filename).stem} (CC BY-NC-SA 4.0), "
+            "OpenCC s2twp; names from maalc's data where it has them. Game data (c) Project Moon.")
+    return {"note": note, "gifts": {str(k): v for k, v in sorted(rows.items())}}
+
+
 def option_zh(loc, i):
     opts = (loc or {}).get("options") or []
     if i >= len(opts):
@@ -171,6 +222,13 @@ def main():
     no_name = [i for i, g in data["gifts"].items() if not g["en"] or not g["zh"]]
     print(f"{len(data['events'])} events, {len(data['gifts'])} gifts -> {out} ({out.stat().st_size} bytes)")
     print(f"events without Chinese text: {missing_zh or 'none'}; gifts missing a name: {no_name or 'none'}")
+    gifts = build_gifts(maalc, zipfile.ZipFile(llc_zip(maalc)), [int(i) for i in data["gifts"]])
+    out = REPO / "assets/gifts.json"
+    out.write_text(json.dumps(gifts, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    rows = gifts["gifts"].values()
+    print(f"{len(rows)} gifts -> {out} ({out.stat().st_size} bytes); without English effect: "
+          f"{[i for i, g in gifts['gifts'].items() if not g['desc_en']] or 'none'}; without Chinese effect: "
+          f"{[i for i, g in gifts['gifts'].items() if not g['desc_zh']] or 'none'}")
 
 
 if __name__ == "__main__":

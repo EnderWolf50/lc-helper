@@ -11,7 +11,7 @@ from dataclasses import dataclass, replace
 from typing import Callable
 
 from . import device as devices
-from . import event_skip, events, ocr, vision
+from . import event_skip, events, gifts, ocr, vision
 from .battle import AutoBattle, Fight, Phase, Plan, Status, Stopped
 
 WATCH_EVERY = 1.0  # s between looks for a new event page while auto read is on
@@ -31,6 +31,7 @@ class Callbacks:
     page_left: Callable[[], None] = lambda: None  # auto read saw the Choices page it had read go away
     fight: Callable[[Fight, str], None] = lambda fight, device: None  # a battle ended (and on which device)
     skip: Callable[[str], None] = lambda what: None  # what the story skipper did or waits for, when it changes
+    gifts: Callable[["gifts.GiftReading"], None] = lambda reading: None  # the gifts a gift screen shows
     error: Callable[[str], None] = lambda text: None
 
 
@@ -55,7 +56,9 @@ class Worker(threading.Thread):
         self.skipper = event_skip.Skipper(self.read_text)
         self.last_skip, self.skip_said = 0.0, None
         self.last_watch = 0.0
-        self.last_page = None  # thumbnail of the story box of the last page auto read showed
+        self.last_page = None  # thumbnails (story box, option list) of the last Choices page auto read showed
+        self.last_gifts = None  # (page, gift ids) of the last gift screen auto read showed
+        self.left_choices = False  # a Choices page was shown and its leaving is not told yet
         self.alive = True
 
     def send(self, name, *args):
@@ -206,9 +209,20 @@ class Worker(threading.Thread):
             self.ocr_used = time.monotonic()
 
     def do_read_event(self):
+        """F9: the gifts on a gift screen, else the event page."""
         if not self.ready():
             return
-        self.cb.event(self.read(self.device.screenshot()))
+        image = self.device.screenshot()
+        page = gifts.gift_page(image, self.read_text)
+        if page:
+            self.cb.gifts(self.read_gift_screen(image, page))
+        else:
+            self.cb.event(self.read(image))
+
+    def read_gift_screen(self, image, page):
+        reading = gifts.read_gifts(image, page, ocr.lines)
+        self.ocr_used = time.monotonic()
+        return replace(reading, source=self.target.address if self.target else None)
 
     def read(self, image):
         reading = replace(events.read_screen(image), source=self.target.address if self.target else None)
@@ -265,17 +279,28 @@ class Worker(threading.Thread):
 
     def watch_tick(self):
         """Read the event page once a new one shows or its option list moves (a scroll, a lit row): a Choices page
-        whose story box or option list differs from the last read. Leaving the Choices page is told once."""
+        whose story box or option list differs from the last read; leaving it is told once. Off it, read a gift
+        screen whose gifts differ from the last shown."""
         now = time.monotonic()
         if now - self.last_watch < WATCH_EVERY:
             return
         self.last_watch = now
         image = self.device.screenshot()
         if not events.on_choices_page(image):
-            if self.last_page is not None:
-                self.last_page = None
+            self.last_page = None
+            if self.left_choices:
+                self.left_choices = False
                 self.cb.page_left()
+            if page := gifts.gift_page(image, self.read_text):
+                reading = self.read_gift_screen(image, page)
+                shown = (page, tuple(g["id"] for g, _ in reading.gifts))
+                if reading.gifts and shown != self.last_gifts:
+                    self.last_gifts = shown
+                    self.cb.gifts(reading)
+            else:
+                self.last_gifts = None
             return
+        self.left_choices = True
         page = [vision.thumb(vision.crop(image, roi)) for roi in (vision.EVENT_STORY, vision.CHOICE_ROWS)]
         if self.last_page is not None and all(vision.same_screen(a, b) for a, b in zip(self.last_page, page)):
             return

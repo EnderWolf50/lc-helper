@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
 
 from . import device as devices
 from .paths import LOCAL
-from . import events, fights
+from . import events, fights, gifts
 from .overlay import Overlay, labels
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
@@ -116,6 +116,28 @@ def event_html(event, read_text=""):
     return "".join(rows)
 
 
+def gift_html(gift_list, heading=""):
+    """Gifts and their effects, as the detail pane shows them: Chinese first, English under it."""
+    rows = [f"<p style='color:#8f8270;margin:0'>{html.escape(heading)}</p>"] if heading else []
+    names = gifts.book()
+    for g in gift_list:
+        rows.append(f"<p style='margin:6px 0 0 0'><b style='color:#e7b45a'>{html.escape(gifts.label(g))}</b> "
+                    f"<span style='color:#7d715f'>{html.escape(g['en'])}</span></p>")
+        for text, color in ((g["desc_zh"], "#eadcc4"), (g["desc_en"] if not g["desc_zh"] else "", "#a99c86")):
+            if text:
+                rows.append(f"<p style='color:{color};margin:0 0 0 14px'>{html.escape(text).replace(chr(10), '<br>')}</p>")
+        plus = g["plus_zh"] or g["plus_en"]
+        if plus:
+            rows.append(f"<p style='color:#9fc1d9;margin:2px 0 0 14px'>強化後：{html.escape(plus).replace(chr(10), '<br>')}</p>")
+        for ids in (g.get("recipe") or {}).get("recipes", []):
+            parts = " ＋ ".join(html.escape((names.get(i) or {}).get("zh") or str(i)) for i in ids)
+            rows.append(f"<p style='color:#a99c86;margin:0 0 0 14px'>融合：{parts}</p>")
+        for group in (g.get("recipe") or {}).get("groups", []):
+            parts = "、".join(html.escape((names.get(i) or {}).get("zh") or str(i)) for i in group["ids"])
+            rows.append(f"<p style='color:#a99c86;margin:0 0 0 14px'>融合：以下任 {group['need']} 個：{parts}</p>")
+    return "".join(rows)
+
+
 def result_text(event):
     story = (event["story_zh"] or event["story"] or " / ".join(o["text_zh"] or o["text"] for o in event["options"]))
     first = " ".join(story.split())[:38]
@@ -132,12 +154,13 @@ class Bridge(QObject):
     page_left = Signal()
     fight = Signal(object, str)
     skip = Signal(str)
+    gifts = Signal(object)
     error = Signal(str)
 
     def callbacks(self):
         return Callbacks(device=self.device.emit, targets=self.targets.emit, battle=self.battle.emit,
                          event=self.event.emit, page_left=self.page_left.emit, fight=self.fight.emit, skip=self.skip.emit,
-                         error=self.error.emit)
+                         gifts=self.gifts.emit,                         error=self.error.emit)
 
 
 WM_HOTKEY, MOD_NOREPEAT = 0x0312, 0x4000
@@ -267,7 +290,8 @@ class Window(QWidget):
         self.bridge.event.connect(self.on_event)
         self.bridge.page_left.connect(lambda: self.overlay.hide_labels())
         self.bridge.fight.connect(self.on_fight)
-        self.bridge.skip.connect(lambda what: self.skip_state.setText(f"自動跳過：{what}"))
+        self.bridge.gifts.connect(self.on_gifts)
+        self.bridge.skip.connect(lambda what: self.say_skip(f"自動跳過：{what}"))
         self.bridge.error.connect(lambda text: self.status.setText(text))
         self.search_timer = QTimer(self, singleShot=True, interval=120, timeout=self.run_search)
 
@@ -364,7 +388,7 @@ class Window(QWidget):
         ev.setSpacing(6)
         ev.addWidget(QLabel("鏡牢事件", objectName="section"))
         row = QHBoxLayout()
-        self.query = QLineEdit(placeholderText="輸入事件或選項文字（中/英）")
+        self.query = QLineEdit(placeholderText="輸入事件、選項或飾品名字（中/英）")
         self.query.setClearButtonEnabled(True)
         self.query.textChanged.connect(lambda: self.search_timer.start())
         row.addWidget(self.query)
@@ -377,7 +401,7 @@ class Window(QWidget):
         self.skip_box = QCheckBox("自動跳過劇情：一路推進到選項頁（不替你選）", checked=s["skip"])
         self.skip_box.toggled.connect(self.set_skip)
         ev.addWidget(self.skip_box)
-        self.skip_state = QLabel(objectName="status")
+        self.skip_state = QLabel(objectName="status", visible=False)
         ev.addWidget(self.skip_state)
         self.overlay_box = QCheckBox("疊加顯示：把選項效果直接標在遊戲畫面上", checked=s["overlay"])
         self.overlay_box.toggled.connect(self.set_overlay)
@@ -386,7 +410,7 @@ class Window(QWidget):
         self.results.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.results.setTextElideMode(Qt.ElideRight)
         self.results.hide()
-        self.results.currentItemChanged.connect(lambda item, _: item and self.show_event(item.data(Qt.UserRole)))
+        self.results.currentItemChanged.connect(lambda item, _: item and self.show_hit(*item.data(Qt.UserRole)))
         ev.addWidget(self.results)
         self.detail = QTextBrowser(openExternalLinks=False)
         self.detail.setFixedHeight(300)
@@ -496,8 +520,14 @@ class Window(QWidget):
 
     def set_skip(self, on):
         self.settings["skip"] = on
-        self.skip_state.setText("")
+        self.say_skip("")
         self.worker.send("set_skip", on)
+
+    def say_skip(self, text):
+        """The skipper's state under its switch; the line takes no room while empty."""
+        self.skip_state.setText(text)
+        self.skip_state.setVisible(bool(text) and self.skip_box.isChecked())
+        QTimer.singleShot(0, self.adjustSize)
 
     def set_overlay(self, on):
         self.settings["overlay"] = on
@@ -557,6 +587,20 @@ class Window(QWidget):
         else:
             self.overlay.hide_labels()
 
+    def show_hit(self, kind, found):
+        if kind == "gift":
+            self.detail.setHtml(gift_html([found]))
+        else:
+            self.show_event(found)
+
+    def on_gifts(self, reading):
+        """A gift screen read: its gifts in Chinese, with the effects once enhanced and their fusion recipes."""
+        self.results.hide()
+        self.shown_event = None
+        heading = {"choice": "畫面上可以選的飾品", "get": "剛獲得的飾品"}.get(reading.page, "")
+        self.detail.setHtml(gift_html([g for g, _ in reading.gifts], heading) if reading.gifts
+                            else "<p style='color:#d9a441'>飾品畫面上沒讀到飾品名字</p>")
+
     def show_event(self, event, read_text="", others=()):
         page = event_html(event, read_text)
         if others:
@@ -565,18 +609,19 @@ class Window(QWidget):
         self.detail.setHtml(page)
 
     def run_search(self):
-        hits = events.search(self.query.text())
+        query = self.query.text()
+        hits = [("gift", g) for g in gifts.search(query, limit=4)] + [("event", e) for e in events.search(query, limit=6)]
         self.results.clear()
-        for e in hits:
-            item = QListWidgetItem(result_text(e))
-            item.setData(Qt.UserRole, e)
+        for kind, found in hits:
+            item = QListWidgetItem(f"飾品｜{gifts.label(found)}" if kind == "gift" else result_text(found))
+            item.setData(Qt.UserRole, (kind, found))
             self.results.addItem(item)
         self.results.setFixedHeight(min(len(hits), 5) * 26 + 6)
         self.results.setVisible(bool(hits))
         if hits:
             self.results.setCurrentRow(0)
         elif self.query.text().strip():
-            self.detail.setHtml("<p style='color:#8f8270'>找不到符合的事件。</p>")
+            self.detail.setHtml("<p style='color:#8f8270'>找不到符合的事件或飾品。</p>")
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton and self.header.geometry().contains(e.position().toPoint()):
