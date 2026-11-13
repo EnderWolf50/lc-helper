@@ -31,13 +31,9 @@ TURN_NUMBER = (55, 57, 45, 30)
 SLOT_PORTRAIT_Y = 665  # tapping a slot's portrait swaps its lower skill and its guard skill
 LOWER_Y = 577  # a slot's lower skill, at rest
 
-# A battle's end (maalc mirror_dungeon.json Victory and WipeDialog: OCR nodes, read here only once a cheap check
-# says the screen may show them).
+# A battle's end (maalc mirror_dungeon.json Victory and WipeDialog, OCR nodes there; templates here).
 VICTORY_ROI = (420, 280, 440, 140)
 WIPE_ROI = (330, 360, 270, 50)
-# The orange share that sends a screen to OCR: 0.225 on Victory.png; 0.157 and 0.148 on two team screens (their
-# OCR then reads no VICTORY); 0.033 at most on battle captures (tools/sweep_screens.py, 2026-11-13).
-VICTORY_ORANGE = 0.1
 
 
 def wiped(image):
@@ -47,11 +43,12 @@ def wiped(image):
     return find(image, "wipe_text.png", (x - 20, y - 10, w + 40, h + 20)) is not None
 
 
-def victory_likely(image):
-    """Whether the VICTORY banner's orange fills enough of its spot to be worth an OCR read."""
-    p = crop(image, VICTORY_ROI).astype(int)
-    b, g, r = p[..., 0], p[..., 1], p[..., 2]
-    return float(((r > 200) & (g > 110) & (g < 230) & (b < 110) & (r - b > 120)).mean()) > VICTORY_ORANGE
+def victory(image):
+    """Whether the VICTORY banner is up, through the fade that follows it: its word, cut from a PC client capture
+    by tools/make_templates.py. The banner is bright for one look at most (0.3 s apart) before the screen darkens,
+    which an orange share missed on 2026-11-14; the word still matches 0.997 at the fade's darkest frame
+    (LlcVictoryFading.png) and 0.957 on maalc's emulator Victory.png, no other capture above 0.32."""
+    return find(image, "victory.png", VICTORY_ROI) is not None
 
 
 # Event pages (maalc actions.py).

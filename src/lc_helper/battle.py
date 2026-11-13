@@ -76,7 +76,6 @@ IDLE_EVERY = 0.3  # s between looks while no turn waits (maalc MirrorHub's rate)
 STILL_GAP = 0.2  # s between the two screenshots that tell a resting turn HUD from a moving one
 START_WAIT, START_LEAST, PLAQUE_WAIT = 1.5, 0.3, 1.5  # maalc #145: a turn starts 0.45-0.7 s after START
 MAX_FAILED = 3  # turns in a row that START did not start: the screen is not what the engine thinks, so it stops
-END_EVERY = 1.0  # s between OCR reads of the VICTORY banner while it may show
 # maalc #150: a finger held on the screen while a turn plays speeds up its E.G.O animations. The top-left corner
 # touches nothing on a battle screen, and a lift there touches nothing on the screens that follow a turn.
 HOLD_SPOT, HOLD_EVERY, HOLD_LIMIT = (1, 1), 0.3, 6.0
@@ -91,14 +90,12 @@ GUARD_DRAGS = ({"settle": 0.05, "dwell": 0.03, "hold": 0.05, "pause": 0.01},
 class AutoBattle:
     def __init__(self, device: Device, plan: Plan, stop: threading.Event,
                  on_status: Callable[[Status], None] = lambda s: None, clock: Clock | None = None, hold: bool = True,
-                 on_fight: Callable[[Fight], None] = lambda f: None, stop_after_victory: bool = False,
-                 read_text: Callable | None = None):
+                 on_fight: Callable[[Fight], None] = lambda f: None, stop_after_victory: bool = False):
         self.device, self.plan, self.stop, self.on_status = device, plan, stop, on_status
         self.clock = clock or Clock()
         self.hold = hold
         self.on_fight, self.stop_after_victory = on_fight, stop_after_victory
-        self.read_text = read_text or _ocr_text  # (image, roi) -> the text lines there
-        self.fight_turns, self.fight_from, self.end_read = 0, 0.0, -END_EVERY  # this battle's turns, start, last read
+        self.fight_turns, self.fight_from = 0, 0.0  # this battle's turns and when it started
         self.turns = self.failed = 0
         self.last: Status | None = None
         self.stop_note = ""
@@ -163,18 +160,9 @@ class AutoBattle:
             self.emit(Phase.WAITING)
             if self.fight_turns and vision.wiped(image):
                 self.end_fight("wipe")
-            elif vision.victory_likely(image) and self.ended(image, vision.VICTORY_ROI, "ictory"):
+            elif self.fight_turns and vision.victory(image):
                 self.end_fight("victory")
             self.sleep(IDLE_EVERY)
-
-    def ended(self, image, roi, word):
-        """Whether a battle this engine played shows word at roi (OCR, at most every END_EVERY s, so the model
-        loads only once a cheap check passed). maalc reads VICTORY as "JICTORY" at times: the word drops its
-        first letter."""
-        if not self.fight_turns or self.clock.now() - self.end_read < END_EVERY:
-            return False
-        self.end_read = self.clock.now()
-        return any(word in line.lower() for line in self.read_text(image, roi))
 
     def end_fight(self, result):
         fight = Fight(result, self.fight_turns, self.clock.now() - self.fight_from)
@@ -290,7 +278,7 @@ class AutoBattle:
                     continue
                 if vision.battle_turn(image) or vision.battle_menu(image) or vision.popup(image):
                     return
-                if vision.victory_likely(image) or vision.wiped(image):
+                if vision.victory(image) or vision.wiped(image):
                     return  # the battle ended: the engine's next look tells which way
         finally:
             self.device.touch_up()
@@ -381,8 +369,3 @@ class AutoBattle:
             self.until(lambda im: not vision.disc_lit(im, disc), timeout=1)
         return False
 
-
-def _ocr_text(image, roi):
-    from . import ocr
-
-    return [text for text, _ in ocr.lines(image, roi)]

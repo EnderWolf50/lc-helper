@@ -26,7 +26,7 @@ def read(image):
     row = {"turn": box, "turn_score": max(best(image, "battle_turn.png", vision.BATTLE_TURN_ROI),
                                           best(image, "battle_turn_pressed.png", vision.BATTLE_TURN_ROI)),
            "playing": vision.turn_playing(image), "menu": vision.battle_menu(image), "popup": vision.popup(image),
-           "victory": vision.victory_likely(image), "wiped": vision.wiped(image)}
+           "victory": vision.victory(image), "wiped": vision.wiped(image)}
     if box:
         disc = vision.start_disc(box)
         xs = vision.slot_xs(box[0])

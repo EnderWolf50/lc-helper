@@ -12,6 +12,9 @@ label is cut where the English template sits on it: every tap offset from the la
 slots) then holds unchanged. battle_turn_llc_pressed.png and battle_turn_llc_lit.png: the same label once 胜率 is
 tapped, and once the picks light START (the plaque's arm then covers its left end), from the live probe of
 2026-11-14 (LlcBattleTurnPressed.png, LlcBattleTurnLit.png).
+
+victory.png: the VICTORY banner's word, cut at a fixed box from a PC client capture taken while the banner is
+brightest (LlcVictory.png). The banner reads VICTORY on the LLC client too.
 """
 
 import sys
@@ -26,6 +29,7 @@ from sync_maalc import maalc_dir  # noqa: E402
 
 LLC_SCREENS = Path(__file__).resolve().parent.parent / "tests/screens_llc"
 PLATE_END = (1026, 536, 26, 20)  # the Win Rate plate's right end (triangle, border) on maalc's BattleTurn.png
+VICTORY_WORD = (505, 300, 285, 110)  # the banner's word on LlcVictory.png
 
 
 def save(piece, name, box):
@@ -61,6 +65,7 @@ def main():
     cut_turn_label("LlcBattleTurn6.png", "battle_turn_llc.png")
     cut_turn_label("LlcBattleTurnPressed.png", "battle_turn_llc_pressed.png", placed_on="LlcBattleTurnProbe.png")
     cut_turn_label("LlcBattleTurnLit.png", "battle_turn_llc_lit.png", placed_on="LlcBattleTurnProbe.png")
+    save(vision.crop(vision.imread(LLC_SCREENS / "LlcVictory.png"), VICTORY_WORD), "victory.png", VICTORY_WORD)
 
 
 if __name__ == "__main__":
