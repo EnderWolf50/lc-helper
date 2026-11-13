@@ -2,8 +2,8 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt  # noqa: E402
-from PySide6.QtGui import QAction  # noqa: E402
+from PySide6.QtCore import QPoint, Qt  # noqa: E402
+from PySide6.QtGui import QAction, QColor  # noqa: E402
 from PySide6.QtWidgets import QApplication, QToolButton  # noqa: E402
 
 from lc_helper import app as ui  # noqa: E402
@@ -94,3 +94,30 @@ def test_an_icon_is_drawn_with_the_pixels_of_a_150_percent_screen():
         assert (pix.width(), pix.height(), pix.devicePixelRatio()) == (27, 27, 1.5), name
         image = pix.toImage()
         assert any(image.pixelColor(x, y).alpha() for x in range(27) for y in range(27)), f"{name} draws nothing"
+
+
+def painted(w, widget, x, y):
+    """The colour the window shows at (x, y) inside widget."""
+    QApplication.processEvents()
+    at = widget.mapTo(w, QPoint(x, y))
+    return w.grab().toImage().pixelColor(at.x(), at.y())
+
+
+def test_the_event_switches_are_one_row_of_short_pills_that_show_on_and_off_at_a_glance(tmp_path, monkeypatch):
+    w = window(tmp_path, monkeypatch, watch=False, skip=False, overlay=True)
+    pills = {"自動讀取": w.watch, "跳過劇情": w.skip_box, "疊加顯示": w.overlay_box}
+    assert [p.text() for p in pills.values()] == list(pills)
+    assert len({p.mapTo(w, QPoint()).y() for p in pills.values()}) == 1, "one row"
+    assert "畫面出現事件選項就顯示" in w.watch.toolTip()
+    assert "一路推進到選項頁（不替你選）" in w.skip_box.toolTip()
+    assert "把選項效果直接標在遊戲畫面上" in w.overlay_box.toolTip()
+    inside = lambda p: painted(w, p, p.width() // 2, 3)  # noqa: E731  between the border and the text
+    pane = QColor("#17130f")
+    assert inside(w.watch) == pane and inside(w.overlay_box) == QColor("#6b4a1f"), "off is an outline, on is filled"
+    assert painted(w, w.overlay_box, 1, 1) == pane, "round ends"
+    w.watch.click()
+    assert inside(w.watch) == QColor("#6b4a1f") and w.worker.sent[-1] == ("set_watch", True)
+    w.skip_box.click()
+    w.say_skip("自動跳過：等選項頁")
+    QApplication.processEvents()
+    assert w.skip_state.isVisible() and w.skip_state.mapTo(w, QPoint()).y() > w.skip_box.mapTo(w, QPoint()).y()

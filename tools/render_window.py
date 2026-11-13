@@ -136,6 +136,10 @@ def main():
     w.on_event(events.read_screen(image))
     w.overlay.hide_labels()
     shot(w, out, "window-event-read.png")
+    w.skip_box.setChecked(True)
+    w.say_skip("自動跳過：到選項頁了，請你選")
+    shot(w, out, "window-skip.png")
+    w.skip_box.setChecked(False)
     for key in ui.TEXT_SIZES:
         w.set_text_size(key)
         shot(w, out, f"window-text-{key}.png")

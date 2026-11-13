@@ -13,8 +13,8 @@ from ctypes import wintypes
 from string import Template
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QEvent, QObject, QPoint, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QActionGroup, QColor, QFont, QIcon, QKeySequence, QPainter, QPixmap
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+from PySide6.QtGui import QAction, QActionGroup, QColor, QFont, QFontMetrics, QIcon, QKeySequence, QPainter, QPixmap
+from PySide6.QtWidgets import (QApplication, QButtonGroup, QComboBox, QDialog, QDialogButtonBox,
                                QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout, QLineEdit,
                                QListWidget, QListWidgetItem, QMenu, QPushButton, QSpinBox, QSystemTrayIcon, QTextBrowser,
                                QToolButton, QVBoxLayout, QWidget)
@@ -65,16 +65,20 @@ QComboBox QAbstractItemView { background: #1d1711; selection-background-color: #
 QListWidget { background: #0f0c09; border: 1px solid #3e2f1d; border-radius: 6px; }
 QListWidget::item { padding: 4px; } QListWidget::item:selected { background: #4a3417; }
 QTextBrowser { background: #0f0c09; border: 1px solid #3e2f1d; border-radius: 6px; padding: 4px; }
-QCheckBox { color: #b9ab93; font-size: ${small}pt; }
+QPushButton#pill { background: transparent; color: #b9ab93; border-radius: ${pill}px; padding: 4px 12px; }
+QPushButton#pill:hover { background: #3a2c1f; }
+QPushButton#pill:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
 QMenu { background: #1d1711; border: 1px solid #5b4527; } QMenu::item:selected { background: #4a3417; }
 QDialog { background: #17130f; }
 QKeySequenceEdit QLineEdit { min-width: 140px; }
 """)
 
 
-def style(base):
-    """The style sheet for body text of base points: secondary text a step smaller, the title and START a step bigger."""
-    return STYLE.substitute(body=base, small=base - 1.5, big=base + 1.5)
+def style(base, line):
+    """The style sheet for body text of base points and line pixels: secondary text a step smaller, the title and START
+    a step bigger. A pill is its line, 4 px padding and a 1 px border on each side tall, and its ends are round with
+    half that: Qt draws square corners for a radius over half the height."""
+    return STYLE.substitute(body=base, small=base - 1.5, big=base + 1.5, pill=(line + 10) // 2)
 
 
 def scaled(px, base):
@@ -448,17 +452,23 @@ class Window(QWidget):
         self.read_button = QPushButton(clicked=lambda: self.worker.send("read_event"))
         row.addWidget(self.read_button)
         ev.addLayout(row)
-        self.watch = QCheckBox("自動讀取：畫面出現事件選項就顯示", checked=s["watch"])
+        row = QHBoxLayout(spacing=6)
+        self.watch = QPushButton("自動讀取", objectName="pill", checkable=True, checked=s["watch"],
+                                 toolTip="自動讀取：畫面出現事件選項就顯示")
         self.watch.toggled.connect(self.set_watch)
-        ev.addWidget(self.watch)
-        self.skip_box = QCheckBox("自動跳過劇情：一路推進到選項頁（不替你選）", checked=s["skip"])
+        row.addWidget(self.watch)
+        self.skip_box = QPushButton("跳過劇情", objectName="pill", checkable=True, checked=s["skip"],
+                                    toolTip="自動跳過劇情：一路推進到選項頁（不替你選）")
         self.skip_box.toggled.connect(self.set_skip)
-        ev.addWidget(self.skip_box)
+        row.addWidget(self.skip_box)
+        self.overlay_box = QPushButton("疊加顯示", objectName="pill", checkable=True, checked=s["overlay"],
+                                       toolTip="疊加顯示：把選項效果直接標在遊戲畫面上")
+        self.overlay_box.toggled.connect(self.set_overlay)
+        row.addWidget(self.overlay_box)
+        row.addStretch()
+        ev.addLayout(row)
         self.skip_state = QLabel(objectName="status", visible=False)
         ev.addWidget(self.skip_state)
-        self.overlay_box = QCheckBox("疊加顯示：把選項效果直接標在遊戲畫面上", checked=s["overlay"])
-        self.overlay_box.toggled.connect(self.set_overlay)
-        ev.addWidget(self.overlay_box)
         row = QHBoxLayout()
         row.addWidget(QLabel("推薦選項，依主要體系：", objectName="status"))
         self.keyword_box = QComboBox()
@@ -493,7 +503,7 @@ class Window(QWidget):
         font = QFont("Microsoft JhengHei UI")
         font.setPointSizeF(base)
         QApplication.setFont(font)
-        QApplication.instance().setStyleSheet(style(base))
+        QApplication.instance().setStyleSheet(style(base, QFontMetrics(font).height()))
         self.root.setFixedWidth(scaled(380, base))
         self.detail.setFixedHeight(scaled(300, base))
         self.apply_icons()
