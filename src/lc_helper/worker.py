@@ -27,6 +27,7 @@ class Callbacks:
     targets: Callable[[list], None] = lambda targets: None
     battle: Callable[[Status], None] = lambda status: None
     event: Callable[[events.Reading], None] = lambda reading: None
+    page_left: Callable[[], None] = lambda: None  # auto read saw the Choices page it had read go away
     error: Callable[[str], None] = lambda text: None
 
 
@@ -194,7 +195,7 @@ class Worker(threading.Thread):
         self.cb.event(self.read(self.device.screenshot()))
 
     def read(self, image):
-        reading = events.read_screen(image)
+        reading = replace(events.read_screen(image), source=self.target.address if self.target else None)
         self.ocr_used = time.monotonic()
         return reading
 
@@ -217,17 +218,21 @@ class Worker(threading.Thread):
         battle.emit(Phase.STOPPED, note or battle.stop_note)
 
     def watch_tick(self):
-        """Read the event page once a new one shows: a Choices page whose story box differs from the last read."""
+        """Read the event page once a new one shows or its option list moves (a scroll, a lit row): a Choices page
+        whose story box or option list differs from the last read. Leaving the Choices page is told once."""
         now = time.monotonic()
         if now - self.last_watch < WATCH_EVERY:
             return
         self.last_watch = now
         image = self.device.screenshot()
         if not events.on_choices_page(image):
+            if self.last_page is not None:
+                self.last_page = None
+                self.cb.page_left()
             return
-        story = vision.thumb(vision.crop(image, vision.EVENT_STORY))
-        if self.last_page is not None and vision.same_screen(self.last_page, story):
+        page = [vision.thumb(vision.crop(image, roi)) for roi in (vision.EVENT_STORY, vision.CHOICE_ROWS)]
+        if self.last_page is not None and all(vision.same_screen(a, b) for a, b in zip(self.last_page, page)):
             return
         reading = self.read(image)
-        self.last_page = story
+        self.last_page = page
         self.cb.event(reading)

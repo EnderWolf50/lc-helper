@@ -118,6 +118,27 @@ def test_auto_read_keeps_the_ocr_model_until_it_is_turned_off(monkeypatch, scree
     assert len(drops) == 1
 
 
+class Slides(Still):
+    """Shows each image in turn, one per screenshot, then stays on the last."""
+
+    def __init__(self, images):
+        super().__init__(images[0])
+        self.images = list(images)
+
+    def screenshot(self):
+        return self.images.pop(0) if len(self.images) > 1 else self.images[0]
+
+
+def test_auto_read_reads_again_when_the_list_scrolls_and_tells_when_the_page_goes(screen):
+    readings, left = [], []
+    images = [screen("EventChoicesLitTop.png"), screen("EventChoicesScrolledBack.png"), screen("MirrorMap.png")]
+    started(Slides(images), event=readings.append, page_left=lambda: left.append(1)).send("set_watch", True)
+    wait_for(lambda: left)
+    assert [r.event["id"] for r in readings] == [901095, 901095]
+    assert [len(r.lines) > 0 for r in readings] == [True, True] and readings[0].source == "127.0.0.1:1"
+    assert len(left) == 1
+
+
 def test_read_event_reads_the_page_on_screen(screen):
     readings = []
     w = started(Still(screen("EventChoices.png")), event=readings.append)

@@ -127,6 +127,8 @@ class Reading:
     story: str
     options: tuple[str, ...]
     others: tuple[dict, ...] = ()  # events the screen reads the same as event
+    lines: tuple = ()  # the option list's OCR lines as (text, (x, y, w, h)) in 1280x720 pixels
+    source: str | None = None  # the device address it was read from (device.PC for the PC client)
 
 
 def on_choices_page(image):
@@ -141,9 +143,35 @@ def read_screen(image):
     from . import ocr, vision
 
     story = " ".join(t for t, _ in ocr.lines(image, vision.EVENT_STORY))
-    options = tuple(t for t, _ in ocr.lines(image, vision.CHOICE_ROWS))
+    lines = tuple(ocr.lines(image, vision.CHOICE_ROWS))
+    options = tuple(t for t, _ in lines)
     found = candidates(story, options)
-    return Reading(found[0] if found else None, story, options, tuple(found[1:]))
+    return Reading(found[0] if found else None, story, options, tuple(found[1:]), lines)
+
+
+def option_rows(event, lines):
+    """Each of event's options shown in lines, as (option, box of its first line), top to bottom.
+
+    An option's first line is its text's start (a long option wraps); the lines under it, its wrap and the game's
+    hint, start otherwise. Options scrolled out of the list have no line and are left out.
+    """
+    rows = []
+    for option in (event or {}).get("options", []):
+        text = option["text"].lower()
+        if not text:
+            continue
+        scored = [(fuzz.ratio(t.lower(), text[:len(t)]), box) for t, box in lines if len(t) >= 3]
+        score, box = max(scored, default=(0, None))
+        if score >= 85:
+            rows.append((option, box))
+    return sorted(rows, key=lambda r: r[1][1])
+
+
+def short_effect(option, limit=46):
+    """An option's effects in one line for the overlay: the effects lines joined, cut at limit characters."""
+    text = "；".join(f"{e.when} {e.what}" for e in effects(option, follow=False)) or option.get("hint_zh") \
+        or option.get("hint") or ("進入後續頁" if option.get("next") else "沒有記錄效果")
+    return text if len(text) <= limit else text[:limit - 1] + "…"
 
 
 def gift_name(gift_id):

@@ -20,12 +20,13 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
 from . import device as devices
 from .paths import LOCAL
 from . import events
+from .overlay import Overlay, labels
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
 
 SETTINGS = LOCAL / "settings.json"
 DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard": 0, "forever": False,
-            "hold": True, "watch": False, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
+            "hold": True, "watch": False, "overlay": True, "compact": False, "pos": None, "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 
 STYLE = """
@@ -128,11 +129,12 @@ class Bridge(QObject):
     targets = Signal(list)
     battle = Signal(object)
     event = Signal(object)
+    page_left = Signal()
     error = Signal(str)
 
     def callbacks(self):
         return Callbacks(device=self.device.emit, targets=self.targets.emit, battle=self.battle.emit,
-                         event=self.event.emit, error=self.error.emit)
+                         event=self.event.emit, page_left=self.page_left.emit, error=self.error.emit)
 
 
 WM_HOTKEY, MOD_NOREPEAT = 0x0312, 0x4000
@@ -229,6 +231,8 @@ class Window(QWidget):
         self.settings = load_settings()
         self.hotkeys = hotkeys if hotkeys is not None else Hotkeys()
         self.hotkeys_taken = []
+        self.overlay = Overlay()
+        self.shown_event = None
         self.running = False
         self.drag_from: QPoint | None = None
         self.bridge = Bridge()
@@ -238,6 +242,7 @@ class Window(QWidget):
         self.bridge.targets.connect(self.on_targets)
         self.bridge.battle.connect(self.on_battle)
         self.bridge.event.connect(self.on_event)
+        self.bridge.page_left.connect(lambda: self.overlay.hide_labels())
         self.bridge.error.connect(lambda text: self.status.setText(text))
         self.search_timer = QTimer(self, singleShot=True, interval=120, timeout=self.run_search)
 
@@ -339,6 +344,9 @@ class Window(QWidget):
         self.watch = QCheckBox("自動讀取：畫面出現事件選項就顯示", checked=s["watch"])
         self.watch.toggled.connect(self.set_watch)
         ev.addWidget(self.watch)
+        self.overlay_box = QCheckBox("疊加顯示：把選項效果直接標在遊戲畫面上", checked=s["overlay"])
+        self.overlay_box.toggled.connect(self.set_overlay)
+        ev.addWidget(self.overlay_box)
         self.results = QListWidget()
         self.results.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.results.setTextElideMode(Qt.ElideRight)
@@ -422,6 +430,11 @@ class Window(QWidget):
         self.settings["watch"] = on
         self.worker.send("set_watch", on)
 
+    def set_overlay(self, on):
+        self.settings["overlay"] = on
+        if not on:
+            self.overlay.hide_labels()
+
     def toggle_compact(self):
         compact = self.event_box.isVisible()
         self.settings["compact"] = compact
@@ -464,8 +477,16 @@ class Window(QWidget):
         self.guard_spin.blockSignals(False)
 
     def on_event(self, reading):
+        """A read event page: its effects in the window (unless it is the page already shown, read again for a
+        scroll or a lit row) and, with the overlay on, beside the options on the game."""
         self.results.hide()
-        self.show_event(reading.event, " ".join([reading.story, *reading.options]), reading.others)
+        if not (reading.event and reading.event is self.shown_event and not reading.others):
+            self.show_event(reading.event, " ".join([reading.story, *reading.options]), reading.others)
+            self.shown_event = reading.event
+        if self.settings["overlay"] and reading.event and not reading.others:
+            self.overlay.show_labels(labels(reading), reading.source, hold_ms=0 if self.settings["watch"] else 60_000)
+        else:
+            self.overlay.hide_labels()
 
     def show_event(self, event, read_text="", others=()):
         page = event_html(event, read_text)
@@ -502,6 +523,7 @@ class Window(QWidget):
     def closeEvent(self, e):
         self.settings["pos"] = [self.x(), self.y()]
         save_settings(self.settings)
+        self.overlay.close()
         self.worker.shutdown()
         self.worker.join(timeout=3)
         super().closeEvent(e)

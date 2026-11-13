@@ -64,6 +64,27 @@ def menus(window, out, name):
     print(path)
 
 
+def overlay_shot(out, name, capture):
+    """The overlay's labels painted over a capture of the game, as the player would see them."""
+    from PySide6.QtCore import QPoint
+    from PySide6.QtGui import QImage, QRegion
+    from PySide6.QtWidgets import QWidget
+
+    from lc_helper import overlay
+
+    image = vision.imread(maalc_dir() / "tests/screens" / capture)
+    reading = events.read_screen(image)
+    o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720))
+    o.resize(1280, 720)
+    o.items = overlay.labels(reading)
+    rgb = image[:, :, ::-1].copy()
+    canvas = QImage(rgb.data, 1280, 720, 3 * 1280, QImage.Format_RGB888).copy()
+    o.render(canvas, QPoint(), QRegion(), QWidget.RenderFlag.DrawChildren)
+    path = out / name
+    canvas.save(str(path))
+    print(path)
+
+
 def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent / ".local/evidence"
     out.mkdir(parents=True, exist_ok=True)
@@ -101,6 +122,8 @@ def main():
     w.on_battle(Status(Phase.STOPPED, Plan(), 4, "連續 3 個回合按 START 都沒開始，自動戰鬥停止"))
     w.toggle_compact()
     shot(w, out, "window-compact.png")
+    overlay_shot(out, "overlay-event.png", "EventChoices.png")
+    overlay_shot(out, "overlay-event-scrolled.png", "EventChoicesLitTop.png")
     print("commands sent:", w.worker.sent)
 
 
