@@ -24,6 +24,15 @@ PC 版：裝置選單裡選「Limbus PC」。遊戲視窗要 16:9（1280×720 �
 
 `tools/sync_maalc.py` 從 maalc 的資料夾讀資料：預設是本 repo 旁邊的 `../maalc`，不在那裡就把路徑寫進 `.local/maalc_dir`。事件的完整英文故事與中文文字要 maalc 的 `.local/unpack` 與 `.local/llc`。
 
+## 打包（免安裝資料夾）
+
+```powershell
+uv run --group build python tools/build.py   # 產生 dist/lc-helper/，整個資料夾複製走就能用，不需要 uv 或 Python
+uv run python tools/exe_check.py             # 打包版自我測試（事件搜尋、OCR），再用離線模式開一次視窗、截圖、關掉
+```
+
+`lc-helper.exe --offline` 不找也不連模擬器或 PC 版，只查事件。設定存在 exe 旁邊的 `.local/`。
+
 ## 檢查
 
 ```powershell

@@ -15,6 +15,9 @@ dependencies = [
 lc-helper = "lc_helper.app:main"
 
 [dependency-groups]
+build = [
+    "pyinstaller>=6.22.3",
+]
 dev = ["pytest", "ruff"]
 # tools/sync_maalc.py: Simplified to Traditional Chinese for the LLC event text.
 sync = ["opencc-python-reimplemented"]

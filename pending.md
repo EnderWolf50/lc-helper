@@ -110,7 +110,7 @@ maalc #150 的發現：手指按著，E.G.O 動畫會快轉。左上角在戰鬥
 - 自動按掉事件的劇情文字（SKIP、Continue），一路點到選項頁。maalc 有現成的邏輯。
 - 飾品查詢：輸入飾品名，顯示效果文字。資料在漢化組的檔案裡。
 - 戰鬥結束（VICTORY）後自動停止的選項。
-- 打包成單一 exe，不用 uv 也能開。
+- ~~打包成單一 exe~~ 11-13 做了免安裝資料夾版（`tools/build.py`，PyInstaller onedir），見 README「打包」。`tools/exe_check.py` 驗證過：自我測試的事件搜尋與 OCR 都在 exe 裡跑通（讀出「What will you do?」），離線模式視窗 0.98 到 2.17 秒出現、private memory 76 MB、關閉 exit 0。整個資料夾 359 MB，最大的是 OpenCV 112 MB、MaaFramework 86 MB、Qt 74 MB；OpenCV 裡的影片解碼器用不到，之後可以拿掉。打包時抓到一個只在 exe 出現的 bug：沒有主控台時 `sys.stdout` 是 None，關視窗會卡住不結束，已修。
 
 ## 5. 需要你實機驗收
 

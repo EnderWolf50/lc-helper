@@ -508,7 +508,36 @@ class Window(QWidget):
         QApplication.quit()  # a Qt.Tool window does not count as the last window: closing it alone quits nothing
 
 
+def offline_worker(callbacks):
+    """A worker that finds and connects to nothing: event search only, and no adb or game window is touched."""
+    def no_device(address, **_):
+        raise RuntimeError("離線模式（--offline）：不連模擬器或 PC 版，只能查事件")
+    return Worker(callbacks, connect=no_device, find=lambda: [])
+
+
+def self_test():
+    """Search the events and OCR a line of rendered text, writing what came back to .local/self-test.txt: proof that
+    a built lc-helper.exe carries its data, the OCR model and MaaFramework's libraries. No device is touched."""
+    import cv2
+    import numpy as np
+
+    from . import ocr
+    image = np.zeros((720, 1280, 3), np.uint8)
+    cv2.putText(image, "What will you do?", (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (255, 255, 255), 3)
+    hits = events.search("螺旋")
+    lines = [f"search 螺旋: {len(hits)} events, first {hits[0]['id'] if hits else None}",
+             f"ocr: {[text for text, _ in ocr.lines(image, (60, 60, 700, 100))]}"]
+    LOCAL.mkdir(parents=True, exist_ok=True)
+    (LOCAL / "self-test.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def main(worker_factory=Worker):
+    if "--self-test" in sys.argv[1:]:
+        self_test()
+        return
+    offline = "--offline" in sys.argv[1:] and worker_factory is Worker
+    if offline:
+        worker_factory = offline_worker
     app = QApplication(sys.argv)
     app.setStyleSheet(STYLE)
     app.setFont(QFont("Microsoft JhengHei UI", 10))
@@ -516,6 +545,8 @@ def main(worker_factory=Worker):
     app.installNativeEventFilter(hotkeys)
     window = Window(worker_factory, hotkeys)
     window.apply_hotkeys()
+    if offline:
+        window.status.setText("離線模式：只查事件，不連模擬器或 PC 版")
     window.show()
     window.worker.start()
     window.worker.send("scan")
@@ -525,7 +556,8 @@ def main(worker_factory=Worker):
         window.worker.send("set_watch", True)
     code = app.exec()
     hotkeys.clear()
-    sys.stdout.flush()
+    if sys.stdout is not None:  # None in the built lc-helper.exe, which has no console
+        sys.stdout.flush()
     # MaaFramework's controller threads can hold up interpreter shutdown (seen with a connect still running);
     # the settings are saved and the battle stopped by now.
     os._exit(code)
