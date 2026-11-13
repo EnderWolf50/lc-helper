@@ -87,6 +87,12 @@ def stop(p):
     p.drawRoundedRect(6, 6, 12, 12, 1.5, 1.5)
 
 
+def search(p):
+    """A lens with its handle to the lower right."""
+    p.drawEllipse(QPointF(10.5, 10.5), 6, 6)
+    p.drawLine(QPointF(15, 15), QPointF(20, 20))
+
+
 def dot(p):
     solid(p)
     p.drawEllipse(QPointF(12, 12), 10, 10)
@@ -108,7 +114,8 @@ def star(p):
 
 
 DRAW = {"gear": gear, "box": box, "checked": checked, "unfolded": unfolded, "folded": folded, "up": up, "close": close,
-        "pin": pin, "unpinned": unpinned, "play": play, "stop": stop, "dot": dot, "bullet": bullet, "star": star}
+        "pin": pin, "unpinned": unpinned, "play": play, "stop": stop, "dot": dot, "bullet": bullet, "star": star,
+        "search": search}
 
 
 def paint(p, name, color, square: QRectF):

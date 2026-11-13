@@ -21,6 +21,7 @@ os.environ.setdefault("QT_QPA_FONTDIR", str(FONTS))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from PySide6.QtGui import QColor, QFontDatabase, QPainter, QPixmap  # noqa: E402
+from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from lc_helper import app as ui  # noqa: E402
@@ -74,7 +75,9 @@ def on_screen(window, out, name):
 
 
 def with_popup(window, box, out, name):
-    """The window with a search box's drop-down list painted where it shows: the list is a window of its own."""
+    """The window with a search box's drop-down list painted where it shows: the list is a window of its own. The
+    field's clear button fades in over a fraction of a second, so the shot waits for it."""
+    QTest.qWait(300)
     settle()
     popup = box.list.popup()
     page, drop = window.grab(), popup.grab()

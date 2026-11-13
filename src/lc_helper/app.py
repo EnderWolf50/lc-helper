@@ -64,8 +64,8 @@ ICON, ICON_ON, HEAD_ICON = "#b9ab93", "#e7b45a", "#c9a165"
 # The detail pane's icons, set in its text as images: <img src='icon:NAME'>, in these colours.
 PANE_ICONS = {"star": "#f0c674", "bullet": "#eadcc4"}
 DOT = {"idle": "#6b6152", "connecting": "#e7b45a", "connected": "#6cc070", "error": "#d9534f"}
-EVENT_PLACEHOLDER = "<p style='color:#8f8270'>在事件的選項頁按「讀取畫面」，或輸入記得的幾個字查詢。</p>"
-GIFT_PLACEHOLDER = "<p style='color:#8f8270'>在選飾品或獲得飾品的畫面按「讀取畫面」，或輸入飾品名字查詢。</p>"
+EVENT_PLACEHOLDER = "<p style='color:#8f8270'>在事件的選項頁按「讀取」，或輸入記得的幾個字查詢。</p>"
+GIFT_PLACEHOLDER = "<p style='color:#8f8270'>在選飾品或獲得飾品的畫面按「讀取」，或輸入飾品名字查詢。</p>"
 
 STYLE = Template("""
 QWidget#root { background: #17130f; border: 1px solid #5b4527; border-radius: 10px; }
@@ -476,7 +476,8 @@ class Elided(QLabel):
 
 
 class SearchBox(QWidget):
-    """A search field with its clear button and 查詢; the hits drop down from it in a list that closes on a pick.
+    """A search field, a search icon at its left and a clear button at its right, then the widgets beside it on its
+    row; Enter or the icon searches, and the hits drop down under the whole row in a list that closes on a pick.
 
     find(query) gives the hits, [(row text, found)], and missing is the row shown for none. picked(found) is emitted
     on the user's pick, cleared once the field is emptied, by its clear button or by hand."""
@@ -484,16 +485,19 @@ class SearchBox(QWidget):
     picked = Signal(object)
     cleared = Signal()
 
-    def __init__(self, placeholder, missing, find):
+    def __init__(self, placeholder, missing, find, beside=()):
         super().__init__()
         self.find, self.missing, self.found = find, missing, []
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(8)
         self.field = QLineEdit(placeholderText=placeholder, clearButtonEnabled=True)
-        self.go = QPushButton("查詢", clicked=self.search)
+        self.go = self.field.addAction(QIcon(), QLineEdit.LeadingPosition)  # drawn by Window.apply_icons
+        self.go.setToolTip("查詢")
+        self.go.triggered.connect(self.search)
         row.addWidget(self.field, 1)
-        row.addWidget(self.go)
+        for widget in beside:
+            row.addWidget(widget)
         self.hits = QStandardItemModel(self)
         # Set on the field with setWidget, not setCompleter: a pick leaves the user's words in the field.
         self.list = QCompleter(self.hits, self, completionMode=QCompleter.UnfilteredPopupCompletion,
@@ -517,7 +521,7 @@ class SearchBox(QWidget):
             self.cleared.emit()
 
     def search(self):
-        """The hits for the field's words, dropped down under the field and 查詢, the first one lit for Enter."""
+        """The hits for the field's words, dropped down under the row, the first one lit for Enter."""
         self.typing.stop()
         query = self.field.text().strip()
         if not query:
@@ -594,6 +598,8 @@ class Look(QProxyStyle):
     def pixelMetric(self, metric, option=None, widget=None):
         if metric in (QStyle.PM_IndicatorWidth, QStyle.PM_IndicatorHeight) and widget is not None:
             return round(widget.fontMetrics().height() * 0.85)
+        if metric == QStyle.PM_LineEditIconSize and widget is not None:  # the search icon and the clear button
+            return round(widget.fontMetrics().height() * 0.8)
         return super().pixelMetric(metric, option, widget)
 
 
@@ -734,20 +740,16 @@ class Window(QWidget):
         ev = QVBoxLayout(section.body)
         ev.setContentsMargins(12, 10, 12, 12)
         ev.setSpacing(8)
-        row = QHBoxLayout()
-        row.setSpacing(8)
         self.read_button = self.control(QPushButton(objectName="read", clicked=lambda: self.worker.send("read_event")))
-        row.addWidget(self.read_button, 1)
         self.watch = self.control(QPushButton("自動", objectName="pill", checkable=True, checked=s["watch"],
                                               toolTip="自動讀取：畫面出現事件選項或飾品畫面就讀取顯示"))
         self.watch.toggled.connect(self.set_watch)
-        row.addWidget(self.watch)
-        ev.addLayout(row)
         self.event_search = SearchBox("搜尋事件文字（中/英）", "找不到符合的事件",
-                                      lambda query: [(result_text(e), e) for e in events.search(query, limit=8)])
+                                      lambda query: [(result_text(e), e) for e in events.search(query, limit=8)],
+                                      beside=(self.read_button, self.watch))
         self.event_search.picked.connect(self.show_found_event)
         self.event_search.cleared.connect(self.clear_event)
-        self.controls += [self.event_search.field, self.event_search.go]
+        self.controls.append(self.event_search.field)
         ev.addWidget(self.event_search)
         self.detail = QTextBrowser(openExternalLinks=False)
         self.detail.document().documentLayout().documentSizeChanged.connect(lambda _: self.fit_timer.start())
@@ -786,7 +788,7 @@ class Window(QWidget):
                                                     for g in gifts.search(query, limit=8)])
         self.gift_search.picked.connect(lambda gift: self.show_gifts([gift]))
         self.gift_search.cleared.connect(self.clear_gifts)
-        self.controls += [self.gift_search.field, self.gift_search.go]
+        self.controls.append(self.gift_search.field)
         lay.addWidget(self.gift_search)
         self.gift_detail = QTextBrowser(openExternalLinks=False)
         self.gift_detail.document().documentLayout().documentSizeChanged.connect(lambda _: self.fit_timer.start())
@@ -927,6 +929,9 @@ class Window(QWidget):
             button.setIconSize(QSize(side, side))
         self.pin.setToolTip(pin_tip)
         self.dot.setPixmap(icons.pixmap("dot", DOT[self.dot.property("state")], side // 2, ratio))
+        for box in (self.event_search, self.gift_search):
+            inside = box.field.style().pixelMetric(QStyle.PM_LineEditIconSize, None, box.field)
+            box.go.setIcon(icons.icon("search", ICON, inside, ratio))
         for section in self.sections.values():
             arrow = "unfolded" if section.head.isChecked() else "folded"
             section.arrow.setPixmap(icons.pixmap(arrow, HEAD_ICON, side, ratio))
@@ -985,7 +990,8 @@ class Window(QWidget):
 
     def apply_hotkey_labels(self):
         keys = self.settings["hotkeys"]
-        self.read_button.setText(f"讀取畫面  {keys['read']}")
+        self.read_button.setText(f"讀取  {keys['read']}")
+        self.read_button.setToolTip(f"讀取畫面上的事件或飾品（全域熱鍵 {keys['read']}）")
         self.start.setToolTip(f"全域熱鍵 {keys['battle']}")
         self.hotkey_text.setText(f"開始／停止  {keys['battle']}　　讀取畫面  {keys['read']}")
 

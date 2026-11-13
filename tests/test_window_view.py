@@ -165,12 +165,16 @@ def painted(w, widget, x, y):
     return w.grab().toImage().pixelColor(at.x(), at.y())
 
 
-def test_auto_read_sits_beside_read_and_the_helpers_are_one_row_of_pills_that_show_on_and_off_at_a_glance(
+def test_search_read_and_auto_read_share_one_row_and_the_helpers_are_pills_that_show_on_and_off_at_a_glance(
         tmp_path, monkeypatch):
     w = window(tmp_path, monkeypatch, watch=False, skip=False, overlay=True)
     top = lambda widget: widget.mapTo(w, QPoint()).y()  # noqa: E731
-    assert w.watch.text() == "自動" and top(w.watch) == top(w.read_button) and w.watch.height() == w.read_button.height()
-    assert w.read_button.text() == "讀取畫面  F9"
+    left = lambda widget: widget.mapTo(w, QPoint()).x()  # noqa: E731
+    row = (w.event_search.field, w.read_button, w.watch)
+    assert left(row[0]) < left(row[1]) < left(row[2]), "the search field, then 讀取, then 自動"
+    assert len({top(x) for x in row}) == 1 and len({x.height() for x in row}) == 1, "one row"
+    assert w.watch.text() == "自動" and w.read_button.text() == "讀取  F9" and "F9" in w.read_button.toolTip()
+    assert not any(b.text() == "查詢" for b in w.findChildren(QAbstractButton)), "the icon in the field searches"
     pills = {"跳過劇情": w.skip_box, "遊戲內提示": w.overlay_box}
     assert [p.text() for p in pills.values()] == list(pills)
     assert not any("疊加" in b.text() + b.toolTip() for b in w.findChildren(QAbstractButton)), "the old name is gone"

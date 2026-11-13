@@ -77,6 +77,16 @@ def rows(box):
     return [view.model().index(i, 0).data() for i in range(view.model().rowCount())] if view.isVisible() else []
 
 
+def search_icon(box):
+    """The search icon inside box's field: a click on it searches."""
+    return next(b for b in box.field.findChildren(QToolButton) if b.defaultAction() is box.go)
+
+
+def clear_button(box):
+    """The clear button inside box's field."""
+    return next(b for b in box.field.findChildren(QToolButton) if b.defaultAction() is not box.go)
+
+
 def click_row(box, row):
     view = box.list.popup()
     QTest.mouseClick(view.viewport(), Qt.LeftButton, pos=view.visualRect(view.model().index(row, 0)).center())
@@ -98,7 +108,7 @@ def test_the_event_search_drops_down_events_only_and_closes_once_one_is_picked(t
     assert box.field.text() == "gift", "the words stay in the field"
 
 
-def test_query_and_enter_search_at_once_and_enter_on_the_list_picks_the_first_hit(tmp_path, monkeypatch):
+def test_the_search_icon_and_enter_search_at_once_and_enter_on_the_list_picks_the_first_hit(tmp_path, monkeypatch):
     w = shown(tmp_path, monkeypatch)
     box = w.event_search
     first = events.search("hand", limit=8)[0]
@@ -112,8 +122,9 @@ def test_query_and_enter_search_at_once_and_enter_on_the_list_picks_the_first_hi
     # The list hands Return to the field before it picks: a search then would refill the list under the pick.
     assert len(searches) == 1, "Enter on the list picks, it does not search again"
     assert not box.list.popup().isVisible() and w.detail.toPlainText().startswith(f"事件 {first['id']}")
-    box.go.click()
-    assert len(searches) == 2 and rows(box)[0] == ui.result_text(first), "查詢 searches"
+    assert not search_icon(box).icon().isNull() and search_icon(box).toolTip() == "查詢"
+    search_icon(box).click()
+    assert len(searches) == 2 and rows(box)[0] == ui.result_text(first), "the icon searches"
 
 
 def test_clearing_the_event_search_empties_the_pane(tmp_path, monkeypatch, screen):
@@ -121,10 +132,10 @@ def test_clearing_the_event_search_empties_the_pane(tmp_path, monkeypatch, scree
     placeholder = w.detail.toPlainText()
     box = w.event_search
     box.field.setText("hand")
-    box.go.click()
+    search_icon(box).click()
     click_row(box, 0)
     assert w.detail.toPlainText() != placeholder
-    box.field.findChild(QToolButton).click()
+    clear_button(box).click()
     assert box.field.text() == "" and w.detail.toPlainText() == placeholder, "the clear button"
     w.on_event(events.read_screen(screen("EventChoices.png")))
     w.overlay.hide_labels()
@@ -139,7 +150,7 @@ def test_a_search_with_no_hit_says_so_in_the_list_and_leaves_the_pane_alone(tmp_
     before = w.detail.toPlainText()
     box = w.event_search
     box.field.setText("qqzzxxjj")
-    box.go.click()
+    search_icon(box).click()
     assert rows(box) == ["找不到符合的事件"]
     click_row(box, 0)
     assert w.detail.toPlainText() == before
@@ -154,9 +165,11 @@ def test_the_gift_search_finds_gifts_by_chinese_or_english_name_and_shows_one_in
     box = w.gift_search
     for query in ("地獄蝶", "hellterfly"):
         box.field.setText(query)
-        box.go.click()
+        QTest.keyClick(box.field, Qt.Key_Return)
         found = gifts.search(query, limit=8)
         assert rows(box)[0].startswith(gifts.label(found[0])), query
+    search_icon(box).click()
+    assert rows(box)[0].startswith(gifts.label(found[0])), "the gift field's icon searches too"
     click_row(box, 0)
     assert w.gift_detail.toPlainText().startswith(gifts.label(found[0])) and w.detail.toPlainText() == event_text
     w.sections["gift"].head.click()
