@@ -43,7 +43,7 @@ DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pc_size": devices.PC
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 PICK_TIPS = {Pick.WIN_RATE: "每回合按遊戲的 Win Rate（勝率）", Pick.DAMAGE: "每回合按遊戲的 Damage（傷害）"}
 TEXT_SIZES = {"small": ("小", 10.5), "normal": ("標準", 12), "large": ("大", 13.5)}  # text_size: its name, points
-PC_INPUT_NAMES = {"touch": "觸控", "window": "移視窗", "cursor": "借游標", "seize": "前景"}  # devices.PC_INPUTS, short
+PC_INPUT_NAMES = {"window": "移視窗", "touch": "觸控", "cursor": "借游標", "seize": "前景"}  # devices.PC_INPUTS, short
 # The title bar's name for a device that is not connected, by the worker's device state.
 DEVICE_STATES = {"idle": "未連線", "connecting": "連線中", "error": "連線失敗"}
 REFERENCE_PT = 10  # the window's pixel sizes were set for text of this size
@@ -190,6 +190,8 @@ def migrate(saved):
         saved["keywords"] = [keyword]
     if "open_sections" not in saved and compact:
         saved["open_sections"] = []
+    if "pc_size" not in saved and saved.get("pc_input") == "touch":  # the default before window input, 2026-11-14
+        saved["pc_input"] = "window"
     return saved
 
 

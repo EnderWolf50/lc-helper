@@ -38,6 +38,14 @@ def test_an_old_folded_window_opens_folded_and_an_unfolded_one_as_a_fresh_one(tm
     assert "compact" not in load(tmp_path, monkeypatch, {"compact": True})
 
 
+def test_settings_from_before_window_input_leave_synthetic_touch(tmp_path, monkeypatch):
+    """touch was the default until 2026-11-14 and needs the game in view; a file from before pc_size held it by
+    default, so it moves to window input. Picked since then, it stays."""
+    assert load(tmp_path, monkeypatch, {"pc_input": "touch"})["pc_input"] == "window"
+    assert load(tmp_path, monkeypatch, {"pc_input": "cursor"})["pc_input"] == "cursor"
+    assert load(tmp_path, monkeypatch, {"pc_input": "touch", "pc_size": "720"})["pc_input"] == "touch"
+
+
 def test_a_pc_size_outside_the_choices_is_the_default(tmp_path, monkeypatch):
     assert load(tmp_path, monkeypatch, {"pc_size": "8k"})["pc_size"] == "1440"
     assert load(tmp_path, monkeypatch, {})["pc_size"] == "1440"

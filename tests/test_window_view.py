@@ -271,7 +271,7 @@ def test_the_settings_page_holds_the_battle_device_display_and_hotkey_settings_i
     settled(w)
     assert page_parts(w.settings_page) == [
         ("戰鬥", ["回合播放時按住畫面（加快 E.G.O 動畫）", "勝利後停止自動戰鬥", "戰鬥結束時跳出 Windows 通知", "戰鬥紀錄…"]),
-        ("裝置", ["重新尋找", "PC 點擊", "觸控", "移視窗", "借游標", "前景", "PC 解析度"]),
+        ("裝置", ["重新尋找", "PC 點擊", "移視窗", "觸控", "借游標", "前景", "PC 解析度"]),
         ("顯示", ["字級", "小", "標準", "大"]),
         ("熱鍵", ["開始／停止  F8　　讀取畫面  F9", "修改…"]),
     ]
@@ -298,7 +298,7 @@ def test_the_pc_click_and_text_size_rows_show_the_current_choice_and_explain_eac
     w = window(tmp_path, monkeypatch, text_size="small", pc_input="cursor")
     page = w.settings_page
     on = lambda texts: [t for t in texts if button(page, t).isChecked()]  # noqa: E731
-    assert on(["觸控", "移視窗", "借游標", "前景"]) == ["借游標"] and on(["小", "標準", "大"]) == ["小"]
+    assert on(["移視窗", "觸控", "借游標", "前景"]) == ["借游標"] and on(["小", "標準", "大"]) == ["小"]
     assert button(page, "觸控").toolTip() == "合成觸控（不動滑鼠，遊戲要露出來）"
     assert button(page, "移視窗").toolTip() == "移動視窗（不動滑鼠，遊戲可在背景；點擊時視窗瞬間移到游標下再移回，回合播放時不按住）"
     button(page, "移視窗").click()
@@ -324,7 +324,7 @@ def test_the_settings_rows_start_at_one_left_edge_and_their_controls_share_one_h
     settled(w)
     page = w.settings_page
     left = lambda widget: widget.mapTo(page, QPoint()).x()  # noqa: E731
-    assert left(button(page, "觸控")) == left(w.pc_sizes) == left(button(page, "小")), \
+    assert left(button(page, "移視窗")) == left(w.pc_sizes) == left(button(page, "小")), \
         "the choices line up after their labels"
     assert len({left(widget) for widget in (w.device_box, button(page, "回合播放時按住畫面（加快 E.G.O 動畫）"),
                                             w.hotkey_text, *page.findChildren(QLabel, "section"))}) == 1
