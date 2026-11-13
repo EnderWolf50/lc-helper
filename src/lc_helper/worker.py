@@ -143,8 +143,7 @@ class Worker(threading.Thread):
         self.cb.device("connecting", address or "自動")
         try:
             self.device, self.target = self.connect_fn(address, pc_input=self.pc_input)
-            pc = self.target.address == devices.PC
-            self.cb.device("connected", self.target.name if pc else f"{self.target.name} {self.target.address}")
+            self.cb.device("connected", self.target.label)
         except Exception as e:
             self.cb.device("error", str(e))
 

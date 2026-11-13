@@ -68,28 +68,6 @@ def on_screen(window, out, name):
     print(path, f"screen {area.height()} px, window {window.y()}..{window.frameGeometry().bottom()}")
 
 
-def menus(window, out, name):
-    """The ⋯ menu with its submenus beside it, side by side in one PNG."""
-    menu = window.more.menu()
-    pics = []
-    for m in (menu, *(a.menu() for a in menu.actions() if a.menu())):
-        # A hidden menu keeps the size it had before the text size changed. A popup takes its size hint; adjustSize
-        # would cap it at 2/3 of the 800 px offscreen screen.
-        m.resize(m.sizeHint())
-        pics.append(m.grab())
-    sheet = QPixmap(sum(p.width() + 8 for p in pics), max(p.height() for p in pics))
-    sheet.fill(QColor("#0b0a09"))
-    painter = QPainter(sheet)
-    x = 0
-    for pic in pics:
-        painter.drawPixmap(x, 0, pic)
-        x += pic.width() + 8
-    painter.end()
-    path = out / name
-    sheet.save(str(path))
-    print(path)
-
-
 def overlay_shot(out, name, capture, keywords=()):
     """The overlay's labels painted over a capture of the game, as the player would see them."""
     from PySide6.QtCore import QPoint
@@ -123,17 +101,18 @@ def main():
         QFontDatabase.addApplicationFont(str(FONTS / name))  # renders show a fallback with other metrics
     w = ui.Window(worker_factory=StandIn)
     w.show()
-    w.on_device("connected", "MuMuPlayer12 127.0.0.1:16384")
-    shot(w, out, "window-idle.png")
-    found = [Target("MuMuPlayer12", "127.0.0.1:16384"), Target("Limbus PC", PC)]
+    shot(w, out, "window-main.png")
+    found = [Target("MuMuPlayer12", "127.0.0.1:16384"), Target("MuMuPlayer12", "127.0.0.1:16416"),
+             Target("Limbus PC", PC)]
     w.settings["address"] = PC
     w.on_targets(found)
-    w.on_device("connected", "Limbus PC（合成觸控）")
-    shot(w, out, "window-pc.png")
+    w.on_device("connected", "PC 版")
+    w.gear.setChecked(True)
+    shot(w, out, "window-settings-pc.png")
+    w.gear.setChecked(False)
     for pinned, name in ((False, "unpinned"), (True, "pinned")):
         w.pin.setChecked(pinned)
         shot(w.header, out, f"window-header-{name}.png")
-    menus(w, out, "window-menu.png")
     sample = out / "render-battles.jsonl"
     sample.unlink(missing_ok=True)
     from lc_helper import fights
@@ -153,9 +132,11 @@ def main():
     dialog.close()
     w.settings["address"] = "127.0.0.1:16384"
     w.on_targets(found)
-    w.on_device("connected", "MuMuPlayer12 127.0.0.1:16384")
+    w.on_device("connected", "MuMu 0")
+    w.guard_box.setCurrentIndex(w.guard_box.findData("turns"))
+    w.set_guard_mode(w.guard_box.currentIndex())
     w.on_battle(Status(Phase.GUARDING, Plan(Pick.DAMAGE, 2), 3))
-    shot(w, out, "window-guarding.png")
+    shot(w, out, "window-battle-running.png")
     w.on_battle(Status(Phase.PLAYING, Plan(Pick.WIN_RATE, FOREVER), 7))
     image = vision.imread(maalc_dir() / "tests/screens/EventChoices.png")
     w.settings["keywords"] = ["Charge"]
@@ -164,13 +145,15 @@ def main():
     w.overlay.hide_labels()
     shot(w, out, "window-event-read.png")
     w.skip_box.setChecked(True)
-    w.say_skip("自動跳過：到選項頁了，請你選")
+    w.say_skip("自動跳過：點了沒反應，等畫面變化")
     shot(w, out, "window-skip.png")
     w.skip_box.setChecked(False)
     for key in ui.TEXT_SIZES:
         w.set_text_size(key)
         shot(w, out, f"window-text-{key}.png")
-        menus(w, out, f"window-menu-{key}.png")
+        w.gear.setChecked(True)
+        shot(w, out, f"window-settings-{key}.png")
+        w.gear.setChecked(False)
     w.show_event(events.by_id()[971097])  # too long for the pane at every text size: it stops short and scrolls
     area = w.screen().availableGeometry()
     for where, y in (("top", 0), ("low", area.height() // 4)):
@@ -186,13 +169,11 @@ def main():
     w.query.setText("")
     w.on_gifts(gifts.read_gifts(trials, "choice", ocr.lines))
     shot(w, out, "window-gifts.png")
-    w.query.setText("地獄蝶")
-    w.run_search()
-    shot(w, out, "window-gift-search.png")
-    w.query.setText("")
     w.on_battle(Status(Phase.STOPPED, Plan(), 4, "連續 3 個回合按 START 都沒開始，自動戰鬥停止"))
-    w.toggle_compact()
-    shot(w, out, "window-compact.png")
+    w.set_watch(True)
+    for section in w.sections.values():
+        section.head.setChecked(False)
+    shot(w, out, "window-folded.png")
     overlay_shot(out, "overlay-event.png", "EventChoices.png", keywords=["Charge"])
     overlay_shot(out, "overlay-event-scrolled.png", "EventChoicesLitTop.png")
     print("commands sent:", w.worker.sent)

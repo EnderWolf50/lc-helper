@@ -29,3 +29,12 @@ def test_every_pc_input_names_a_maafw_input_method():
     for _, _, method, _ in device.PC_INPUTS.values():
         assert getattr(MaaWin32InputMethodEnum, method)
     assert device.PC_INPUT in device.PC_INPUTS
+
+
+def test_a_device_is_called_by_a_short_name():
+    assert device.Target("MuMuPlayer12", "127.0.0.1:16384").label == "MuMu 0"
+    assert device.Target("MuMuPlayer12", "127.0.0.1:16416").label == "MuMu 1", "MuMu's instance n: 16384 + 32 n"
+    assert device.Target("Limbus PC（合成觸控）", device.PC).label == "PC 版"
+    assert device.Target("LDPlayer", "emulator-5554").label == "LDPlayer"
+    assert device.Target("MuMuPlayer12", "127.0.0.1:5555").label == "MuMuPlayer12", "not one of MuMu's own ports"
+    assert device.Target("BlueStacks", "127.0.0.1:16384").label == "BlueStacks"

@@ -47,8 +47,18 @@ class Target:
     name: str
     address: str  # an adb address, or PC for the PC client (its window handle changes each launch)
 
+    @property
+    def label(self):
+        """What the window calls it: PC 版, MuMu 0 for MuMu's first instance, else the name MaaFramework gives."""
+        if self.address == PC:
+            return "PC 版"
+        port = self.address.rsplit(":", 1)[-1]
+        instance, step = divmod(int(port) - MUMU_PORT, MUMU_STEP) if port.isdigit() else (-1, 1)
+        return f"MuMu {instance}" if self.name.startswith("MuMu") and instance >= 0 and not step else self.name
+
 
 PC = "pc"
+MUMU_PORT, MUMU_STEP = 16384, 32  # MuMu 12's instance n listens on adb port 16384 + 32 n
 PC_NAME = "Limbus PC"
 # AALC, LixAssistantLimbusCompany and sairaisaika/MaaLimbus all find the client by this class and title.
 PC_CLASS, PC_TITLE = "UnityWndClass", "LimbusCompany"

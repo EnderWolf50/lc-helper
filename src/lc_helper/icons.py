@@ -14,10 +14,32 @@ def solid(p):
     p.setPen(Qt.NoPen)
 
 
-def more(p):
+def gear(p):
+    """Eight flat-topped teeth around a ring, and the hole in the middle."""
+    rim = QPainterPath()
+    for i in range(8):
+        for degrees, r in ((-15, 8), (-9, 11), (9, 11), (15, 8)):
+            a = (45 * i + degrees) * pi / 180
+            point = QPointF(12 + r * cos(a), 12 + r * sin(a))
+            rim.lineTo(point) if rim.elementCount() else rim.moveTo(point)
+    rim.closeSubpath()
+    p.drawPath(rim)
+    p.drawEllipse(QPointF(12, 12), 3.2, 3.2)
+
+
+def box(p):
+    """A check box, off."""
+    p.drawRoundedRect(QRectF(4, 4, 16, 16), 3, 3)
+
+
+def checked(p):
+    """A check box, on: filled, the tick cut out of it, so the background shows through."""
     solid(p)
-    for x in (5, 12, 19):
-        p.drawEllipse(QPointF(x, 12), 1.8, 1.8)
+    p.drawRoundedRect(QRectF(3, 3, 18, 18), 4, 4)
+    p.setCompositionMode(QPainter.CompositionMode_Clear)
+    p.setPen(QPen(Qt.black, 2.6, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    p.setBrush(Qt.NoBrush)
+    p.drawPolyline([QPointF(7.5, 12.5), QPointF(10.5, 15.5), QPointF(16.5, 9)])
 
 
 def unfolded(p):
@@ -26,6 +48,10 @@ def unfolded(p):
 
 def folded(p):
     p.drawPolyline([QPointF(9, 6), QPointF(15, 12), QPointF(9, 18)])
+
+
+def up(p):
+    p.drawPolyline([QPointF(6, 15), QPointF(12, 9), QPointF(18, 15)])
 
 
 def close(p):
@@ -81,8 +107,8 @@ def star(p):
                    for i, r in enumerate([outer, inner] * 5)])
 
 
-DRAW = {"more": more, "unfolded": unfolded, "folded": folded, "close": close, "pin": pin, "unpinned": unpinned,
-        "play": play, "stop": stop, "dot": dot, "bullet": bullet, "star": star}
+DRAW = {"gear": gear, "box": box, "checked": checked, "unfolded": unfolded, "folded": folded, "up": up, "close": close,
+        "pin": pin, "unpinned": unpinned, "play": play, "stop": stop, "dot": dot, "bullet": bullet, "star": star}
 
 
 def paint(p, name, color, square: QRectF):

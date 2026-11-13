@@ -1,7 +1,8 @@
-"""The floating window: auto battle controls on top, the Mirror Dungeon event lookup below.
+"""The floating window: the auto battle bar on top, the Mirror Dungeon event and gift sections under it, and the
+settings on a page of their own behind the gear.
 
-Settings (device, pick, guard turns, hotkeys, text size, pin, window position) live in .local/settings.json beside the
-repository.
+Settings (device, pick, guard, keywords, hotkeys, text size, pin, open sections, window position) live in
+.local/settings.json beside the repository.
 """
 
 import ctypes
@@ -15,12 +16,11 @@ from math import ceil
 from string import Template
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import (QAction, QActionGroup, QColor, QFont, QFontMetrics, QFontMetricsF, QIcon, QKeySequence,
-                           QPainter, QPixmap, QTextDocument)
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QComboBox, QDialog, QDialogButtonBox,
+from PySide6.QtGui import QColor, QFont, QFontMetrics, QFontMetricsF, QIcon, QKeySequence, QPainter, QPixmap, QTextDocument
+from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
                                QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout, QLineEdit,
-                               QListWidget, QListWidgetItem, QMenu, QPushButton, QSpinBox, QSystemTrayIcon, QTextBrowser,
-                               QToolButton, QVBoxLayout, QWidget, QWidgetAction)
+                               QListWidget, QListWidgetItem, QProxyStyle, QPushButton, QSizePolicy, QSpinBox, QStyle,
+                               QSystemTrayIcon, QTextBrowser, QToolButton, QVBoxLayout, QWidget)
 
 from . import device as devices
 from .paths import LOCAL
@@ -39,7 +39,11 @@ DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "
             "notify": True, "open_sections": list(SECTIONS), "text_size": "normal", "pin": True, "pos": None,
             "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
-TEXT_SIZES = {"small": ("小", 10.5), "normal": ("標準", 12), "large": ("大", 13.5)}  # text_size: menu name, points
+PICK_TIPS = {Pick.WIN_RATE: "每回合按遊戲的 Win Rate（勝率）", Pick.DAMAGE: "每回合按遊戲的 Damage（傷害）"}
+TEXT_SIZES = {"small": ("小", 10.5), "normal": ("標準", 12), "large": ("大", 13.5)}  # text_size: its name, points
+PC_INPUT_NAMES = {"touch": "觸控", "window": "移視窗", "cursor": "借游標", "seize": "前景"}  # devices.PC_INPUTS, short
+# The title bar's name for a device that is not connected, by the worker's device state.
+DEVICE_STATES = {"idle": "未連線", "connecting": "連線中", "error": "連線失敗"}
 REFERENCE_PT = 10  # the window's pixel sizes were set for text of this size
 PANE_LINES = 3  # the detail pane's least height in lines of text, which is also its height with nothing to show
 SCREEN_GAP = 8  # px kept free between the window's bottom and the screen's
@@ -48,13 +52,12 @@ SCREEN_GAP = 8  # px kept free between the window's bottom and the screen's
 PIN = {True: (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool, "pin",
               "置頂中：點一下取消置頂，視窗改成一般視窗，被蓋住時從工作列或 Alt+Tab 叫回"),
        False: (Qt.FramelessWindowHint | Qt.Window, "unpinned", "沒有置頂：點一下讓視窗固定在最上層")}
-FOLD = {False: ("unfolded", "收合事件查詢"), True: ("folded", "展開事件查詢")}  # folded: the fold button's icon, tooltip
 # The settings whose value must be one of a set (load_settings): the keys of each table, or the listed values.
 SETTING_CHOICES = {"text_size": TEXT_SIZES, "pc_input": devices.PC_INPUTS, "pin": PIN, "guard_mode": GUARD_MODES,
                    "guard": range(1, 100)}
 # The settings that are a list of distinct values from a set, in the user's order.
 LIST_CHOICES = {"keywords": recommend.CHOICES, "open_sections": list(SECTIONS)}
-ICON, ICON_ON = "#b9ab93", "#e7b45a"
+ICON, ICON_ON, HEAD_ICON = "#b9ab93", "#e7b45a", "#c9a165"
 # The detail pane's icons, set in its text as images: <img src='icon:NAME'>, in these colours.
 PANE_ICONS = {"star": "#f0c674", "bullet": "#eadcc4"}
 DOT = {"idle": "#6b6152", "connecting": "#e7b45a", "connected": "#6cc070", "error": "#d9534f"}
@@ -65,30 +68,42 @@ QWidget { color: #eadcc4; font-family: "Microsoft JhengHei UI", "Segoe UI"; font
 QFrame#header { background: #231b13; border-top-left-radius: 10px; border-top-right-radius: 10px;
                 border-bottom: 1px solid #5b4527; }
 QLabel#title { color: #e7b45a; font-size: ${big}pt; font-weight: bold; letter-spacing: 1px; }
+QLabel#device { color: #b9ab93; font-size: ${small}pt; }
 QLabel#section { color: #c9a165; font-size: ${small}pt; font-weight: bold; }
 QLabel#status { color: #b9ab93; font-size: ${small}pt; }
-QPushButton, QToolButton { background: #2c2219; border: 1px solid #5b4527; border-radius: 6px; padding: 5px 10px; }
+QPushButton, QToolButton { background: #2c2219; border: 1px solid #5b4527; border-radius: 6px; padding: 0 10px; }
 QPushButton:hover, QToolButton:hover { background: #3a2c1f; }
 QPushButton:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
 QPushButton:disabled { background: #1d1711; border-color: #3e2f1d; color: #6b6152; }
-QPushButton#primary { background: #9e2b22; border-color: #d65a45; color: #fff; font-size: ${big}pt; font-weight: bold;
-                       padding: 8px; }
-QPushButton#primary:hover { background: #b8352a; }
-QPushButton#primary[running="true"] { background: #3d4a2a; border-color: #8fb35a; }
-QToolButton#flat { background: transparent; border: none; padding: 4px 3px; }
-QToolButton#flat:hover { background: #3a2c1f; }
-QToolButton#flat::menu-indicator { image: none; width: 0; }
-QSpinBox, QLineEdit, QComboBox { background: #0f0c09; border: 1px solid #5b4527; border-radius: 6px; padding: 4px 6px; }
+QPushButton#seg { background: #1d1711; color: #b9ab93; border-radius: 0; }
+QPushButton#seg:hover { background: #2c2219; }
+QPushButton#seg:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
+QPushButton#seg[end="first"] { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+QPushButton#seg[end="last"] { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+QPushButton#start { background: #2f6b3a; border-color: #6fae6a; color: #fff; font-size: ${big}pt; font-weight: bold; }
+QPushButton#start:hover { background: #377a43; }
+QPushButton#start[running="true"] { background: #9e2b22; border-color: #d65a45; }
+QPushButton#start[running="true"]:hover { background: #b8352a; }
+QPushButton#link { background: transparent; border: none; color: #e7b45a; padding: 0; text-align: left;
+                   text-decoration: underline; }
+QPushButton#link:hover { color: #f0c674; }
+QPushButton#sectionHead { background: #231b13; border: none; border-top: 1px solid #3e2f1d; border-radius: 0;
+                          padding: 0; }
+QPushButton#sectionHead:hover { background: #2c2219; }
+QLabel#sectionTitle { color: #c9a165; font-weight: bold; }
+QLabel#summary { color: #b9ab93; font-size: ${small}pt; }
+QToolButton#flat, QToolButton#gear { background: transparent; border: none; padding: 4px 3px; }
+QToolButton#flat:hover, QToolButton#gear:hover, QToolButton#gear:checked { background: #3a2c1f; }
+QSpinBox, QLineEdit, QComboBox { background: #0f0c09; border: 1px solid #5b4527; border-radius: 6px; padding: 0 6px; }
+QSpinBox::up-button, QSpinBox::down-button { width: ${arrow}px; }
 QLineEdit { placeholder-text-color: #8f8270; }
 QComboBox QAbstractItemView { background: #1d1711; selection-background-color: #6b4a1f; }
 QListWidget { background: #0f0c09; border: 1px solid #3e2f1d; border-radius: 6px; }
 QListWidget::item { padding: 4px; } QListWidget::item:selected { background: #4a3417; }
 QTextBrowser { background: #0f0c09; border: 1px solid #3e2f1d; border-radius: 6px; padding: 4px; }
-QPushButton#pill { background: transparent; color: #b9ab93; border-radius: ${pill}px; padding: 4px 12px; }
+QPushButton#pill { background: transparent; color: #b9ab93; border-radius: ${pill}px; padding: 0 12px; }
 QPushButton#pill:hover { background: #3a2c1f; }
 QPushButton#pill:checked { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; }
-QMenu { background: #1d1711; border: 1px solid #5b4527; } QMenu::item:selected { background: #4a3417; }
-QLabel#menuSection { color: #c9a165; font-size: ${small}pt; font-weight: bold; padding: 6px 12px 2px 12px; }
 QDialog { background: #17130f; }
 QToolTip { color: #eadcc4; background: #231b13; border: 1px solid #5b4527; padding: 4px 6px; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px 1px 2px 0; }
@@ -100,11 +115,17 @@ QKeySequenceEdit QLineEdit { min-width: 140px; }
 """)
 
 
+def control_height(line):
+    """The height every button, field and list shares on a row, for text line pixels high: the line, 5 px padding and
+    a 1 px border on each side."""
+    return line + 12
+
+
 def style(base, line):
     """The style sheet for body text of base points and line pixels: secondary text a step smaller, the title and START
-    a step bigger. A pill is its line, 4 px padding and a 1 px border on each side tall, and its ends are round with
-    half that: Qt draws square corners for a radius over half the height."""
-    return STYLE.substitute(body=base, small=base - 1.5, big=base + 1.5, pill=(line + 10) // 2)
+    a step bigger. A pill's ends are round with half its height: Qt draws square corners for a radius over that."""
+    return STYLE.substitute(body=base, small=base - 1.5, big=base + 1.5, pill=control_height(line) // 2,
+                            arrow=control_height(line) // 2)
 
 
 def scaled(px, base):
@@ -372,33 +393,119 @@ class FightLog(QDialog):
         lay.addWidget(close)
 
 
-class Choices(QMenu):
-    """A submenu of radio choices whose title names the chosen one, as 字級：標準."""
+def device_choice(target):
+    """A device as the device list names it: MuMu 0（16384）, or PC 版."""
+    return target.label if target.address == devices.PC else f"{target.label}（{target.address.rsplit(':', 1)[-1]}）"
 
-    def __init__(self, label, names, chosen, choose, parent):
-        """names: {key: (name in the title, item text)}; choose(key) runs on the user's pick."""
-        super().__init__(parent)
-        self.label, self.names, self.choices = label, names, {}
-        group = QActionGroup(self)
-        for key, (_, text) in names.items():
-            self.choices[key] = action = QAction(text, group, checkable=True)
-            action.triggered.connect(lambda _, key=key: choose(key))
-            self.addAction(action)
-        self.show_choice(chosen)
+
+def event_summary(settings):
+    """The folded event section's head: what it does on its own, and the keywords it recommends for."""
+    parts = [text for key, text in (("watch", "自動讀取開"), ("skip", "跳過劇情開")) if settings[key]]
+    if settings["keywords"]:
+        parts.append("推薦 " + " › ".join(events.KEYWORDS[k] for k in settings["keywords"]))
+    return " · ".join(parts)
+
+
+class Segmented(QWidget):
+    """Buttons side by side of which one is on, as 勝率|傷害. chosen(key) is emitted on the user's pick."""
+
+    chosen = Signal(str)
+
+    def __init__(self, choices, current, name):
+        """choices: {key: (text, tooltip)}."""
+        super().__init__(accessibleName=name)
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(0)
+        group = QButtonGroup(self)
+        self.buttons = {}
+        for i, (key, (text, tip)) in enumerate(choices.items()):
+            button = QPushButton(text, objectName="seg", checkable=True, toolTip=tip)
+            button.setProperty("key", key)
+            button.setProperty("end", "first" if i == 0 else "last" if i == len(choices) - 1 else "")
+            group.addButton(button)
+            row.addWidget(button, 1)
+            self.buttons[key] = button
+        self.show_choice(current)
+        group.buttonClicked.connect(lambda button: self.chosen.emit(button.property("key")))
 
     def show_choice(self, key):
-        self.setTitle(f"{self.label}：{self.names[key][0]}")
-        self.choices[key].setChecked(True)
+        self.buttons[key].setChecked(True)
 
 
-def section(title, menu):
-    """A group's title in a menu. A label draws it, since some styles leave out QMenu.addSection's text; it is a
-    separator to the menu, which no style lets the arrow keys or the mouse stop on."""
-    head = QWidgetAction(menu)
-    head.setDefaultWidget(QLabel(title, objectName="menuSection"))
-    head.setSeparator(True)
-    head.setEnabled(False)
-    return head
+class Elided(QLabel):
+    """One line of text that ends in … where it does not fit."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+
+    def paintEvent(self, e):
+        rect = self.contentsRect()
+        shown = self.fontMetrics().elidedText(self.text(), Qt.ElideRight, rect.width())
+        self.style().drawItemText(QPainter(self), rect, self.alignment(), self.palette(), self.isEnabled(), shown,
+                                  self.foregroundRole())
+
+
+class Section(QWidget):
+    """A part of the main page under a head that folds it away; folded, the head sums up what the part holds."""
+
+    def __init__(self, title, opened):
+        super().__init__()
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+        self.head = QPushButton(objectName="sectionHead", checkable=True, checked=opened, accessibleName=title)
+        row = QHBoxLayout(self.head)
+        row.setContentsMargins(12, 0, 12, 0)
+        row.setSpacing(8)
+        self.arrow = QLabel()
+        self.summary = Elided(objectName="summary")
+        for part in (self.arrow, QLabel(title, objectName="sectionTitle"), self.summary):
+            part.setAttribute(Qt.WA_TransparentForMouseEvents)
+            row.addWidget(part)
+        row.setStretch(2, 1)
+        lay.addWidget(self.head)
+        self.body = QWidget()
+        lay.addWidget(self.body)
+        self.summed_up = ""
+        self.head.toggled.connect(self.show_open)
+        self.show_open(opened)
+
+    def show_open(self, on):
+        """The body, or the summary in the head. The summary label stays, empty, to keep the title at the left."""
+        self.body.setVisible(on)
+        self.summary.setText("" if on else self.summed_up)
+        self.head.setToolTip("" if on else self.summed_up)
+
+    def set_summary(self, text):
+        self.summed_up = text
+        self.show_open(self.head.isChecked())
+
+
+class Look(QProxyStyle):
+    """The platform's style, with the check boxes and the arrows of the lists and the spin box drawn like the window's
+    icons; a check box is as tall as most of a line."""
+
+    def drawPrimitive(self, element, option, painter, widget=None):
+        rect = option.rect
+        if element == QStyle.PE_IndicatorCheckBox:
+            on = bool(option.state & QStyle.State_On)
+            (name, color), side = ("checked", ICON_ON) if on else ("box", ICON), min(rect.width(), rect.height())
+        elif widget is not None and (element in (QStyle.PE_IndicatorSpinUp, QStyle.PE_IndicatorSpinDown) or (
+                element == QStyle.PE_IndicatorArrowDown and isinstance(widget, QComboBox))):
+            # Qt's arrow box is a few pixels across: the chevron is sized to the text and centred on it.
+            name, color = "up" if element == QStyle.PE_IndicatorSpinUp else "unfolded", ICON
+            side = round(widget.fontMetrics().height() * 0.75)
+        else:
+            return super().drawPrimitive(element, option, painter, widget)
+        painter.drawPixmap(rect.x() + (rect.width() - side) // 2, rect.y() + (rect.height() - side) // 2,
+                           icons.pixmap(name, color, side, painter.device().devicePixelRatioF()))
+
+    def pixelMetric(self, metric, option=None, widget=None):
+        if metric in (QStyle.PM_IndicatorWidth, QStyle.PM_IndicatorHeight) and widget is not None:
+            return round(widget.fontMetrics().height() * 0.85)
+        return super().pixelMetric(metric, option, widget)
 
 
 class Window(QWidget):
@@ -408,15 +515,21 @@ class Window(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowTitle("LC Helper")
         self.setWindowIcon(logo())
+        app = QApplication.instance()
+        if not app.property("look"):  # setStyle repolishes every widget: once per application
+            app.setStyle(Look())
+            app.setProperty("look", True)
         self.settings = settings
         self.hotkeys = hotkeys if hotkeys is not None else Hotkeys()
         self.hotkeys_taken = []
         self.overlay = Overlay()
         self.tray = None
-        self.last_reading = None  # the event page last read, ranked again on a new keyword
+        self.last_reading = None  # the event page last read, ranked again on new keywords
         self.shown_event = None
         self.running = False
         self.drag_from: QPoint | None = None
+        self.controls = []  # the buttons, fields and lists that share one height on a row (apply_text_size)
+        self.row_labels = []  # the labels before a row on the settings page, as wide as the widest
         self.fit_timer = QTimer(self, singleShot=True, interval=0, timeout=self.fit_detail)
         self.bridge = Bridge()
         self.worker = worker_factory(self.bridge.callbacks())
@@ -429,134 +542,127 @@ class Window(QWidget):
         self.bridge.fight.connect(self.on_fight)
         self.bridge.gifts.connect(self.on_gifts)
         self.bridge.skip.connect(lambda what: self.say_skip(f"自動跳過：{what}"))
-        self.bridge.error.connect(lambda text: self.status.setText(text))
+        self.bridge.error.connect(self.say)
         self.search_timer = QTimer(self, singleShot=True, interval=120, timeout=self.run_search)
 
+    def control(self, widget):
+        """widget, as tall as every other control on a row."""
+        self.controls.append(widget)
+        return widget
+
     def build(self):
-        s = self.settings
         self.root = root = QWidget(self, objectName="root")
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSizeConstraint(QLayout.SetFixedSize)  # the window is as tall as what it shows
         outer.addWidget(root)
         lay = QVBoxLayout(root)
-        lay.setContentsMargins(0, 0, 0, 10)
-        lay.setSpacing(8)
+        lay.setContentsMargins(0, 0, 0, 8)
+        lay.setSpacing(0)
+        lay.addWidget(self.build_header())
+        self.main_page = QWidget()
+        main = QVBoxLayout(self.main_page)
+        main.setContentsMargins(0, 0, 0, 0)
+        main.setSpacing(0)
+        main.addWidget(self.build_battle())
+        self.sections = {"event": self.build_events()}
+        for key, section in self.sections.items():
+            section.head.toggled.connect(partial(self.set_section_open, key))
+            main.addWidget(section)
+        lay.addWidget(self.main_page)
+        self.settings_page = self.build_settings()
+        self.settings_page.hide()
+        lay.addWidget(self.settings_page)
+        self.show_event_summary()
+        self.apply_text_size()
+        self.apply_hotkey_labels()
+        self.update_start()
+        if self.settings["pos"]:
+            self.move(*self.settings["pos"])
 
-        header = QFrame(objectName="header")
+    def build_header(self):
+        """The title bar: the name, the device and whether it is connected, the settings, the pin and the close."""
+        self.header = header = QFrame(objectName="header")
         h = QHBoxLayout(header)
         h.setContentsMargins(12, 6, 6, 6)
+        h.setSpacing(0)
         h.addWidget(QLabel("LC Helper", objectName="title"))
+        h.addStretch(1)
         self.dot = QLabel(objectName="dot", accessibleName="連線狀態")
         self.dot.setProperty("state", "idle")
-        self.dot.setToolTip("還沒連線：第一次開始戰鬥或讀取事件時才連")
         h.addWidget(self.dot)
-        self.device_box = QComboBox()
-        self.device_box.addItem("自動偵測", None)
-        self.device_box.activated.connect(self.pick_device)
-        h.addWidget(self.device_box, 1)  # the device list takes the width the buttons leave
-        buttons = QHBoxLayout(spacing=0)
-        h.addLayout(buttons)
-        self.pin = QToolButton(objectName="flat", checkable=True, checked=s["pin"], accessibleName="置頂")
+        h.addSpacing(6)
+        self.device_name = QLabel(DEVICE_STATES["idle"], objectName="device")
+        h.addWidget(self.device_name)
+        h.addSpacing(8)
+        for part in (self.dot, self.device_name):
+            part.setToolTip("還沒連線：第一次開始戰鬥或讀取事件時才連")
+        self.gear = QToolButton(objectName="gear", checkable=True, accessibleName="設定", toolTip="設定")
+        self.gear.toggled.connect(self.show_settings)
+        self.pin = QToolButton(objectName="flat", checkable=True, checked=self.settings["pin"], accessibleName="置頂")
         self.pin.toggled.connect(self.set_pin)
-        buttons.addWidget(self.pin)
-        self.more = more = QToolButton(objectName="flat", popupMode=QToolButton.InstantPopup, accessibleName="更多設定",
-                                       toolTip="更多設定")
-        menu = QMenu(more, separatorsCollapsible=False)  # each title is a separator, and Qt hides a leading one
-
-        def check(text, key, toggled):
-            action = QAction(text, menu, checkable=True, checked=s[key])
-            action.toggled.connect(toggled)
-            return action
-
-        self.hold_action = check("回合播放時按住畫面（加快 E.G.O 動畫）", "hold", self.set_hold)
-        self.pc_menu = Choices("PC 版點擊方式", {key: (name, f"{name}（{cost}{'' if can_hold else '，回合播放時不按住'}）")
-                                            for key, (name, cost, _, can_hold) in devices.PC_INPUTS.items()},
-                               s["pc_input"], self.set_pc_input, menu)
-        self.size_menu = Choices("字級", {key: (name, name) for key, (name, _) in TEXT_SIZES.items()}, s["text_size"],
-                                 self.set_text_size, menu)
-        sections = (
-            ("戰鬥", [self.hold_action,
-                     check("勝利後停止自動戰鬥", "stop_after_victory", partial(self.set_flag, "stop_after_victory")),
-                     check("戰鬥結束時跳出 Windows 通知", "notify", partial(self.set_flag, "notify")),
-                     QAction("戰鬥紀錄…", menu, triggered=lambda: FightLog(self).exec())]),
-            ("裝置", [QAction("重新尋找模擬器與 PC 版", menu, triggered=lambda: self.worker.send("scan")),
-                     self.pc_menu.menuAction()]),
-            ("顯示與操作", [self.size_menu.menuAction(), QAction("熱鍵設定…", menu, triggered=self.edit_hotkeys)]),
-        )
-        for title, items in sections:
-            if menu.actions():
-                menu.addSeparator()
-            menu.addActions([section(title, menu), *items])
-        more.setMenu(menu)
-        buttons.addWidget(more)
-        self.fold = QToolButton(objectName="flat", clicked=self.toggle_compact)
-        buttons.addWidget(self.fold)
         self.close_button = QToolButton(objectName="flat", accessibleName="關閉", toolTip="關閉 LC Helper",
                                         clicked=self.close)
-        buttons.addWidget(self.close_button)
-        lay.addWidget(header)
-        self.header = header
+        for button in (self.gear, self.pin, self.close_button):
+            h.addWidget(button)
+        return header
 
-        body = QVBoxLayout()
-        body.setContentsMargins(12, 0, 12, 0)
-        body.setSpacing(8)
-        lay.addLayout(body)
-
-        body.addWidget(QLabel("自動戰鬥", objectName="section"))
+    def build_battle(self):
+        """The auto battle bar, always on the main page: the skill pick, the guard, START and a status line."""
+        s = self.settings
+        bar = QWidget()
+        lay = QVBoxLayout(bar)
+        lay.setContentsMargins(12, 10, 12, 12)
+        lay.setSpacing(8)
         row = QHBoxLayout()
-        self.picks = QButtonGroup(self)
-        for pick in Pick:
-            b = QPushButton(f"{PICK_TEXT[pick]}  {'Win Rate' if pick is Pick.WIN_RATE else 'Damage'}", checkable=True)
-            b.setChecked(s["pick"] == pick.value)
-            self.picks.addButton(b)
-            b.setProperty("pick", pick.value)
-            row.addWidget(b)
-        self.picks.buttonClicked.connect(self.set_pick)
-        body.addLayout(row)
-
-        row = QHBoxLayout()
-        self.guard_box = QComboBox(accessibleName="防禦")
+        row.setSpacing(8)
+        self.picks = Segmented({p.value: (PICK_TEXT[p], PICK_TIPS[p]) for p in Pick}, s["pick"], "選技能")
+        self.picks.chosen.connect(self.set_pick)
+        self.controls += self.picks.buttons.values()
+        row.addWidget(self.picks, 5)
+        self.guard_box = self.control(QComboBox(accessibleName="防禦"))
         for mode, (name, _) in GUARD_MODES.items():
             self.guard_box.addItem(name, mode)
         self.guard_box.setCurrentIndex(self.guard_box.findData(s["guard_mode"]))
         self.guard_box.activated.connect(self.set_guard_mode)
-        row.addWidget(self.guard_box, 1)
-        self.guard_spin = QSpinBox(minimum=1, maximum=99, value=s["guard"], suffix=" 回合", accessibleName="防禦回合數")
+        row.addWidget(self.guard_box, 6)
+        self.guard_spin = self.control(QSpinBox(minimum=1, maximum=99, value=s["guard"], suffix=" 回合",
+                                                accessibleName="防禦回合數"))
         self.guard_spin.valueChanged.connect(self.set_guard_turns)
-        row.addWidget(self.guard_spin)
-        body.addLayout(row)
         self.guard_spin.setVisible(s["guard_mode"] == "turns")
+        row.addWidget(self.guard_spin)
+        lay.addLayout(row)
+        self.start = QPushButton(objectName="start", clicked=self.toggle_battle)
+        lay.addWidget(self.start)
+        self.status = QLabel(objectName="status", wordWrap=True, visible=False)
+        lay.addWidget(self.status)
+        return bar
 
-        self.start = QPushButton(objectName="primary", clicked=self.toggle_battle)
-        body.addWidget(self.start)
-        self.status = QLabel("還沒連上模擬器，第一次開始戰鬥或讀取事件時才連", objectName="status", wordWrap=True)
-        body.addWidget(self.status)
-
-        self.event_box = QWidget()
-        ev = QVBoxLayout(self.event_box)
-        ev.setContentsMargins(0, 4, 0, 0)
-        ev.setSpacing(6)
-        ev.addWidget(QLabel("鏡牢事件", objectName="section"))
+    def build_events(self):
+        s = self.settings
+        section = Section(SECTIONS["event"], "event" in s["open_sections"])
+        ev = QVBoxLayout(section.body)
+        ev.setContentsMargins(12, 10, 12, 12)
+        ev.setSpacing(8)
         row = QHBoxLayout()
-        self.query = QLineEdit(placeholderText="輸入事件、選項或飾品名字（中/英）")
+        self.query = self.control(QLineEdit(placeholderText="輸入事件、選項或飾品名字（中/英）"))
         self.query.setClearButtonEnabled(True)
         self.query.textChanged.connect(lambda: self.search_timer.start())
         row.addWidget(self.query)
-        self.read_button = QPushButton(clicked=lambda: self.worker.send("read_event"))
+        self.read_button = self.control(QPushButton(clicked=lambda: self.worker.send("read_event")))
         row.addWidget(self.read_button)
         ev.addLayout(row)
         row = QHBoxLayout(spacing=6)
-        self.watch = QPushButton("自動讀取", objectName="pill", checkable=True, checked=s["watch"],
-                                 toolTip="自動讀取：畫面出現事件選項就顯示")
+        self.watch = self.control(QPushButton("自動讀取", objectName="pill", checkable=True, checked=s["watch"],
+                                              toolTip="自動讀取：畫面出現事件選項就顯示"))
         self.watch.toggled.connect(self.set_watch)
         row.addWidget(self.watch)
-        self.skip_box = QPushButton("跳過劇情", objectName="pill", checkable=True, checked=s["skip"],
-                                    toolTip="自動跳過劇情：一路推進到選項頁（不替你選）")
+        self.skip_box = self.control(QPushButton("跳過劇情", objectName="pill", checkable=True, checked=s["skip"],
+                                                 toolTip="自動跳過劇情：一路推進到選項頁（不替你選）"))
         self.skip_box.toggled.connect(self.set_skip)
         row.addWidget(self.skip_box)
-        self.overlay_box = QPushButton("疊加顯示", objectName="pill", checkable=True, checked=s["overlay"],
-                                       toolTip="疊加顯示：把選項效果直接標在遊戲畫面上")
+        self.overlay_box = self.control(QPushButton("疊加顯示", objectName="pill", checkable=True,
+                                                    checked=s["overlay"], toolTip="疊加顯示：把選項效果直接標在遊戲畫面上"))
         self.overlay_box.toggled.connect(self.set_overlay)
         row.addWidget(self.overlay_box)
         row.addStretch()
@@ -565,7 +671,7 @@ class Window(QWidget):
         ev.addWidget(self.skip_state)
         row = QHBoxLayout()
         row.addWidget(QLabel("推薦選項，依主要體系：", objectName="status"))
-        self.keyword_box = QComboBox()
+        self.keyword_box = self.control(QComboBox())
         self.keyword_box.addItem("不推薦", None)
         for k in recommend.CHOICES:
             self.keyword_box.addItem(f"{events.KEYWORDS.get(k, k)}  {k}", k)
@@ -583,30 +689,99 @@ class Window(QWidget):
         self.detail.document().documentLayout().documentSizeChanged.connect(lambda _: self.fit_timer.start())
         self.detail.setHtml("<p style='color:#8f8270'>在事件的選項頁按「讀取畫面」，或輸入記得的幾個字。</p>")
         ev.addWidget(self.detail)
-        body.addWidget(self.event_box)
-        self.event_box.setVisible("event" in s["open_sections"])
+        return section
 
-        self.apply_text_size()
-        self.apply_hotkey_labels()
-        self.update_start()
-        if s["pos"]:
-            self.move(*s["pos"])
+    def build_settings(self):
+        """The settings page the gear shows in place of the main page, in groups."""
+        s = self.settings
+        page = QWidget()
+        lay = QVBoxLayout(page)
+        lay.setContentsMargins(12, 10, 12, 12)
+        lay.setSpacing(8)
+
+        def group(title):
+            if lay.count():
+                lay.addSpacing(6)
+            lay.addWidget(QLabel(title, objectName="section"))
+
+        group("戰鬥")
+        for key, text, toggled in (
+                ("hold", "回合播放時按住畫面（加快 E.G.O 動畫）", self.set_hold),
+                ("stop_after_victory", "勝利後停止自動戰鬥", partial(self.set_flag, "stop_after_victory")),
+                ("notify", "戰鬥結束時跳出 Windows 通知", partial(self.set_flag, "notify"))):
+            box = QCheckBox(text, checked=s[key])
+            box.toggled.connect(toggled)
+            lay.addWidget(box)
+        self.fight_log = QPushButton("戰鬥紀錄…", objectName="link", clicked=lambda: FightLog(self).exec())
+        lay.addWidget(self.fight_log, 0, Qt.AlignLeft)
+
+        group("裝置")
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        self.device_box = self.control(QComboBox(accessibleName="裝置"))
+        self.device_box.addItem("自動偵測", None)
+        self.device_box.activated.connect(self.pick_device)
+        row.addWidget(self.device_box, 1)
+        row.addWidget(self.control(QPushButton("重新尋找", toolTip="重新尋找模擬器與 PC 版",
+                                               clicked=lambda: self.worker.send("scan"))))
+        lay.addLayout(row)
+        tips = {key: f"{name}（{cost}{'' if can_hold else '，回合播放時不按住'}）"
+                for key, (name, cost, _, can_hold) in devices.PC_INPUTS.items()}
+        self.pc_inputs = Segmented({key: (short, tips[key]) for key, short in PC_INPUT_NAMES.items()},
+                                   s["pc_input"], "PC 版點擊方式")
+        self.pc_inputs.chosen.connect(self.set_pc_input)
+        lay.addLayout(self.labelled("PC 點擊", self.pc_inputs))
+
+        group("顯示")
+        self.sizes = Segmented({key: (name, "") for key, (name, _) in TEXT_SIZES.items()}, s["text_size"], "字級")
+        self.sizes.chosen.connect(self.set_text_size)
+        lay.addLayout(self.labelled("字級", self.sizes))
+
+        group("熱鍵")
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        self.hotkey_text = QLabel()
+        row.addWidget(self.hotkey_text, 1)
+        row.addWidget(self.control(QPushButton("修改…", clicked=self.edit_hotkeys)))
+        lay.addLayout(row)
+        return page
+
+    def labelled(self, text, widget):
+        """A settings row: a label as wide as the others, then widget."""
+        self.controls += getattr(widget, "buttons", {}).values()
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        label = QLabel(text)
+        self.row_labels.append(label)
+        row.addWidget(label)
+        row.addWidget(widget, 1)
+        return row
 
     def apply_text_size(self):
-        """Text of the chosen size everywhere, menus and dialogs included, in a window sized to it."""
+        """Text of the chosen size everywhere, dialogs included, in a window and controls sized to it."""
         base = TEXT_SIZES[self.settings["text_size"]][1]
         font = QFont("Microsoft JhengHei UI")
         font.setPointSizeF(base)
         QApplication.setFont(font)
-        QApplication.instance().setStyleSheet(style(base, QFontMetrics(font).height()))
+        metrics = QFontMetrics(font)
+        QApplication.instance().setStyleSheet(style(base, metrics.height()))
         self.root.setFixedWidth(scaled(380, base))
+        height = control_height(metrics.height())
+        for widget in self.controls:
+            widget.setFixedHeight(height)
+        self.start.setFixedHeight(height + 8)
+        for section in self.sections.values():
+            section.head.setFixedHeight(height + 4)
+        width = max(metrics.horizontalAdvance(label.text()) for label in self.row_labels)
+        for label in self.row_labels:
+            label.setFixedWidth(width)
         self.apply_icons()
         self.apply_pane_icons()
         QTimer.singleShot(0, self.adjustSize)
 
     def fit_detail(self):
         """The detail pane as tall as pane_height makes it where the window is now. Its text changing size, the window
-        being laid out again (the text size, the fold, a line shown or hidden above the pane) or moving bring it here.
+        being laid out again (the text size, a fold, a line shown or hidden above the pane) or moving bring it here.
 
         Qt carries a new pane height up to the window one layout per event pass, so a fit that read the window's
         bottom in between would chase the fit before it, for good: the layouts holding the pane run here first."""
@@ -636,16 +811,17 @@ class Window(QWidget):
         side, ratio = scaled(15, TEXT_SIZES[self.settings["text_size"]][1]), self.devicePixelRatioF()
         pinned = self.settings["pin"]
         _, pin_icon, pin_tip = PIN[pinned]
-        fold_icon, fold_tip = FOLD["event" not in self.settings["open_sections"]]
-        for button, name, color in ((self.pin, pin_icon, ICON_ON if pinned else ICON), (self.more, "more", ICON),
-                                    (self.fold, fold_icon, ICON), (self.close_button, "close", ICON),
+        for button, name, color in ((self.gear, "gear", ICON_ON if self.gear.isChecked() else ICON),
+                                    (self.pin, pin_icon, ICON_ON if pinned else ICON),
+                                    (self.close_button, "close", ICON),
                                     (self.start, "stop" if self.running else "play", "#fff")):
             button.setIcon(icons.icon(name, color, side, ratio))
             button.setIconSize(QSize(side, side))
         self.pin.setToolTip(pin_tip)
-        self.fold.setToolTip(fold_tip)
-        self.fold.setAccessibleName(fold_tip)
         self.dot.setPixmap(icons.pixmap("dot", DOT[self.dot.property("state")], side // 2, ratio))
+        for section in self.sections.values():
+            arrow = "unfolded" if section.head.isChecked() else "folded"
+            section.arrow.setPixmap(icons.pixmap(arrow, HEAD_ICON, side, ratio))
 
     def apply_pane_icons(self):
         """The detail pane's icons (PANE_ICONS) as its document's images, drawn for the screen's pixel ratio. An image
@@ -666,6 +842,23 @@ class Window(QWidget):
             self.fit_timer.start()
         return super().event(e)
 
+    def show_settings(self, on):
+        """The settings page in place of the main page while the gear is on."""
+        self.main_page.setVisible(not on)
+        self.settings_page.setVisible(on)
+        self.apply_icons()
+        QTimer.singleShot(0, self.adjustSize)
+
+    def set_section_open(self, key, on):
+        opened = set(self.settings["open_sections"]) - {key} | ({key} if on else set())
+        self.settings["open_sections"] = [k for k in SECTIONS if k in opened]
+        save_settings(self.settings)
+        self.apply_icons()
+        QTimer.singleShot(0, self.adjustSize)
+
+    def show_event_summary(self):
+        self.sections["event"].set_summary(event_summary(self.settings))
+
     def set_pin(self, on):
         """Keep the window on top of the game, or make it a normal window, where it is."""
         self.settings["pin"] = on
@@ -678,7 +871,7 @@ class Window(QWidget):
 
     def set_text_size(self, key):
         self.settings["text_size"] = key
-        self.size_menu.show_choice(key)
+        self.sizes.show_choice(key)
         self.apply_text_size()
         save_settings(self.settings)
 
@@ -686,6 +879,7 @@ class Window(QWidget):
         keys = self.settings["hotkeys"]
         self.read_button.setText(f"讀取畫面  {keys['read']}")
         self.start.setToolTip(f"全域熱鍵 {keys['battle']}")
+        self.hotkey_text.setText(f"開始／停止  {keys['battle']}　　讀取畫面  {keys['read']}")
 
     def apply_hotkeys(self):
         """Register the hotkeys in settings (again): the ones Windows refused, which another program holds."""
@@ -696,23 +890,30 @@ class Window(QWidget):
         self.apply_hotkey_labels()
         self.update_start()
         if self.hotkeys_taken:
-            self.status.setText(f"熱鍵 {', '.join(self.hotkeys_taken)} 被其他程式佔用，請在「⋯」→「熱鍵設定」換一個")
+            self.say(f"熱鍵 {', '.join(self.hotkeys_taken)} 被其他程式佔用，請在設定（齒輪）的「熱鍵」換一個")
+        elif not self.running:
+            self.say("")
         return self.hotkeys_taken
 
     def edit_hotkeys(self):
         dialog = HotkeyDialog(self.settings["hotkeys"], self)
         if dialog.exec() == QDialog.Accepted:
             self.settings["hotkeys"] = dialog.keys()
-            if not self.apply_hotkeys():
-                self.status.setText("熱鍵已更新")
+            self.apply_hotkeys()
+
+    def say(self, text):
+        """The battle bar's status line: the battle under way, or what went wrong; it takes no room while empty."""
+        self.status.setText(text)
+        self.status.setVisible(bool(text))
 
     def plan(self):
         s = self.settings
         return Plan(Pick(s["pick"]), GUARD_MODES[s["guard_mode"]][1](s["guard"]))
 
     def update_start(self):
-        self.start.setText(f"停止  {self.settings['hotkeys']['battle']}" if self.running
-                           else f"開始自動戰鬥  {self.settings['hotkeys']['battle']}")
+        """START, green with a play icon; while the battle runs, a red stop."""
+        key = self.settings["hotkeys"]["battle"]
+        self.start.setText(f"停止  {key}" if self.running else f"開始自動戰鬥  {key}")
         self.apply_icons()
         self.start.setProperty("running", "true" if self.running else "false")
         self.start.style().unpolish(self.start)
@@ -724,11 +925,11 @@ class Window(QWidget):
         else:
             self.running = True
             self.update_start()
-            self.worker.send("start_battle", self.plan(), self.hold_action.isChecked())
+            self.worker.send("start_battle", self.plan(), self.settings["hold"])
 
-    def set_pick(self, button):
-        self.settings["pick"] = button.property("pick")
-        self.worker.send("set_pick", Pick(self.settings["pick"]))
+    def set_pick(self, key):
+        self.settings["pick"] = key
+        self.worker.send("set_pick", Pick(key))
 
     def set_guard_mode(self, index):
         self.settings["guard_mode"] = self.guard_box.itemData(index)
@@ -766,15 +967,17 @@ class Window(QWidget):
 
     def set_pc_input(self, key):
         self.settings["pc_input"] = key
-        self.pc_menu.show_choice(key)
+        self.pc_inputs.show_choice(key)
         self.worker.send("set_pc_input", key)
 
     def set_watch(self, on):
         self.settings["watch"] = on
+        self.show_event_summary()
         self.worker.send("set_watch", on)
 
     def set_skip(self, on):
         self.settings["skip"] = on
+        self.show_event_summary()
         self.say_skip("")
         self.worker.send("set_skip", on)
 
@@ -788,6 +991,7 @@ class Window(QWidget):
         """A new main keyword: the event shown is ranked again."""
         keyword = self.keyword_box.itemData(index)
         self.settings["keywords"] = [keyword] if keyword else []
+        self.show_event_summary()
         if self.last_reading is not None:
             self.shown_event = None
             self.on_event(self.last_reading)
@@ -799,39 +1003,38 @@ class Window(QWidget):
         if not on:
             self.overlay.hide_labels()
 
-    def toggle_compact(self):
-        shown = set(self.settings["open_sections"]) ^ {"event"}
-        self.settings["open_sections"] = [key for key in SECTIONS if key in shown]
-        self.event_box.setVisible("event" in shown)
-        self.apply_icons()
-        QTimer.singleShot(0, self.adjustSize)
-
     def pick_device(self, index):
         self.settings["address"] = self.device_box.itemData(index)
         self.worker.send("connect", self.settings["address"])
 
     def on_device(self, state, text):
+        """The device's state in the title bar: the dot's colour, and the device's name once connected; a failed
+        connection also says why on the status line."""
         self.dot.setProperty("state", state)
-        self.dot.setToolTip(text)
+        self.device_name.setText(text if state == "connected" else DEVICE_STATES[state])
+        for part in (self.dot, self.device_name):
+            part.setToolTip(f"已連上 {text}" if state == "connected" else text)
         self.apply_icons()
-        if not self.running:
-            self.status.setText({"connected": f"已連上 {text}", "connecting": "連線中…"}.get(state, text))
+        if state == "error":
+            self.say(text)
+        elif not self.running:
+            self.say("")
 
     def on_targets(self, targets):
         current = self.settings["address"]
         self.device_box.clear()
         self.device_box.addItem("自動偵測", None)
         for t in targets:
-            self.device_box.addItem(t.name if t.address == devices.PC else f"{t.name} {t.address.rsplit(':', 1)[-1]}",
-                                    t.address)
+            self.device_box.addItem(device_choice(t), t.address)
         if current and self.device_box.findData(current) < 0:
             self.device_box.addItem(f"{current}（沒找到）", current)  # the worker still aims at it: say so
         self.device_box.setCurrentIndex(max(self.device_box.findData(current), 0))
 
     def on_battle(self, status: Status):
+        """The battle's state on START and the status line, which keeps a stopped battle's reason only."""
         self.running = status.phase is not Phase.STOPPED
         self.update_start()
-        self.status.setText(status_text(status))
+        self.say(status_text(status) if self.running or status.note else "")
         # The spin box counts down with the battle, to 0, and goes back to the set value once it stops;
         # set_guard_turns only hears the user, so a change made mid-battle restarts the count from what the user picked.
         left = status.plan.guard if self.running and status.plan.guard != FOREVER else self.settings["guard"]
@@ -871,8 +1074,8 @@ class Window(QWidget):
                             else "<p style='color:#d9a441'>飾品畫面上沒讀到飾品名字</p>")
 
     def show_event(self, event, read_text="", others=(), closed=()):
-        """An event in the detail pane, its recommended option starred when a main keyword is set; closed are
-        option texts shown grey on screen."""
+        """An event in the detail pane, its recommended option starred when keywords are set; closed are option
+        texts shown grey on screen."""
         self.shown_event = event
         pick = (lambda e: recommend.best(e, self.settings["keywords"], closed))
         page = event_html(event, read_text, pick(event))
@@ -957,7 +1160,8 @@ def main(worker_factory=Worker):
     window = Window(worker_factory, hotkeys)
     window.apply_hotkeys()
     if offline:
-        window.status.setText("離線模式：只查事件，不連模擬器或 PC 版")
+        window.device_name.setText("離線模式")
+        window.device_name.setToolTip("離線模式（--offline）：只查事件，不連模擬器或 PC 版")
     window.show()
     window.worker.start()
     window.worker.send("scan")
