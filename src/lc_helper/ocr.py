@@ -69,6 +69,23 @@ def lines(image, roi, only_rec=False):
     return sorted(results, key=lambda r: (r[1][1], r[1][0]))
 
 
+def loaded():
+    return _tasker is not None
+
+
+def release():
+    """Drop the model and its tasker; the next read loads them again."""
+    global _tasker
+    with _lock:
+        if _tasker is None:
+            return
+        tasker, res, ctl = _tasker
+        _tasker = None
+        del tasker, res, ctl  # MaaFramework destroys each native handle in __del__
+    import gc
+    gc.collect()
+
+
 def warm():
     """Load the model and run it once now (from a worker thread): the first read pays ~1.5 s of session setup."""
     import numpy as np

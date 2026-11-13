@@ -1,9 +1,9 @@
 """Private memory of the real lc-helper window 8 s after it shows (maalc ADR 0009's measure), with no emulator.
 
-Usage: uv run python tools/measure_memory.py [ui-only]   ui-only skips loading MaaFramework's OCR
+Usage: uv run python tools/measure_memory.py
 
-The worker is launch_check's: its scan and connect never reach adb. Without ui-only, the startup OCR warm-up runs
-as usual, so the number includes MaaFramework and the OCR model.
+The worker is launch_check's: its scan and connect never reach adb. The OCR model loads on the first event read, so
+this is the window before any read; tools/ocr_memory.py measures the OCR model.
 """
 
 import ctypes
@@ -39,12 +39,6 @@ def memory_mb():
     return pmc.PrivateUsage / 2**20, pmc.WorkingSetSize / 2**20
 
 
-class Measured(launch_check.Watched):
-    def do_warm(self):
-        if "ui-only" not in sys.argv:
-            super().do_warm()
-
-
 def main():
     real_show = ui.Window.show
 
@@ -53,13 +47,12 @@ def main():
 
         def report():
             private, ws = memory_mb()
-            print(f"{'ui-only' if 'ui-only' in sys.argv else 'ui+ocr'}: private {private:.0f} MB, "
-                  f"working set {ws:.0f} MB, 8 s after the window showed", flush=True)
+            print(f"window: private {private:.0f} MB, working set {ws:.0f} MB, 8 s after it showed", flush=True)
             self.close()
         QTimer.singleShot(8000, report)
 
     ui.Window.show = show
-    ui.main(worker_factory=Measured)
+    ui.main(worker_factory=launch_check.Watched)
 
 
 if __name__ == "__main__":

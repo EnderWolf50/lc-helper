@@ -444,8 +444,7 @@ def main(worker_factory=Worker):
     window.worker.send("scan")
     window.worker.send("set_address", window.settings["address"])
     window.worker.send("set_pc_input", window.settings["pc_input"])
-    window.worker.send("warm")
-    if window.settings["watch"]:
+    if window.settings["watch"]:  # auto read loads the OCR model now; otherwise the first event read does
         window.worker.send("set_watch", True)
     window.hotkeys_taken = taken
     if taken:

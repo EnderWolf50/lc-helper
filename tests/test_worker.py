@@ -85,6 +85,39 @@ def test_a_new_pc_input_reconnects_the_pc_client_with_it(screen):
     assert "idle" in states
 
 
+def ocr_watched(monkeypatch, screen, **callbacks):
+    """A worker on the Choices capture whose OCR drops after 0.3 s idle; the drops are counted, not done."""
+    from lc_helper import worker as worker_module
+    drops = []
+    monkeypatch.setattr(worker_module.ocr, "release", lambda: drops.append(time.monotonic()))
+    w = Worker(Callbacks(**callbacks), connect=lambda address, **_: (Still(screen("EventChoices.png")),
+                                                                     Target("fake", "x")),
+               find=lambda: [], ocr_idle=0.3)
+    w.start()
+    return w, drops
+
+
+def test_the_ocr_model_is_dropped_once_reads_stop(monkeypatch, screen):
+    readings = []
+    w, drops = ocr_watched(monkeypatch, screen, event=readings.append)
+    w.send("read_event")
+    wait_for(lambda: readings)
+    time.sleep(1.0)
+    assert len(drops) == 1
+
+
+def test_auto_read_keeps_the_ocr_model_until_it_is_turned_off(monkeypatch, screen):
+    readings = []
+    w, drops = ocr_watched(monkeypatch, screen, event=readings.append)
+    w.send("set_watch", True)
+    wait_for(lambda: readings)
+    time.sleep(1.0)
+    assert drops == []
+    w.send("set_watch", False)
+    time.sleep(1.0)
+    assert len(drops) == 1
+
+
 def test_read_event_reads_the_page_on_screen(screen):
     readings = []
     w = started(Still(screen("EventChoices.png")), event=readings.append)

@@ -15,6 +15,10 @@ from . import events, ocr, vision
 from .battle import AutoBattle, Phase, Plan, Status, Stopped
 
 WATCH_EVERY = 1.0  # s between looks for a new event page while auto read is on
+# s without an event read before the OCR model is dropped (auto read off). tools/ocr_memory.py, 2026-11-13: a read of
+# the story box takes private memory from ~40 to ~975 MB, a release brings it back to 326-353 MB, and the next read
+# loads again in 1.2-1.3 s.
+OCR_IDLE = 180.0
 
 
 @dataclass
@@ -27,9 +31,11 @@ class Callbacks:
 
 
 class Worker(threading.Thread):
-    def __init__(self, callbacks: Callbacks, connect=None, find=None):
+    def __init__(self, callbacks: Callbacks, connect=None, find=None, ocr_idle=OCR_IDLE):
         super().__init__(daemon=True, name="lc-helper-worker")
         self.cb = callbacks
+        self.ocr_idle = ocr_idle
+        self.ocr_used: float | None = None  # when OCR last ran; None once released (or never loaded)
         self.connect_fn = connect or devices.connect
         self.find_fn = find or devices.targets
         self.commands: queue.Queue = queue.Queue()
@@ -61,11 +67,12 @@ class Worker(threading.Thread):
         while self.alive:
             busy = self.battle is not None or (self.watch and self.device is not None)
             try:
-                name, args = self.commands.get(timeout=0.05 if busy else None)
+                name, args = self.commands.get(timeout=0.05 if busy else self.until_ocr_idle())
             except queue.Empty:
                 name = None
             if not self.alive:
                 break
+            self.release_idle_ocr()
             if name:
                 try:
                     getattr(self, "do_" + name)(*args)
@@ -88,8 +95,20 @@ class Worker(threading.Thread):
     def do_warm(self):
         try:
             ocr.warm()
+            self.ocr_used = time.monotonic()
         except Exception as e:
             self.cb.error(f"OCR 載入失敗：{e}")
+
+    def until_ocr_idle(self):
+        """s until the OCR model is dropped, or None when nothing is due: it is not loaded, or auto read needs it."""
+        if self.ocr_used is None or self.watch:
+            return None
+        return max(0.0, self.ocr_used + self.ocr_idle - time.monotonic())
+
+    def release_idle_ocr(self):
+        if self.until_ocr_idle() == 0.0:
+            ocr.release()
+            self.ocr_used = None
 
     def do_scan(self):
         try:
@@ -159,14 +178,25 @@ class Worker(threading.Thread):
             self.battle.hold = self.holds(hold)
 
     def do_set_watch(self, on):
+        """Auto read on loads the OCR model now, so the first event page shows without the ~2 s load; off starts the
+        idle clock that drops it."""
         self.watch, self.last_page = on, None
         if on:
             self.ready()
+            if not ocr.loaded():
+                self.do_warm()
+        elif self.ocr_used is not None:
+            self.ocr_used = time.monotonic()
 
     def do_read_event(self):
         if not self.ready():
             return
-        self.cb.event(events.read_screen(self.device.screenshot()))
+        self.cb.event(self.read(self.device.screenshot()))
+
+    def read(self, image):
+        reading = events.read_screen(image)
+        self.ocr_used = time.monotonic()
+        return reading
 
     def battle_tick(self):
         try:
@@ -198,6 +228,6 @@ class Worker(threading.Thread):
         story = vision.thumb(vision.crop(image, vision.EVENT_STORY))
         if self.last_page is not None and vision.same_screen(self.last_page, story):
             return
-        reading = events.read_screen(image)
+        reading = self.read(image)
         self.last_page = story
         self.cb.event(reading)

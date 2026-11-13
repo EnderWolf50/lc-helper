@@ -32,7 +32,8 @@ uv run --group sync python tools/sweep_screens.py   # 每張截圖的辨識結�
 uv run --group sync python tools/render_window.py   # 視窗各狀態的截圖，存到 .local/evidence
 uv run python tools/launch_check.py                 # 真的開視窗、量啟動時間、送熱鍵，不碰模擬器
 uv run python tools/pc_input_check.py touch         # PC 版點擊方式在自己的探測視窗上點、長按、拖曳，看游標有沒有動
-uv run python tools/measure_memory.py [ui-only]     # 視窗出現 8 秒後的 private memory，不碰模擬器
+uv run python tools/measure_memory.py               # 視窗出現 8 秒後的 private memory，不碰模擬器
+uv run --group sync python tools/ocr_memory.py      # OCR 讀一次、釋放，各吃多少記憶體
 bash tools/check_commits.sh                         # 逐一切到每個 commit 跑測試和 lint
 ```
 
