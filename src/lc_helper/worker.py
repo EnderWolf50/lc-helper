@@ -47,6 +47,8 @@ class Worker(threading.Thread):
         self.device = None
         self.address: str | None = None  # the emulator to connect to on first use; None: the first one found
         self.pc_input = devices.PC_INPUT  # how taps reach the PC client (devices.PC_INPUTS)
+        self.pc_size = devices.PC_SIZE  # the PC client's size while a battle runs (devices.PC_SIZES)
+        self.size_back = None  # puts the PC client's window back as it was before the battle resized it
         self.target: devices.Target | None = None  # what the device is connected to
         self.battle: AutoBattle | None = None
         self.battle_stop = threading.Event()
@@ -98,6 +100,7 @@ class Worker(threading.Thread):
             except Exception as e:  # the emulator went away mid-turn, or a screenshot failed
                 self.end_battle(f"出錯：{e}")
                 self.cb.error(str(e))
+        self.size_restored()  # shutdown() left the loop between turns, before any end_battle
 
     def do_quit(self):
         self.end_battle()
@@ -164,7 +167,30 @@ class Worker(threading.Thread):
         self.battle_stop.clear()
         self.battle = AutoBattle(self.device, plan, self.battle_stop, self.cb.battle, hold=self.holds(hold),
                                  on_fight=self.fought, stop_after_victory=self.stop_after_victory)
-        self.battle.emit(Phase.WAITING)
+        self.battle.emit(Phase.WAITING, self.resize_pc())
+
+    def do_set_pc_size(self, key):
+        """The PC client's size for the next battle; a running one keeps its size until it stops."""
+        self.pc_size = key if key in devices.PC_SIZES else devices.PC_SIZE  # a hand-edited settings.json
+
+    def resize_pc(self):
+        """The PC client resized for the battle when asked: what to tell the user about it."""
+        name, size = devices.PC_SIZES[self.pc_size]
+        if size is None or self.target is None or self.target.address != devices.PC:
+            return ""
+        try:
+            self.size_back = self.device.resized(size)
+        except Exception as e:
+            return f"沒有調整解析度：{e}"
+        return f"遊戲畫面調成 {name}，停下後還原"
+
+    def size_restored(self):
+        back, self.size_back = self.size_back, None
+        if back is not None:
+            try:
+                back()
+            except Exception as e:  # the game closed mid-battle
+                self.cb.error(f"沒能還原遊戲視窗大小：{e}")
 
     def fought(self, fight):
         self.cb.fight(fight, self.target.name if self.target else "")
@@ -244,6 +270,7 @@ class Worker(threading.Thread):
         if self.battle is None:
             return
         battle, self.battle = self.battle, None
+        self.size_restored()
         battle.emit(Phase.STOPPED, note or battle.stop_note)
 
     def page_tick(self):

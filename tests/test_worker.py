@@ -2,7 +2,7 @@ import threading
 import time
 
 from lc_helper.battle import Phase, Pick, Plan
-from lc_helper.device import Clock, Target
+from lc_helper.device import PC, Clock, Target
 from lc_helper.worker import Callbacks, Worker
 from fake_game import FakeBattle
 
@@ -27,6 +27,27 @@ def started(device, **callbacks):
                find=lambda: [])
     w.start()
     w.send("connect", None)
+    return w
+
+
+class Sized(Still):
+    """The PC client on one screen: it records the sizes asked of its window and their putting back."""
+
+    def __init__(self, image, refuses=None):
+        super().__init__(image)
+        self.sizes, self.refuses = [], refuses
+
+    def resized(self, size):
+        if self.refuses:
+            raise RuntimeError(self.refuses)
+        self.sizes.append(size)
+        return lambda: self.sizes.append("back")
+
+
+def on_pc(device, **callbacks):
+    w = Worker(Callbacks(**callbacks), connect=lambda address, **_: (device, Target("Limbus PC", PC)), find=lambda: [])
+    w.start()
+    w.send("connect", PC)
     return w
 
 
@@ -223,3 +244,53 @@ def test_a_failed_read_is_reported_and_the_worker_goes_on(screen):
     wait_for(lambda: statuses)
     assert w.is_alive() and "截圖失敗" in errors[0]
 
+
+def test_the_pc_client_takes_the_chosen_size_for_a_battle_and_gets_its_own_back(screen):
+    pc, statuses = Sized(screen("EventChoices.png")), []
+    w = on_pc(pc, battle=statuses.append)
+    w.send("set_pc_size", "720")
+    w.send("start_battle", Plan(), False)
+    wait_for(lambda: statuses)
+    assert pc.sizes == [(1280, 720)]
+    assert "1280×720" in statuses[0].note
+    w.stop_battle()
+    wait_for(lambda: statuses[-1].phase is Phase.STOPPED)
+    assert pc.sizes == [(1280, 720), "back"]
+    w.shutdown()
+    w.join(3)
+
+
+def test_closing_lc_helper_mid_battle_gives_the_pc_client_its_size_back(screen):
+    pc, statuses = Sized(screen("EventChoices.png")), []
+    w = on_pc(pc, battle=statuses.append)
+    w.send("set_pc_size", "1080")
+    w.send("start_battle", Plan(), False)
+    wait_for(lambda: statuses)
+    w.shutdown()
+    w.join(3)
+    assert pc.sizes == [(1920, 1080), "back"]
+
+
+def test_a_size_the_game_cannot_take_is_told_and_the_battle_runs_anyway(screen):
+    pc, statuses = Sized(screen("EventChoices.png"), refuses="遊戲是全螢幕"), []
+    w = on_pc(pc, battle=statuses.append)
+    w.send("set_pc_size", "720")
+    w.send("start_battle", Plan(), False)
+    wait_for(lambda: statuses)
+    assert statuses[0].phase is Phase.WAITING and "全螢幕" in statuses[0].note
+    w.shutdown()
+    w.join(3)
+
+
+def test_an_emulator_keeps_its_size_and_unknown_sizes_mean_keep(screen):
+    emulator, pc = Sized(screen("EventChoices.png")), Sized(screen("EventChoices.png"))
+    w, v = started(emulator), on_pc(pc)
+    w.send("set_pc_size", "720")
+    v.send("set_pc_size", "8k")
+    for worker in (w, v):
+        worker.send("start_battle", Plan(), False)
+    time.sleep(0.5)
+    for worker in (w, v):
+        worker.shutdown()
+        worker.join(3)
+    assert emulator.sizes == pc.sizes == []

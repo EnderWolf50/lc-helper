@@ -79,6 +79,16 @@ PC_INPUTS = {
     "seize": ("前景操作", "戰鬥時佔用滑鼠", "Seize", True),
 }
 PC_INPUT = "window"
+# The game's client size while lc-helper's auto battle runs, put back when it stops: (name, (w, h) or None to leave).
+# All 16:9: every reading is measured on a 16:9 screen (screen_size_problem).
+PC_SIZES = {
+    "keep": ("不調整", None),
+    "720": ("1280×720", (1280, 720)),
+    "900": ("1600×900", (1600, 900)),
+    "1080": ("1920×1080", (1920, 1080)),
+    "1440": ("2560×1440", (2560, 1440)),
+}
+PC_SIZE = "keep"
 WINDOW_BACK_AFTER = 0.05  # s from the lift to moving the window back; AALC waits 0.02 (input.py, WindowMoveInput)
 
 
@@ -87,8 +97,9 @@ class Covered(RuntimeError):
 
 
 class MaaDevice:
-    def __init__(self, controller, can_hold=True, what="模擬器", cover=None, moves_window=False):
+    def __init__(self, controller, can_hold=True, what="模擬器", cover=None, moves_window=False, hwnd=None):
         self.ctl = controller
+        self.hwnd = hwnd  # the PC client's window; None on an emulator
         self.can_hold = can_hold
         self.what = what
         self.cover = cover  # (x, y) -> the program whose window covers that game point, or None when the game shows
@@ -126,6 +137,13 @@ class MaaDevice:
     def touch_up(self):
         self.ctl.post_touch_up().wait()
         self.window_back()
+
+    def resized(self, size):
+        """The PC client's game area made size (w, h): a function that puts the window back as it was. RuntimeError,
+        with the reason, when there is no window to size."""
+        if self.hwnd is None:
+            raise RuntimeError("模擬器不調整解析度")
+        return resize_client(self.hwnd, size)
 
 
 def _maa():
@@ -170,6 +188,52 @@ def covering(hwnd):
         top = user32.GetAncestor(user32.WindowFromPoint(point), 2)  # GA_ROOT
         return None if top == hwnd else program(top)
     return cover
+
+
+def resize_client(hwnd, size):
+    """Make hwnd's client area size (w, h), its top-left corner kept (AALC's adjust_win_size): a function that puts
+    the window back where and how big it was. RuntimeError when the game fills its screen: full screen or maximized,
+    a size it would not keep."""
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.WinDLL("user32")
+    user32.SetThreadDpiAwarenessContext.restype = ctypes.c_void_p
+    user32.SetThreadDpiAwarenessContext.argtypes = [ctypes.c_void_p]
+    user32.MonitorFromWindow.restype = wintypes.HMONITOR
+    flags = 0x0004 | 0x0010  # SWP_NOZORDER | SWP_NOACTIVATE
+
+    class MonitorInfo(ctypes.Structure):
+        _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT), ("rcWork", wintypes.RECT),
+                    ("dwFlags", wintypes.DWORD)]
+
+    def physical(call):  # the game's own pixels, whatever DPI awareness Qt gave this process
+        old = user32.SetThreadDpiAwarenessContext(ctypes.c_void_p(-4))  # PER_MONITOR_AWARE_V2
+        try:
+            return call()
+        finally:
+            user32.SetThreadDpiAwarenessContext(old)
+
+    def rects():
+        window, client = wintypes.RECT(), wintypes.RECT()
+        user32.GetWindowRect(hwnd, ctypes.byref(window))
+        user32.GetClientRect(hwnd, ctypes.byref(client))
+        info = MonitorInfo(ctypes.sizeof(MonitorInfo))
+        user32.GetMonitorInfoW(user32.MonitorFromWindow(hwnd, 2), ctypes.byref(info))  # MONITOR_DEFAULTTONEAREST
+        return window, client, info.rcMonitor
+
+    window, client, monitor = physical(rects)
+    fills = all(getattr(window, k) == getattr(monitor, k) for k in ("left", "top", "right", "bottom"))
+    if user32.IsZoomed(hwnd) or fills:
+        raise RuntimeError("遊戲是全螢幕或最大化，沒有調整解析度，請先切成視窗模式（Alt+Enter）")
+    old = (window.left, window.top, window.right - window.left, window.bottom - window.top)
+    w, h = size
+    frame_w, frame_h = old[2] - client.right, old[3] - client.bottom
+    physical(lambda: user32.SetWindowPos(hwnd, None, 0, 0, w + frame_w, h + frame_h, flags | 0x0002))  # SWP_NOMOVE
+
+    def put_back():
+        physical(lambda: user32.SetWindowPos(hwnd, None, *old, flags))
+    return put_back
 
 
 def targets() -> list[Target]:
@@ -229,7 +293,7 @@ def _connect_pc(toolkit, pc_input):
     # Touch and seized input land on the screen point: a window over the game there takes them (seen 2026-11-14:
     # the user's Discord window over 胜率 swallowed 16 taps). Window and cursor inputs post to the game's window.
     cover = covering(window.hwnd) if method in ("AnchoredTouch", "Seize") else None
-    device = MaaDevice(ctl, can_hold, "PC 版遊戲", cover, method.endswith("WithWindowPos"))
+    device = MaaDevice(ctl, can_hold, "PC 版遊戲", cover, method.endswith("WithWindowPos"), window.hwnd)
     if problem := screen_size_problem(device.screenshot()):
         raise RuntimeError(problem)
     return device, Target(f"{PC_NAME}（{name}）", PC)
