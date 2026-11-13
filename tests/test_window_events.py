@@ -3,7 +3,8 @@ import re
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QEvent, QPoint, Qt  # noqa: E402
+from PySide6.QtCore import QEvent, QPoint, Qt, QUrl  # noqa: E402
+from PySide6.QtGui import QIcon, QTextDocument  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QAbstractButton, QApplication, QLabel, QToolButton  # noqa: E402
 
@@ -172,9 +173,49 @@ def test_the_gift_search_finds_gifts_by_chinese_or_english_name_and_shows_one_in
     search_icon(box).click()
     assert rows(box)[0].startswith(gifts.label(found[0])), "the gift field's icon searches too"
     click_row(box, 0)
-    assert w.gift_detail.toPlainText().startswith(gifts.label(found[0])) and w.detail.toPlainText() == event_text
+    first_line = w.gift_detail.toPlainText().splitlines()[0]
+    assert gifts.label(found[0]) in first_line and w.detail.toPlainText() == event_text
     w.sections["gift"].head.click()
     assert w.sections["gift"].summary.text() == f"最近：{found[0]['zh']}"
+
+
+def inked_colours(image):
+    """The distinct colours image paints."""
+    return {image.pixelColor(x, y).rgb() for x in range(image.width()) for y in range(image.height())
+            if image.pixelColor(x, y).alpha()}
+
+
+def test_a_gift_shows_its_keywords_icon_beside_its_name_and_a_keywordless_one_a_quiet_mark(tmp_path, monkeypatch):
+    from lc_helper import gifts
+
+    w = shown(tmp_path, monkeypatch, open_sections=["event", "gift"])
+    hellterfly, perversion = gifts.book()[9001], gifts.book()[9002]  # Burn, and no keyword
+    w.show_gifts([hellterfly, perversion])
+    page = w.gift_detail.toHtml()
+    for gift, keyword in ((hellterfly, "Burn"), (perversion, "Keywordless")):
+        assert page.index(f"keyword:{keyword}") < page.index(gift["zh"]), "the icon, then the name"
+    doc = w.gift_detail.document()
+    burn, none = (doc.resource(QTextDocument.ImageResource, QUrl(f"keyword:{k}")) for k in ("Burn", "Keywordless"))
+    assert len(inked_colours(burn.toImage())) > 20, "the game's flame"
+    assert 0 < len(inked_colours(none.toImage())) <= 20, "a drawn mark in one colour, its edge smoothed"
+    side = burn.width() / burn.devicePixelRatio()
+    w.set_text_size("large")
+    grown = doc.resource(QTextDocument.ImageResource, QUrl("keyword:Burn"))
+    assert grown.width() / grown.devicePixelRatio() > side, "it grows with the text"
+
+
+def test_a_gift_search_row_carries_the_gifts_keyword_icon(tmp_path, monkeypatch):
+    w = shown(tmp_path, monkeypatch, open_sections=["gift"])
+    box = w.gift_search
+    box.field.setText("burn")
+    QTest.keyClick(box.field, Qt.Key_Return)
+    model = box.list.popup().model()
+    assert model.rowCount() > 1
+    icons = [model.index(i, 0).data(Qt.DecorationRole) for i in range(model.rowCount())]
+    assert all(not icon.isNull() for icon in icons)
+    size = box.list.popup().iconSize()
+    lit, plain = (icons[0].pixmap(size, mode).toImage() for mode in (QIcon.Selected, QIcon.Normal))
+    assert lit == plain, "the lit row keeps the icon's colours"
 
 
 def test_a_gift_screen_read_shows_in_the_gift_pane_and_leaves_the_event_shown(tmp_path, monkeypatch, screen):

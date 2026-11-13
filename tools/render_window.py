@@ -7,9 +7,10 @@ event pane shows what the real reader makes of maalc's EventChoices.png capture 
 
 The states: the main page as it opens (window-main), the settings page at each text size (window-settings-*), a
 battle running (window-battle-running), each text size (window-text-*), four recommended keywords at each text size
-(window-keywords-four-*), the ＋ 體系 menu open (window-keyword-menu), a search list dropped down (window-search,
-window-gift-search: a list or a menu is a window of its own, painted where it shows), both sections open on the
-screen (window-both-open) and every section folded (window-folded).
+(window-keywords-four-*), a gift screen's gifts at each text size (window-gifts-*), the ＋ 體系 menu open
+(window-keyword-menu), a search list dropped down (window-search, window-gift-search: a list or a menu is a window of
+its own, painted where it shows), both sections open on the screen (window-both-open) and every section folded
+(window-folded).
 """
 
 import os
@@ -225,6 +226,10 @@ def main():
     w.sections["gift"].head.setChecked(True)
     w.on_gifts(gifts.read_gifts(trials, "choice", ocr.lines))
     shot(w, out, "window-gifts.png")
+    for key in ui.TEXT_SIZES:  # each gift's keyword icon beside its name
+        w.set_text_size(key)
+        shot(w.sections["gift"], out, f"window-gifts-{key}.png")
+    w.set_text_size("normal")
     w.gift_search.field.setText("地獄蝶")
     w.gift_search.search()
     with_popup(w, w.gift_search, out, "window-gift-search.png")

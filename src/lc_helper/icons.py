@@ -11,6 +11,7 @@ from .paths import ASSETS
 
 GRID = 24
 STROKE = 2  # grid units: a twelfth of the icon's side
+KEYWORDLESS = "#6b6152"  # the ring for a gift of no keyword: quiet beside the game's coloured icons
 
 
 def solid(p):
@@ -97,6 +98,11 @@ def search(p):
     p.drawLine(QPointF(15, 15), QPointF(20, 20))
 
 
+def ring(p):
+    """An empty ring: no keyword."""
+    p.drawEllipse(QPointF(12, 12), 6, 6)
+
+
 def dot(p):
     solid(p)
     p.drawEllipse(QPointF(12, 12), 10, 10)
@@ -119,7 +125,7 @@ def star(p):
 
 DRAW = {"gear": gear, "box": box, "checked": checked, "unfolded": unfolded, "folded": folded, "up": up, "close": close,
         "pin": pin, "unpinned": unpinned, "play": play, "stop": stop, "dot": dot, "bullet": bullet, "star": star,
-        "search": search}
+        "search": search, "ring": ring}
 
 
 def paint(p, name, color, square: QRectF):
@@ -156,7 +162,9 @@ def game_icon(keyword):
 
 def keyword(name, side, ratio):
     """The game's icon for keyword name, fitted whole and centred in a square side logical pixels across, with ratio
-    device pixels to each."""
+    device pixels to each; a quiet ring for a keyword the game draws none for (Keywordless)."""
+    if game_icon(name).isNull():
+        return pixmap("ring", KEYWORDLESS, side, ratio)
     pix = QPixmap(round(side * ratio), round(side * ratio))
     pix.fill(Qt.transparent)
     fitted = game_icon(name).scaled(pix.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
@@ -165,3 +173,11 @@ def keyword(name, side, ratio):
     p.end()
     pix.setDevicePixelRatio(ratio)  # after painting: the painter worked in device pixels
     return pix
+
+
+def keyword_icon(name, side, ratio):
+    """keyword's icon as a QIcon that keeps its colours on a lit list row or menu item, which Qt would tint."""
+    pix = keyword(name, side, ratio)
+    icon = QIcon(pix)
+    icon.addPixmap(pix, QIcon.Selected)
+    return icon

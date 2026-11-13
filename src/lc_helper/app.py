@@ -273,11 +273,13 @@ def event_html(event, read_text="", pick=None):
 
 
 def gift_html(gift_list, heading=""):
-    """Gifts and their effects, as the detail pane shows them: Chinese first, English under it."""
+    """Gifts and their effects, as the detail pane shows them: each gift's keyword icon and its name, Chinese first,
+    English under it."""
     rows = [f"<p style='color:#8f8270;margin:0'>{html.escape(heading)}</p>"] if heading else []
     names = gifts.book()
     for g in gift_list:
-        rows.append(f"<p style='margin:6px 0 0 0'><b style='color:#e7b45a'>{html.escape(gifts.label(g))}</b> "
+        rows.append(f"<p style='margin:6px 0 0 0'><img src='keyword:{g['keyword']}' style='vertical-align: middle'> "
+                    f"<b style='color:#e7b45a'>{html.escape(gifts.label(g))}</b> "
                     f"<span style='color:#8f8270'>{html.escape(g['en'])}</span></p>")
         if g["desc_zh"]:
             rows.append(f"<p style='color:#eadcc4;margin:0 0 0 14px'>{html.escape(g['desc_zh']).replace(chr(10), '<br>')}</p>")
@@ -484,15 +486,16 @@ class SearchBox(QWidget):
     """A search field, a search icon at its left and a clear button at its right, then the widgets beside it on its
     row; Enter or the icon searches, and the hits drop down under the whole row in a list that closes on a pick.
 
-    find(query) gives the hits, [(row text, found)], and missing is the row shown for none. picked(found) is emitted
-    on the user's pick, cleared once the field is emptied, by its clear button or by hand."""
+    find(query) gives the hits, [(row text, found)], and missing is the row shown for none; icon(found), when given,
+    is a row's icon. picked(found) is emitted on the user's pick, cleared once the field is emptied, by its clear
+    button or by hand."""
 
     picked = Signal(object)
     cleared = Signal()
 
-    def __init__(self, placeholder, missing, find, beside=()):
+    def __init__(self, placeholder, missing, find, beside=(), icon=None):
         super().__init__()
-        self.find, self.missing, self.found = find, missing, []
+        self.find, self.missing, self.icon, self.found = find, missing, icon, []
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(8)
@@ -534,8 +537,8 @@ class SearchBox(QWidget):
         hits = self.find(query) if len(query) >= 2 else []
         self.found = [found for _, found in hits]
         self.hits.clear()
-        for text, _ in hits:
-            self.hits.appendRow(QStandardItem(text))
+        for text, found in hits:
+            self.hits.appendRow(QStandardItem(self.icon(found), text) if self.icon else QStandardItem(text))
         if not hits:
             row = QStandardItem(self.missing if len(query) >= 2 else "至少輸入兩個字")
             row.setFlags(Qt.NoItemFlags)
@@ -792,7 +795,8 @@ class Window(QWidget):
         lay.setSpacing(8)
         self.gift_search = SearchBox("搜尋飾品名字（中/英）", "找不到符合的飾品",
                                      lambda query: [(f"{gifts.label(g)}  {g['en']}", g)
-                                                    for g in gifts.search(query, limit=8)])
+                                                    for g in gifts.search(query, limit=8)],
+                                     icon=lambda g: self.keyword_icon(g["keyword"]))
         self.gift_search.picked.connect(lambda gift: self.show_gifts([gift]))
         self.gift_search.cleared.connect(self.clear_gifts)
         self.controls.append(self.gift_search.field)
@@ -946,10 +950,16 @@ class Window(QWidget):
         for box in (self.event_search, self.gift_search):
             inside = box.field.style().pixelMetric(QStyle.PM_LineEditIconSize, None, box.field)
             box.go.setIcon(icons.icon("search", ICON, inside, ratio))
+        beside = glyph_side(self.text_font())
+        self.gift_search.list.popup().setIconSize(QSize(beside, beside))
         for section in self.sections.values():
             arrow = "unfolded" if section.head.isChecked() else "folded"
             section.arrow.setPixmap(icons.pixmap(arrow, HEAD_ICON, side, ratio))
         self.apply_keyword_icons()
+
+    def keyword_icon(self, keyword):
+        """The game's icon for keyword, as tall as the text beside it, drawn for the screen's pixel ratio."""
+        return icons.keyword_icon(keyword, glyph_side(self.text_font()), self.devicePixelRatioF())
 
     def apply_keyword_icons(self):
         """The game's keyword icons on the chips and in ＋ 體系's menu, and the marks between the chips, at the text's
@@ -961,22 +971,29 @@ class Window(QWidget):
                 part.setIconSize(QSize(side, side))
                 for action in part.menu().actions():
                     if keyword := action.property("keyword"):
-                        action.setIcon(QIcon(icons.keyword(keyword, side, ratio)))
+                        action.setIcon(self.keyword_icon(keyword))
                 if keyword := part.property("keyword"):
-                    part.setIcon(QIcon(icons.keyword(keyword, side, ratio)))
+                    part.setIcon(self.keyword_icon(keyword))
             elif part is not None and part.objectName() == "then":
                 part.setPixmap(icons.pixmap("folded", THEN, side, ratio))
 
     def apply_pane_icons(self):
-        """The detail pane's icons (PANE_ICONS) as its document's images, drawn for the screen's pixel ratio. An image
-        stands on the baseline, so a square twice as tall as the middle of a Chinese glyph above the baseline is
-        centred on the text beside it, at any text size and in any font."""
-        text = self.detail.document()
-        ink = QFontMetricsF(self.text_font()).tightBoundingRect("國")
+        """The panes' icons as their documents' images, drawn for the screen's pixel ratio. The event pane's
+        PANE_ICONS (icon:NAME) stand on the baseline, so a square twice as tall as the middle of a Chinese glyph above
+        the baseline is centred on the text beside it, at any text size and in any font. The gift pane's keyword
+        icons (keyword:NAME, gift_html) are as tall as a glyph's ink and set at the line's middle, which Qt places on
+        the glyphs within a pixel at each text size (measured in Microsoft JhengHei UI)."""
+        font = self.text_font()
+        ink = QFontMetricsF(font).tightBoundingRect("國")
         side, ratio = round(-(ink.top() + ink.bottom())), self.devicePixelRatioF()
-        for name, color in PANE_ICONS.items():
-            text.addResource(QTextDocument.ImageResource, QUrl(f"icon:{name}"), icons.pixmap(name, color, side, ratio))
-        text.markContentsDirty(0, text.characterCount())  # addResource alone leaves the old size in the layout
+        images = {self.detail: {f"icon:{name}": icons.pixmap(name, color, side, ratio)
+                                for name, color in PANE_ICONS.items()},
+                  self.gift_detail: {f"keyword:{k}": icons.keyword(k, glyph_side(font), ratio) for k in events.KEYWORDS}}
+        for pane, pixmaps in images.items():
+            text = pane.document()
+            for url, pix in pixmaps.items():
+                text.addResource(QTextDocument.ImageResource, QUrl(url), pix)
+            text.markContentsDirty(0, text.characterCount())  # addResource alone leaves the old size in the layout
 
     def event(self, e):
         if e.type() == QEvent.DevicePixelRatioChange:  # moved to a screen of another scale
