@@ -80,6 +80,11 @@ QMenu { background: #1d1711; border: 1px solid #5b4527; } QMenu::item:selected {
 QLabel#menuSection { color: #c9a165; font-size: ${small}pt; font-weight: bold; padding: 6px 12px 2px 12px; }
 QDialog { background: #17130f; }
 QToolTip { color: #eadcc4; background: #231b13; border: 1px solid #5b4527; padding: 4px 6px; }
+QScrollBar:vertical { background: transparent; width: 10px; margin: 2px 1px 2px 0; }
+QScrollBar::handle:vertical { background: #4a3a26; border-radius: 4px; min-height: 24px; }
+QScrollBar::handle:vertical:hover { background: #6b4a1f; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }
 QKeySequenceEdit QLineEdit { min-width: 140px; }
 """)
 
