@@ -1,16 +1,19 @@
 """Mirror Dungeon events: find one by its text (typed, or read off the screen) and say what each option does.
 
 The data is assets/events.json (tools/sync_maalc.py): maalc's event table with the full English and Chinese text.
+A screen is read in the game's English or in LLC's Simplified Chinese (Script): each against its own text.
 """
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 from functools import cache
 
 from rapidfuzz import fuzz, process
 
+from . import labels
 from .paths import ASSETS
 
 KEYWORDS = {"Burn": "燒傷", "Bleed": "流血", "Tremor": "震顫", "Rupture": "破裂", "Sinking": "沉淪", "Poise": "呼吸",
@@ -27,6 +30,11 @@ STATS = {"hp": "HP", "sp": "SP", "hp%": "HP", "sp%": "SP"}
 CONDITIONS = {"Failed": "失敗次數", "MpAverage": "全隊平均 SP"}
 STORY_MATCH = 0.85  # maalc rewards.match_event: OCR'd story end vs the table's key
 OPTION_MATCH = 80  # rapidfuzz ratio (0-100) an OCR'd option needs to count as one of an event's options
+CJK = "㐀-鿿"
+# Chinese characters, letters and digits of a Simplified story's end that key it, as maalc keys the English by its
+# last 60 letters and digits. From 20 to 60 only 971098/971099 and 971105/971107 come together (English also
+# brings 90109505/90109506, whose LLC options differ); 15 adds 862901/862902 (2026-11-14, LLC 2026110501).
+CN_KEY = 30
 
 
 @dataclass(frozen=True)
@@ -42,13 +50,49 @@ def key(text):
     return re.sub(r"[^a-z0-9]", "", text.lower())
 
 
+def key_cn(text):
+    """Chinese characters, letters and digits, lower case: key over LLC's Simplified text."""
+    return re.sub(f"[^a-z0-9{CJK}]", "", text.lower())
+
+
 def has_cjk(text):
-    return re.search(r"[㐀-鿿]", text) is not None
+    return re.search(f"[{CJK}]", text) is not None
+
+
+def reads_chinese(text):
+    """Whether OCR'd text is LLC's Chinese: more Chinese characters than Latin letters. Not has_cjk: OCR of an
+    English page may slip in a Chinese character, and LLC writes E.G.O and SP in Latin."""
+    return len(re.findall(f"[{CJK}]", text)) > len(re.findall(r"[A-Za-z]", text))
+
+
+@dataclass(frozen=True)
+class Script:
+    """How a page read in one script is looked up: the event's fields to compare it with, and how a text is folded
+    for comparing. ENGLISH is maalc's; CHINESE reads LLC's Simplified text."""
+
+    key: str  # the event's field holding its story key
+    text: str  # the option's fields: its text, and the game's hint under it
+    hint: str
+    keyed: Callable[[str], str]  # a text as candidates compares it
+    shortest: int  # an OCR'd option shorter than this once keyed is noise to candidates
+    fold: Callable[[str], str]  # a line and an option's text as option_rows compares them
+    shortest_line: int  # an OCR'd line shorter than this is noise to option_rows
+
+
+ENGLISH = Script("key", "text", "hint", key, 4, str.lower, 3)
+CHINESE = Script("key_cn", "text_cn", "hint_cn", key_cn, 2, key_cn, 2)
+
+
+def script(text):
+    return CHINESE if reads_chinese(text) else ENGLISH
 
 
 @cache
 def book():
-    return json.loads((ASSETS / "events.json").read_text(encoding="utf-8"))
+    data = json.loads((ASSETS / "events.json").read_text(encoding="utf-8"))
+    for e in data["events"]:
+        e["key_cn"] = key_cn(e["story_cn"])[-CN_KEY:]
+    return data
 
 
 @cache
@@ -90,19 +134,21 @@ def candidates(story, options=()):
     and digits (maalc rewards.match_event); the longest matching key wins. Several pages share a key (13 events, some
     only "What will you do?"): the options read on screen rank those. With no story match, the options alone pick.
     More than one event comes back only when the screen cannot tell them apart (971098 and 971099 read the same).
+    A page that reads as Chinese is matched against LLC's Simplified text (Script), any other against the English.
     """
-    s = key(story)
-    shown = [key(o) for o in options if len(key(o)) >= 4]
+    sc = script(" ".join([story, *options]))
+    s = sc.keyed(story)
+    shown = [sc.keyed(o) for o in options if len(sc.keyed(o)) >= sc.shortest]
     events = [e for e in book()["events"] if not e["page"]]
 
     def score(e):
-        texts = [key(t) for o in e["options"] for t in (o["text"], o["hint"]) if key(t)]
+        texts = [sc.keyed(t) for o in e["options"] for t in (o[sc.text], o[sc.hint]) if sc.keyed(t)]
         return sum(max(fragment(o, t) for t in texts) for o in shown) / len(shown) if texts and shown else 0
 
     if s:
-        hits = [e for e in events if SequenceMatcher(None, e["key"], s[-len(e["key"]):]).ratio() >= STORY_MATCH]
-        longest = max((len(e["key"]) for e in hits), default=0)
-        hits = [e for e in hits if len(e["key"]) == longest]
+        hits = [e for e in events if SequenceMatcher(None, e[sc.key], s[-len(e[sc.key]):]).ratio() >= STORY_MATCH]
+        longest = max((len(e[sc.key]) for e in hits), default=0)
+        hits = [e for e in hits if len(e[sc.key]) == longest]
         if hits:
             best = max(map(score, hits))
             return [e for e in hits if score(e) == best]
@@ -133,10 +179,11 @@ class Reading:
 
 
 def on_choices_page(image):
-    """Whether image is an event's Choices page (the header reads Choices): the page whose story box shows the end."""
+    """Whether image is an event's Choices page (the header reads Choices, or LLC's 选项): the page whose story box
+    shows the end."""
     from . import ocr, vision
 
-    return any("choice" in t.lower() for t, _ in ocr.lines(image, vision.CHOICES_HEADER, only_rec=True))
+    return labels.shows([t for t, _ in ocr.lines(image, vision.CHOICES_HEADER, only_rec=True)], "choices")
 
 
 def read_screen(image):
@@ -163,15 +210,19 @@ def option_rows(event, lines):
     """Each of event's options shown in lines, as (option, box of its first line), top to bottom.
 
     An option's first line is its text's start (a long option wraps); the lines under it, its wrap and the game's
-    hint, start otherwise. Options scrolled out of the list have no line and are left out.
+    hint, start otherwise. Options scrolled out of the list have no line and are left out. Chinese lines are compared
+    with the options' Simplified text (Script). Of two lines that start an option alike, the one closer to the whole
+    option is its: a shorter option can be another's start (971117's 说我们没有眼球。).
     """
+    sc = script(" ".join(t for t, _ in lines))
+    folded = [(sc.fold(t), box) for t, box in lines if len(t) >= sc.shortest_line]
     rows = []
     for option in (event or {}).get("options", []):
-        text = option["text"].lower()
+        text = sc.fold(option[sc.text])
         if not text:
             continue
-        scored = [(fuzz.ratio(t.lower(), text[:len(t)]), box) for t, box in lines if len(t) >= 3]
-        score, box = max(scored, default=(0, None))
+        scored = [(fuzz.ratio(t, text[:len(t)]), fuzz.ratio(t, text), box) for t, box in folded if t]
+        score, _, box = max(scored, default=(0, 0, None))
         if score >= 85:
             rows.append((option, box))
     return sorted(rows, key=lambda r: r[1][1])
