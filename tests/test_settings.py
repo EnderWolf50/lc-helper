@@ -32,9 +32,9 @@ def test_an_old_main_keyword_becomes_the_first_and_only_one(tmp_path, monkeypatc
     assert "keyword" not in load(tmp_path, monkeypatch, {"keyword": "Charge"})
 
 
-def test_an_old_folded_window_opens_with_every_section_folded(tmp_path, monkeypatch):
+def test_an_old_folded_window_opens_folded_and_an_unfolded_one_as_a_fresh_one(tmp_path, monkeypatch):
     assert load(tmp_path, monkeypatch, {"compact": True})["open_sections"] == []
-    assert load(tmp_path, monkeypatch, {"compact": False})["open_sections"] == ["event", "gift"]
+    assert load(tmp_path, monkeypatch, {"compact": False})["open_sections"] == ["event"], "the default"
     assert "compact" not in load(tmp_path, monkeypatch, {"compact": True})
 
 
@@ -53,7 +53,7 @@ def test_values_outside_their_choices_fall_back(tmp_path, monkeypatch):
     assert keywords == ["Bleed", "Burn"], "known ones, once each, in the user's order"
 
 
-def test_a_fresh_window_guards_nothing_recommends_nothing_and_shows_every_section(tmp_path, monkeypatch):
+def test_a_fresh_window_guards_nothing_recommends_nothing_and_opens_the_event_section(tmp_path, monkeypatch):
     monkeypatch.setattr(ui, "SETTINGS", tmp_path / "settings.json")
     settings = ui.load_settings()
-    assert (settings["guard_mode"], settings["keywords"], settings["open_sections"]) == ("none", [], ["event", "gift"])
+    assert (settings["guard_mode"], settings["keywords"], settings["open_sections"]) == ("none", [], ["event"])

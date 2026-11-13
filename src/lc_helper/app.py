@@ -15,11 +15,13 @@ from functools import partial
 from math import ceil
 from string import Template
 
-from PySide6.QtCore import QAbstractNativeEventFilter, QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QColor, QFont, QFontMetrics, QFontMetricsF, QIcon, QKeySequence, QPainter, QPixmap, QTextDocument
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-                               QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout, QLineEdit,
-                               QListWidget, QListWidgetItem, QProxyStyle, QPushButton, QSizePolicy, QSpinBox, QStyle,
+from PySide6.QtCore import (QAbstractNativeEventFilter, QEvent, QModelIndex, QObject, QPoint, QRect, QSize, Qt, QTimer,
+                            QUrl, Signal)
+from PySide6.QtGui import (QColor, QFont, QFontMetrics, QFontMetricsF, QIcon, QKeySequence, QPainter, QPixmap,
+                           QStandardItem, QStandardItemModel, QTextDocument)
+from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QCompleter, QDialog,
+                               QDialogButtonBox, QFormLayout, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLayout,
+                               QLineEdit, QListWidget, QProxyStyle, QPushButton, QSizePolicy, QSpinBox, QStyle,
                                QSystemTrayIcon, QTextBrowser, QToolButton, QVBoxLayout, QWidget)
 
 from . import device as devices
@@ -36,7 +38,7 @@ GUARD_MODES = {"none": ("不防禦", lambda turns: 0), "turns": ("防禦前幾�
 SECTIONS = {"event": "鏡牢事件", "gift": "飾品"}  # the main page's folding sections: key, title
 DEFAULTS = {"address": None, "pc_input": devices.PC_INPUT, "pick": "win_rate", "guard_mode": "none", "guard": 1,
             "hold": True, "watch": False, "skip": False, "overlay": True, "keywords": [], "stop_after_victory": False,
-            "notify": True, "open_sections": list(SECTIONS), "text_size": "normal", "pin": True, "pos": None,
+            "notify": True, "open_sections": ["event"], "text_size": "normal", "pin": True, "pos": None,
             "hotkeys": {"battle": "F8", "read": "F9"}}
 PICK_TEXT = {Pick.WIN_RATE: "勝率", Pick.DAMAGE: "傷害"}
 PICK_TIPS = {Pick.WIN_RATE: "每回合按遊戲的 Win Rate（勝率）", Pick.DAMAGE: "每回合按遊戲的 Damage（傷害）"}
@@ -61,6 +63,8 @@ ICON, ICON_ON, HEAD_ICON = "#b9ab93", "#e7b45a", "#c9a165"
 # The detail pane's icons, set in its text as images: <img src='icon:NAME'>, in these colours.
 PANE_ICONS = {"star": "#f0c674", "bullet": "#eadcc4"}
 DOT = {"idle": "#6b6152", "connecting": "#e7b45a", "connected": "#6cc070", "error": "#d9534f"}
+EVENT_PLACEHOLDER = "<p style='color:#8f8270'>在事件的選項頁按「讀取畫面」，或輸入記得的幾個字查詢。</p>"
+GIFT_PLACEHOLDER = "<p style='color:#8f8270'>在選飾品或獲得飾品的畫面按「讀取畫面」，或輸入飾品名字查詢。</p>"
 
 STYLE = Template("""
 QWidget#root { background: #17130f; border: 1px solid #5b4527; border-radius: 10px; }
@@ -84,6 +88,11 @@ QPushButton#start { background: #2f6b3a; border-color: #6fae6a; color: #fff; fon
 QPushButton#start:hover { background: #377a43; }
 QPushButton#start[running="true"] { background: #9e2b22; border-color: #d65a45; }
 QPushButton#start[running="true"]:hover { background: #b8352a; }
+QPushButton#read { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; font-weight: bold; }
+QPushButton#read:hover { background: #7d5725; }
+QListView#hits { background: #1d1711; border: 1px solid #5b4527; outline: none; }
+QListView#hits::item { padding: 4px 6px; } QListView#hits::item:selected { background: #4a3417; color: #fff3dc; }
+QListView#hits::item:disabled { color: #a99c86; }
 QPushButton#link { background: transparent; border: none; color: #e7b45a; padding: 0; text-align: left;
                    text-decoration: underline; }
 QPushButton#link:hover { color: #f0c674; }
@@ -133,11 +142,20 @@ def scaled(px, base):
     return round(px * base / REFERENCE_PT)
 
 
-def pane_height(content, preferred, room, floor):
-    """The detail pane's height for text content px tall: all of it up to preferred, the rest scrolling, and no more
-    than the room left on the screen under the pane. Never under floor, even in a window placed so low that it then
-    runs off the screen: the user placed it, so it is not moved."""
-    return max(floor, min(content, preferred, room))
+def pane_heights(contents, preferred, room, floor):
+    """The detail panes' heights for texts contents px tall: each all of its text up to preferred, the rest
+    scrolling, and together no more than the room left on the screen under them, the tallest giving way first.
+    Never under floor, even in a window placed so low that it then runs off the screen: the user placed it, so it is
+    not moved."""
+    wants = [max(floor, min(content, preferred)) for content in contents]
+    cap, taken = max(wants, default=0), 0
+    for i, want in enumerate(sorted(wants)):
+        share = (room - taken) // (len(wants) - i)  # what each pane still to place gets of the room left
+        if share < want:
+            cap = share
+            break
+        taken += want
+    return [max(floor, min(want, cap)) for want in wants]
 
 
 def migrate(saved):
@@ -150,8 +168,8 @@ def migrate(saved):
         saved["guard_mode"] = "forever" if forever else "turns" if isinstance(guard, int) and guard > 0 else "none"
     if "keywords" not in saved and keyword is not None:
         saved["keywords"] = [keyword]
-    if "open_sections" not in saved and compact is not None:
-        saved["open_sections"] = [] if compact else list(SECTIONS)
+    if "open_sections" not in saved and compact:
+        saved["open_sections"] = []
     return saved
 
 
@@ -447,6 +465,67 @@ class Elided(QLabel):
                                   self.foregroundRole())
 
 
+class SearchBox(QWidget):
+    """A search field with its clear button and 查詢; the hits drop down from it in a list that closes on a pick.
+
+    find(query) gives the hits, [(row text, found)], and missing is the row shown for none. picked(found) is emitted
+    on the user's pick, cleared once the field is emptied, by its clear button or by hand."""
+
+    picked = Signal(object)
+    cleared = Signal()
+
+    def __init__(self, placeholder, missing, find):
+        super().__init__()
+        self.find, self.missing, self.found = find, missing, []
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
+        self.field = QLineEdit(placeholderText=placeholder, clearButtonEnabled=True)
+        self.go = QPushButton("查詢", clicked=self.search)
+        row.addWidget(self.field, 1)
+        row.addWidget(self.go)
+        self.hits = QStandardItemModel(self)
+        # Set on the field with setWidget, not setCompleter: a pick leaves the user's words in the field.
+        self.list = QCompleter(self.hits, self, completionMode=QCompleter.UnfilteredPopupCompletion,
+                               maxVisibleItems=8)
+        self.list.setWidget(self.field)
+        self.list.popup().setObjectName("hits")
+        self.list.popup().setTextElideMode(Qt.ElideRight)
+        self.list.activated[QModelIndex].connect(lambda index: self.picked.emit(self.found[index.row()]))
+        self.typing = QTimer(self, singleShot=True, interval=150, timeout=self.search)
+        self.field.textChanged.connect(self.typed)
+        # The open list hands Return to the field before it picks the lit row: searching then would refill the list
+        # under that pick (a crash), so Return searches only while the list is closed.
+        self.field.returnPressed.connect(lambda: self.list.popup().isVisible() or self.search())
+
+    def typed(self, text):
+        if text.strip():
+            self.typing.start()
+        else:
+            self.typing.stop()
+            self.list.popup().hide()
+            self.cleared.emit()
+
+    def search(self):
+        """The hits for the field's words, dropped down under the field and 查詢, the first one lit for Enter."""
+        self.typing.stop()
+        query = self.field.text().strip()
+        if not query:
+            return
+        hits = self.find(query) if len(query) >= 2 else []
+        self.found = [found for _, found in hits]
+        self.hits.clear()
+        for text, _ in hits:
+            self.hits.appendRow(QStandardItem(text))
+        if not hits:
+            row = QStandardItem(self.missing if len(query) >= 2 else "至少輸入兩個字")
+            row.setFlags(Qt.NoItemFlags)
+            self.hits.appendRow(row)
+        self.list.complete(QRect(0, 0, self.width(), self.field.height()))
+        if hits:
+            self.list.popup().setCurrentIndex(self.hits.index(0, 0))
+
+
 class Section(QWidget):
     """A part of the main page under a head that folds it away; folded, the head sums up what the part holds."""
 
@@ -530,7 +609,7 @@ class Window(QWidget):
         self.drag_from: QPoint | None = None
         self.controls = []  # the buttons, fields and lists that share one height on a row (apply_text_size)
         self.row_labels = []  # the labels before a row on the settings page, as wide as the widest
-        self.fit_timer = QTimer(self, singleShot=True, interval=0, timeout=self.fit_detail)
+        self.fit_timer = QTimer(self, singleShot=True, interval=0, timeout=self.fit_panes)
         self.bridge = Bridge()
         self.worker = worker_factory(self.bridge.callbacks())
         self.build()
@@ -543,7 +622,6 @@ class Window(QWidget):
         self.bridge.gifts.connect(self.on_gifts)
         self.bridge.skip.connect(lambda what: self.say_skip(f"自動跳過：{what}"))
         self.bridge.error.connect(self.say)
-        self.search_timer = QTimer(self, singleShot=True, interval=120, timeout=self.run_search)
 
     def control(self, widget):
         """widget, as tall as every other control on a row."""
@@ -565,7 +643,7 @@ class Window(QWidget):
         main.setContentsMargins(0, 0, 0, 0)
         main.setSpacing(0)
         main.addWidget(self.build_battle())
-        self.sections = {"event": self.build_events()}
+        self.sections = {"event": self.build_events(), "gift": self.build_gifts()}
         for key, section in self.sections.items():
             section.head.toggled.connect(partial(self.set_section_open, key))
             main.addWidget(section)
@@ -639,24 +717,43 @@ class Window(QWidget):
         return bar
 
     def build_events(self):
+        """The Mirror Dungeon event section: read the screen, search the events, the pane, the recommendation and
+        the helpers that act on the game."""
         s = self.settings
         section = Section(SECTIONS["event"], "event" in s["open_sections"])
         ev = QVBoxLayout(section.body)
         ev.setContentsMargins(12, 10, 12, 12)
         ev.setSpacing(8)
         row = QHBoxLayout()
-        self.query = self.control(QLineEdit(placeholderText="輸入事件、選項或飾品名字（中/英）"))
-        self.query.setClearButtonEnabled(True)
-        self.query.textChanged.connect(lambda: self.search_timer.start())
-        row.addWidget(self.query)
-        self.read_button = self.control(QPushButton(clicked=lambda: self.worker.send("read_event")))
-        row.addWidget(self.read_button)
-        ev.addLayout(row)
-        row = QHBoxLayout(spacing=6)
-        self.watch = self.control(QPushButton("自動讀取", objectName="pill", checkable=True, checked=s["watch"],
-                                              toolTip="自動讀取：畫面出現事件選項就顯示"))
+        row.setSpacing(8)
+        self.read_button = self.control(QPushButton(objectName="read", clicked=lambda: self.worker.send("read_event")))
+        row.addWidget(self.read_button, 1)
+        self.watch = self.control(QPushButton("自動", objectName="pill", checkable=True, checked=s["watch"],
+                                              toolTip="自動讀取：畫面出現事件選項或飾品畫面就讀取顯示"))
         self.watch.toggled.connect(self.set_watch)
         row.addWidget(self.watch)
+        ev.addLayout(row)
+        self.event_search = SearchBox("搜尋事件文字（中/英）", "找不到符合的事件",
+                                      lambda query: [(result_text(e), e) for e in events.search(query, limit=8)])
+        self.event_search.picked.connect(self.show_found_event)
+        self.event_search.cleared.connect(self.clear_event)
+        self.controls += [self.event_search.field, self.event_search.go]
+        ev.addWidget(self.event_search)
+        self.detail = QTextBrowser(openExternalLinks=False)
+        self.detail.document().documentLayout().documentSizeChanged.connect(lambda _: self.fit_timer.start())
+        self.detail.setHtml(EVENT_PLACEHOLDER)
+        ev.addWidget(self.detail)
+        ev.addWidget(QLabel("推薦體系（依順序）", objectName="section"))
+        self.keyword_box = self.control(QComboBox())
+        self.keyword_box.addItem("不推薦", None)
+        for k in recommend.CHOICES:
+            self.keyword_box.addItem(f"{events.KEYWORDS.get(k, k)}  {k}", k)
+        self.keyword_box.setCurrentIndex(max(self.keyword_box.findData((s["keywords"] or [None])[0]), 0))
+        self.keyword_box.activated.connect(self.set_keyword)
+        ev.addWidget(self.keyword_box)
+        ev.addWidget(QLabel("輔助", objectName="section"))
+        row = QHBoxLayout()
+        row.setSpacing(6)
         self.skip_box = self.control(QPushButton("跳過劇情", objectName="pill", checkable=True, checked=s["skip"],
                                                  toolTip="自動跳過劇情：一路推進到選項頁（不替你選）"))
         self.skip_box.toggled.connect(self.set_skip)
@@ -669,26 +766,25 @@ class Window(QWidget):
         ev.addLayout(row)
         self.skip_state = QLabel(objectName="status", visible=False)
         ev.addWidget(self.skip_state)
-        row = QHBoxLayout()
-        row.addWidget(QLabel("推薦選項，依主要體系：", objectName="status"))
-        self.keyword_box = self.control(QComboBox())
-        self.keyword_box.addItem("不推薦", None)
-        for k in recommend.CHOICES:
-            self.keyword_box.addItem(f"{events.KEYWORDS.get(k, k)}  {k}", k)
-        self.keyword_box.setCurrentIndex(max(self.keyword_box.findData((s["keywords"] or [None])[0]), 0))
-        self.keyword_box.activated.connect(self.set_keyword)
-        row.addWidget(self.keyword_box, 1)
-        ev.addLayout(row)
-        self.results = QListWidget()
-        self.results.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.results.setTextElideMode(Qt.ElideRight)
-        self.results.hide()
-        self.results.currentItemChanged.connect(lambda item, _: item and self.show_hit(*item.data(Qt.UserRole)))
-        ev.addWidget(self.results)
-        self.detail = QTextBrowser(openExternalLinks=False)
-        self.detail.document().documentLayout().documentSizeChanged.connect(lambda _: self.fit_timer.start())
-        self.detail.setHtml("<p style='color:#8f8270'>在事件的選項頁按「讀取畫面」，或輸入記得的幾個字。</p>")
-        ev.addWidget(self.detail)
+        return section
+
+    def build_gifts(self):
+        """The gift section: search the gifts, and the pane that also shows the gifts a gift screen read finds."""
+        section = Section(SECTIONS["gift"], "gift" in self.settings["open_sections"])
+        lay = QVBoxLayout(section.body)
+        lay.setContentsMargins(12, 10, 12, 12)
+        lay.setSpacing(8)
+        self.gift_search = SearchBox("搜尋飾品名字（中/英）", "找不到符合的飾品",
+                                     lambda query: [(f"{gifts.label(g)}  {g['en']}", g)
+                                                    for g in gifts.search(query, limit=8)])
+        self.gift_search.picked.connect(lambda gift: self.show_gifts([gift]))
+        self.gift_search.cleared.connect(self.clear_gifts)
+        self.controls += [self.gift_search.field, self.gift_search.go]
+        lay.addWidget(self.gift_search)
+        self.gift_detail = QTextBrowser(openExternalLinks=False)
+        self.gift_detail.document().documentLayout().documentSizeChanged.connect(lambda _: self.fit_timer.start())
+        self.gift_detail.setHtml(GIFT_PLACEHOLDER)
+        lay.addWidget(self.gift_detail)
         return section
 
     def build_settings(self):
@@ -779,25 +875,30 @@ class Window(QWidget):
         self.apply_pane_icons()
         QTimer.singleShot(0, self.adjustSize)
 
-    def fit_detail(self):
-        """The detail pane as tall as pane_height makes it where the window is now. Its text changing size, the window
-        being laid out again (the text size, a fold, a line shown or hidden above the pane) or moving bring it here.
+    def fit_panes(self):
+        """The detail panes shown as tall as pane_heights makes them where the window is now. Their text changing
+        size, the window being laid out again (the text size, a fold, a line shown or hidden above a pane) or moving
+        bring it here.
 
         Qt carries a new pane height up to the window one layout per event pass, so a fit that read the window's
-        bottom in between would chase the fit before it, for good: the layouts holding the pane run here first."""
-        pane, text = self.detail, self.detail.document()
-        if not pane.isVisible():
-            return  # showing it lays the window out, which comes back here
-        holder = pane.parentWidget()
-        while holder is not None:
-            holder.layout().activate()
-            holder = holder.parentWidget()
-        chrome = pane.height() - pane.viewport().height()  # the border and the padding
+        bottom in between would chase the fit before it, for good: the layouts holding the panes run here first."""
+        panes = [pane for pane in (self.detail, self.gift_detail) if pane.isVisible()]
+        if not panes:
+            return  # showing one lays the window out, which comes back here
+        for pane in panes:
+            holder = pane.parentWidget()
+            while holder is not None:
+                holder.layout().activate()
+                holder = holder.parentWidget()
+        pane = panes[0]
+        chrome = pane.height() - pane.viewport().height()  # the border and the padding, the same on every pane
         screen = self.screen().availableGeometry()
-        room = pane.height() + screen.bottom() - SCREEN_GAP - self.frameGeometry().bottom()
-        floor = PANE_LINES * pane.fontMetrics().lineSpacing() + 2 * round(text.documentMargin()) + chrome
+        room = sum(p.height() for p in panes) + screen.bottom() - SCREEN_GAP - self.frameGeometry().bottom()
+        floor = PANE_LINES * pane.fontMetrics().lineSpacing() + 2 * round(pane.document().documentMargin()) + chrome
         preferred = scaled(300, TEXT_SIZES[self.settings["text_size"]][1])
-        pane.setFixedHeight(pane_height(ceil(text.size().height()) + chrome, preferred, room, floor))
+        contents = [ceil(p.document().size().height()) + chrome for p in panes]
+        for p, height in zip(panes, pane_heights(contents, preferred, room, floor)):
+            p.setFixedHeight(height)
 
     def moveEvent(self, e):
         """The pane follows the screen's bottom while the window is dragged, too. The fit waits for the next event
@@ -1046,7 +1147,6 @@ class Window(QWidget):
     def on_event(self, reading):
         """A read event page: its effects in the window (unless it is the page already shown, read again for a
         scroll or a lit row) and, with the overlay on, beside the options on the game."""
-        self.results.hide()
         self.last_reading = reading
         if not (reading.event and reading.event is self.shown_event and not reading.others):
             self.show_event(reading.event, " ".join([reading.story, *reading.options]), reading.others, reading.closed)
@@ -1058,20 +1158,31 @@ class Window(QWidget):
         else:
             self.overlay.hide_labels()
 
-    def show_hit(self, kind, found):
+    def show_found_event(self, event):
         self.last_reading = None
-        if kind == "gift":
-            self.detail.setHtml(gift_html([found]))
-        else:
-            self.show_event(found)
+        self.show_event(event)
+
+    def clear_event(self):
+        """The search field emptied: the pane goes back to saying how to fill it."""
+        self.shown_event = self.last_reading = None
+        self.detail.setHtml(EVENT_PLACEHOLDER)
 
     def on_gifts(self, reading):
         """A gift screen read: its gifts in Chinese, with the effects once enhanced and their fusion recipes."""
-        self.results.hide()
-        self.shown_event = self.last_reading = None
         heading = {"choice": "畫面上可以選的飾品", "get": "剛獲得的飾品"}.get(reading.page, "")
-        self.detail.setHtml(gift_html([g for g, _ in reading.gifts], heading) if reading.gifts
-                            else "<p style='color:#d9a441'>飾品畫面上沒讀到飾品名字</p>")
+        if reading.gifts:
+            self.show_gifts([g for g, _ in reading.gifts], heading)
+        else:
+            self.gift_detail.setHtml("<p style='color:#d9a441'>飾品畫面上沒讀到飾品名字</p>")
+
+    def show_gifts(self, gift_list, heading=""):
+        """Gifts in the gift pane; the folded section names them."""
+        self.gift_detail.setHtml(gift_html(gift_list, heading))
+        self.sections["gift"].set_summary("最近：" + "、".join(g["zh"] or g["en"] for g in gift_list))
+
+    def clear_gifts(self):
+        self.gift_detail.setHtml(GIFT_PLACEHOLDER)
+        self.sections["gift"].set_summary("")
 
     def show_event(self, event, read_text="", others=(), closed=()):
         """An event in the detail pane, its recommended option starred when keywords are set; closed are option
@@ -1083,21 +1194,6 @@ class Window(QWidget):
             page = ("<p style='color:#d9a441;margin:0 0 4px 0'>畫面上的文字對到不只一個事件，選項效果各列一份</p>"
                     + "<hr>".join(event_html(e, pick=pick(e)) for e in (event, *others)))
         self.detail.setHtml(page)
-
-    def run_search(self):
-        query = self.query.text()
-        hits = [("gift", g) for g in gifts.search(query, limit=4)] + [("event", e) for e in events.search(query, limit=6)]
-        self.results.clear()
-        for kind, found in hits:
-            item = QListWidgetItem(f"飾品｜{gifts.label(found)}" if kind == "gift" else result_text(found))
-            item.setData(Qt.UserRole, (kind, found))
-            self.results.addItem(item)
-        self.results.setFixedHeight(min(len(hits), 5) * self.results.sizeHintForRow(0) + 6)
-        self.results.setVisible(bool(hits))
-        if hits:
-            self.results.setCurrentRow(0)
-        elif self.query.text().strip():
-            self.detail.setHtml("<p style='color:#8f8270'>找不到符合的事件或飾品。</p>")
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton and self.header.geometry().contains(e.position().toPoint()):

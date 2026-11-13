@@ -68,6 +68,23 @@ def on_screen(window, out, name):
     print(path, f"screen {area.height()} px, window {window.y()}..{window.frameGeometry().bottom()}")
 
 
+def with_popup(window, box, out, name):
+    """The window with a search box's drop-down list painted where it shows: the list is a window of its own."""
+    settle()
+    popup = box.list.popup()
+    page, drop = window.grab(), popup.grab()
+    at = popup.mapToGlobal(popup.rect().topLeft()) - window.mapToGlobal(window.rect().topLeft())
+    sheet = QPixmap(max(page.width(), at.x() + drop.width()), max(page.height(), at.y() + drop.height()))
+    sheet.fill(QColor("#0b0a09"))
+    painter = QPainter(sheet)
+    painter.drawPixmap(0, 0, page)
+    painter.drawPixmap(at, drop)
+    painter.end()
+    path = out / name
+    sheet.save(str(path))
+    print(path, f"list of {popup.model().rowCount()} rows")
+
+
 def overlay_shot(out, name, capture, keywords=()):
     """The overlay's labels painted over a capture of the game, as the player would see them."""
     from PySide6.QtCore import QPoint
@@ -161,14 +178,23 @@ def main():
         on_screen(w, out, f"window-long-event-{where}.png")
     w.move(area.topLeft())
     w.set_text_size("normal")
-    w.query.setText("螺旋")
-    w.run_search()
-    shot(w, out, "window-search.png")
+    w.event_search.field.setText("hand")
+    w.event_search.search()
+    with_popup(w, w.event_search, out, "window-search.png")
+    w.event_search.list.popup().hide()
+    w.event_search.field.clear()
+    shot(w, out, "window-search-cleared.png")
     from lc_helper import gifts, ocr
     trials = vision.imread(maalc_dir() / "tests/screens/BossGiftTrials.png")
-    w.query.setText("")
+    w.sections["gift"].head.setChecked(True)
     w.on_gifts(gifts.read_gifts(trials, "choice", ocr.lines))
     shot(w, out, "window-gifts.png")
+    w.gift_search.field.setText("地獄蝶")
+    w.gift_search.search()
+    with_popup(w, w.gift_search, out, "window-gift-search.png")
+    w.gift_search.list.popup().hide()
+    w.show_event(events.by_id()[901069])
+    on_screen(w, out, "window-both-open.png")
     w.on_battle(Status(Phase.STOPPED, Plan(), 4, "連續 3 個回合按 START 都沒開始，自動戰鬥停止"))
     w.set_watch(True)
     for section in w.sections.values():

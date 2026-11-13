@@ -65,7 +65,7 @@ def test_a_settings_file_with_unknown_choices_still_opens_the_window(tmp_path, m
                guard_mode="sometimes", guard=-2, open_sections="all")
     assert (w.settings["text_size"], w.settings["pc_input"], w.settings["keywords"], w.settings["pin"]) == \
         ("normal", "touch", [], True)
-    assert (w.settings["guard_mode"], w.settings["guard"], w.settings["open_sections"]) == ("none", 1, ["event", "gift"])
+    assert (w.settings["guard_mode"], w.settings["guard"], w.settings["open_sections"]) == ("none", 1, ["event"])
     assert w.detail.font().pointSizeF() == 12
 
 
@@ -165,12 +165,16 @@ def painted(w, widget, x, y):
     return w.grab().toImage().pixelColor(at.x(), at.y())
 
 
-def test_the_event_switches_are_one_row_of_short_pills_that_show_on_and_off_at_a_glance(tmp_path, monkeypatch):
+def test_auto_read_sits_beside_read_and_the_helpers_are_one_row_of_pills_that_show_on_and_off_at_a_glance(
+        tmp_path, monkeypatch):
     w = window(tmp_path, monkeypatch, watch=False, skip=False, overlay=True)
-    pills = {"自動讀取": w.watch, "跳過劇情": w.skip_box, "疊加顯示": w.overlay_box}
+    top = lambda widget: widget.mapTo(w, QPoint()).y()  # noqa: E731
+    assert w.watch.text() == "自動" and top(w.watch) == top(w.read_button) and w.watch.height() == w.read_button.height()
+    assert w.read_button.text() == "讀取畫面  F9"
+    pills = {"跳過劇情": w.skip_box, "疊加顯示": w.overlay_box}
     assert [p.text() for p in pills.values()] == list(pills)
-    assert len({p.mapTo(w, QPoint()).y() for p in pills.values()}) == 1, "one row"
-    assert "畫面出現事件選項就顯示" in w.watch.toolTip()
+    assert len({top(p) for p in pills.values()}) == 1, "one row"
+    assert "畫面出現事件選項" in w.watch.toolTip()
     assert "一路推進到選項頁（不替你選）" in w.skip_box.toolTip()
     assert "把選項效果直接標在遊戲畫面上" in w.overlay_box.toolTip()
     inside = lambda p: painted(w, p, p.width() // 2, 3)  # noqa: E731  between the border and the text
@@ -194,7 +198,7 @@ def test_a_folded_section_sums_itself_up_in_its_head_and_a_new_window_opens_it_f
     settled(w)
     assert not w.detail.isVisible() and w.height() < height
     assert section.summary.text() == "自動讀取開 · 推薦 充能 › 流血"
-    assert ui.load_settings()["open_sections"] == ["gift"]
+    assert ui.load_settings()["open_sections"] == []
     w.set_watch(False)
     w.set_skip(True)
     assert section.summary.text() == "跳過劇情開 · 推薦 充能 › 流血", "the summary follows the switches"
@@ -203,7 +207,7 @@ def test_a_folded_section_sums_itself_up_in_its_head_and_a_new_window_opens_it_f
     settled(again)
     assert not again.sections["event"].head.isChecked() and not again.detail.isVisible()
     again.sections["event"].head.click()
-    assert again.detail.isVisible() and ui.load_settings()["open_sections"] == ["event", "gift"]
+    assert again.detail.isVisible() and ui.load_settings()["open_sections"] == ["event"]
 
 
 def test_a_summary_too_long_for_the_head_stays_inside_it(tmp_path, monkeypatch):
@@ -290,11 +294,26 @@ SHORT, LONG = 901101, 971097  # an event whose effects fit the pane at the large
 
 
 def test_the_pane_takes_its_text_up_to_the_preferred_height_and_the_room_on_screen_but_never_under_the_floor():
-    assert ui.pane_height(content=200, preferred=360, room=500, floor=80) == 200
-    assert ui.pane_height(content=600, preferred=360, room=500, floor=80) == 360, "the rest scrolls"
-    assert ui.pane_height(content=600, preferred=360, room=250, floor=80) == 250, "the window ends on the screen"
-    assert ui.pane_height(content=30, preferred=360, room=500, floor=80) == 80, "a short text gets the floor"
-    assert ui.pane_height(content=600, preferred=360, room=20, floor=80) == 80, "a window placed low keeps a few lines"
+    def one(content, room):
+        return ui.pane_heights([content], preferred=360, room=room, floor=80)[0]
+
+    assert one(content=200, room=500) == 200
+    assert one(content=600, room=500) == 360, "the rest scrolls"
+    assert one(content=600, room=250) == 250, "the window ends on the screen"
+    assert one(content=30, room=500) == 80, "a short text gets the floor"
+    assert one(content=600, room=20) == 80, "a window placed low keeps a few lines"
+
+
+def test_two_panes_share_the_room_and_the_taller_gives_way_first():
+    def two(contents, room):
+        return ui.pane_heights(contents, preferred=360, room=room, floor=80)
+
+    assert two([600, 150], room=900) == [360, 150], "room for both"
+    assert two([600, 150], room=400) == [250, 150], "the long one scrolls, the short one shows whole"
+    assert two([150, 600], room=400) == [150, 250], "whichever comes first"
+    assert two([600, 500], room=400) == [200, 200], "both long: an even share"
+    assert two([600, 500], room=100) == [80, 80], "a window placed low keeps a few lines in each"
+    assert two([30, 30], room=500) == [80, 80]
 
 
 def test_the_empty_pane_is_a_few_lines_and_an_event_gets_the_height_its_text_needs(tmp_path, monkeypatch):
@@ -377,9 +396,30 @@ def test_a_fit_that_runs_before_the_window_has_caught_up_with_the_last_one_lands
     w.show_event(events.by_id()[LONG])
     settled(w)
     w.move(screen.left(), screen.top() + 250)
-    w.fit_detail()
+    w.fit_panes()
     fitted = w.detail.height()
-    w.fit_detail()
+    w.fit_panes()
     assert w.detail.height() == fitted
     settled(w)
     assert w.detail.height() == fitted and w.frameGeometry().bottom() <= screen.bottom()
+
+
+def test_a_long_event_and_a_screen_of_gifts_together_keep_the_window_on_the_screen(tmp_path, monkeypatch):
+    from lc_helper import gifts
+
+    w = window(tmp_path, monkeypatch, open_sections=["event", "gift"])
+    screen = w.screen().availableGeometry()
+    w.move(screen.topLeft())
+    w.show_event(events.by_id()[LONG])
+    w.show_gifts(gifts.search("burn", limit=4))
+    settled(w)
+    assert w.detail.isVisible() and w.gift_detail.isVisible()
+    assert w.frameGeometry().bottom() <= screen.bottom()
+    assert w.detail.verticalScrollBar().maximum() > 0, "the rest scrolls"
+    w.sections["gift"].head.click()
+    settled(w)
+    assert not w.gift_detail.isVisible() and w.frameGeometry().bottom() <= screen.bottom()
+    taller = w.detail.height()
+    w.sections["gift"].head.click()
+    settled(w)
+    assert w.detail.height() < taller, "the event pane gives back the room the gift pane takes"
