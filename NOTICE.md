@@ -1,6 +1,8 @@
 # 第三方內容與授權
 
-lc-helper 的資料與圖大多取自 [maalc](https://github.com/EnderWolf50/maalc)，來源與授權照 maalc 的 [NOTICE.md](https://github.com/EnderWolf50/maalc/blob/main/NOTICE.md) 整理如下。
+lc-helper 的程式碼採 [PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)（`LICENSE`）。沿用 [maalc](https://github.com/EnderWolf50/maalc) 的辨識位置、等待時間與試煉算法，maalc 也以同一授權發佈，所以 `LICENSE` 開頭同時列出兩個專案的 `Required Notice`。
+
+資料與圖大多取自 maalc，來源與授權照 maalc 的 [NOTICE.md](https://github.com/EnderWolf50/maalc/blob/main/NOTICE.md) 整理如下。
 
 ## Limbus Company 遊戲內容
 
