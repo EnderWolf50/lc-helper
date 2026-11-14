@@ -20,6 +20,8 @@ Writes:
 - assets/gift_icons/<id>.webp: maalc's gift pictures (copy_gift_icons).
 - assets/trials.json: maalc's trial table (assets/resource/base/data/trials.yaml) with each trial's English text and
   its Chinese name and text (build_trials).
+- assets/fonts/barlow-condensed/: the condensed face maalc's window sets numerals in, weights 600 and 700, as
+  TrueType, and its licence (copy_fonts).
 """
 
 import json
@@ -33,6 +35,7 @@ import cv2
 import numpy as np
 import opencc
 import yaml
+from fontTools.ttLib import TTFont
 
 REPO = Path(__file__).resolve().parent.parent
 TEMPLATES = {
@@ -109,6 +112,20 @@ def copy_gift_icons(maalc):
         old.unlink()
     for src in (maalc / "assets/resource/base/data/gift_icons").glob("*.webp"):
         shutil.copyfile(src, out / src.name)
+
+
+def copy_fonts(maalc):
+    """Barlow Condensed as maalc's window bundles it (gui/src/main.tsx, @fontsource/barlow-condensed, SIL OFL 1.1),
+    its WOFF files unpacked to TrueType: Qt's Windows font database loads no WOFF (addApplicationFont gives -1; only
+    the offscreen platform's FreeType reads it). With the licence that goes with them."""
+    package = maalc / "gui/node_modules/@fontsource/barlow-condensed"
+    out = REPO / "assets/fonts/barlow-condensed"
+    out.mkdir(parents=True, exist_ok=True)
+    for weight in (600, 700):
+        font = TTFont(package / f"files/barlow-condensed-latin-{weight}-normal.woff")
+        font.flavor = None
+        font.save(out / f"barlow-condensed-latin-{weight}-normal.ttf")
+    shutil.copyfile(package / "LICENSE", out / "LICENSE")
 
 
 @dataclass(frozen=True)
@@ -342,6 +359,7 @@ def main():
     copy_assets(maalc)
     copy_keyword_icons(maalc)
     copy_gift_icons(maalc)
+    copy_fonts(maalc)
     llc = llc_source(maalc)
     print(f"Localize Limbus Company {llc.version} from {llc.source}")
     data, missing_zh = build(maalc, llc)

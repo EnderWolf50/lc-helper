@@ -19,8 +19,9 @@ build = [
     "pyinstaller>=6.22.3",
 ]
 dev = ["pytest", "ruff"]
-# tools/sync_maalc.py: Simplified to Traditional Chinese for the LLC event text.
+# tools/sync_maalc.py: Simplified to Traditional Chinese for the LLC event text; maalc's WOFF fonts as TrueType.
 sync = [
+    "fonttools",
     "opencc-python-reimplemented",
     "pyyaml>=6.0.3",
 ]
