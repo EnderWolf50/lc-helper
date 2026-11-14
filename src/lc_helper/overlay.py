@@ -17,7 +17,7 @@ from itertools import groupby
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, QUrl
 from PySide6.QtGui import (QAbstractTextDocumentLayout, QColor, QFont, QFontMetricsF, QGuiApplication, QPainter,
-                           QPalette, QPen, QRegion, QTextDocument)
+                           QPalette, QPen, QRegion, QTextCharFormat, QTextDocument)
 from PySide6.QtWidgets import QWidget
 
 from . import device as devices
@@ -142,14 +142,37 @@ def picture_side(font, small, lines):
     return QFontMetricsF(font).height() + lines * QFontMetricsF(small).height()
 
 
+def on_text(pix, font):
+    """pix for font's text, set on the baseline (on_baseline): cut to its drawing and padded below, so its middle meets
+    the middle of the CJK glyphs beside it. Qt sets such a picture's bottom a descent under the baseline
+    (qtextdocumentlayout.cpp, resizeInlineObject). vertical-align: middle centres one a quarter of the x-height over the
+    baseline instead, well under a CJK glyph's middle: the sin icons sat low (the user, 2026-11-15)."""
+    pix = icons.inked(pix)
+    m = QFontMetricsF(font)
+    glyphs = -m.tightBoundingRect("判定").center().y()  # above the baseline
+    return icons.padded_below(pix, max(0.0, glyphs + m.descent() - pix.height() / pix.devicePixelRatio() / 2))
+
+
+def on_baseline(doc):
+    """doc's star and sin icons set on the baseline, for on_text. HTML cannot ask for it: Qt reads vertical-align:
+    baseline as normal, the picture's bottom on the baseline (qtexthtmlparser.cpp)."""
+    cursor = doc.find("\ufffc")  # each picture is one object character
+    while not cursor.isNull():
+        f = cursor.charFormat()
+        if f.isImageFormat() and f.toImageFormat().name().startswith(("sin:", "icon:")):
+            f.setVerticalAlignment(QTextCharFormat.AlignBaseline)
+            cursor.setCharFormat(f)
+        cursor = doc.find("\ufffc", cursor)
+
+
 def head_html(label):
     """A card's head: a star for the recommended one, the check's sins (else a battle or a page to come), and
     whether it was answered already; empty for none of these."""
     o = label.option
-    head = ["<img src='icon:star' style='vertical-align: middle'>"] if label.recommended else []
+    head = ["<img src='icon:star'>"] if label.recommended else []
     sins = events.check_sins(o)
     if sins:
-        head.append(" ".join(f"<img src='sin:{icons.SIN_ICONS[s]}' style='vertical-align: middle'>&#8239;"
+        head.append(" ".join(f"<img src='sin:{icons.SIN_ICONS[s]}'>&#8239;"
                              f"<span style='color:{INK['fg-2']}'>{s}</span>" for s in sins))
         head.append(f"<span style='color:{INK['muted']}'>優勢判定</span>")
     elif o["kind"] in HEADED:
@@ -233,7 +256,7 @@ def full_html(label, font, small, side):
 def trial_html(w, small, width):
     """A post-boss card's worth: its rank (a star and 推薦 for a pick), its total, how it adds up, and its trial's
     effect in Chinese, cut to the card's width."""
-    head = ("<img src='icon:star' style='vertical-align: middle'> " if w.pick else "") + (
+    head = ("<img src='icon:star'> " if w.pick else "") + (
         f"<span style='color:{INK['accent' if w.pick else 'fg']}'>{'推薦 ' if w.pick else ''}第 {w.rank}</span>")
     total = f"<span style='color:{INK['keep' if w.total >= 0 else 'bad']}'>{w.total:+.1f}</span>"
     why = "已持有" if w.card.owned else "推薦體系" if w.gift >= trials.GIFT_SCORES["main"] else ""
@@ -471,10 +494,10 @@ class Overlay(QWidget):
         doc.setDefaultFont(font)
         side, ratio = font.pixelSize() * 1.2, self.devicePixelRatioF()
         doc.addResource(QTextDocument.ImageResource, QUrl("icon:star"),
-                        icons.pixmap("star", INK["accent"], side, ratio))
+                        on_text(icons.pixmap("star", INK["accent"], side, ratio), font))
         for s in events.check_sins(label.option):
             doc.addResource(QTextDocument.ImageResource, QUrl(f"sin:{icons.SIN_ICONS[s]}"),
-                            icons.sin(s, font.pixelSize() * SIN_SIDE, ratio))
+                            on_text(icons.sin(s, font.pixelSize() * SIN_SIDE, ratio), font))
         picture = picture_side(font, small, lines)
         for f in events.outcomes(label.option):
             for gid, _ in f.gifts:
@@ -484,6 +507,7 @@ class Overlay(QWidget):
                                 icons.gift(gid, g.get("keyword", "Keywordless"), picture, ratio, tier=tier))
         doc.setTextWidth(width)
         doc.setHtml(full_html(label, font, small, picture) if full else brief_html(label, small))
+        on_baseline(doc)
         return doc
 
     def cards(self):
@@ -625,7 +649,7 @@ class Overlay(QWidget):
         dx, y, w, h = TRIAL_CARD
         font, small = self.fonts()
         side, ratio = font.pixelSize() * 1.2, self.devicePixelRatioF()
-        star = icons.pixmap("star", INK["accent"], side, ratio)
+        star = on_text(icons.pixmap("star", INK["accent"], side, ratio), font)
         cards = []
         for worth in self.trials:
             rect = QRectF((worth.card.x + dx) * sx, y * sy, w * sx, h * sy)
@@ -635,5 +659,6 @@ class Overlay(QWidget):
             doc.addResource(QTextDocument.ImageResource, QUrl("icon:star"), star)
             doc.setTextWidth(rect.width() - 2 * pad)
             doc.setHtml(trial_html(worth, small, rect.width() - 2 * pad))
+            on_baseline(doc)
             cards.append((worth, doc, rect))
         return cards

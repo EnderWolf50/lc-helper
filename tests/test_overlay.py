@@ -7,7 +7,8 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint, Qt, QUrl  # noqa: E402
-from PySide6.QtGui import QColor, QFont, QFontDatabase, QFontInfo, QImage, QRegion, QTextDocument  # noqa: E402
+from PySide6.QtGui import (QColor, QFont, QFontDatabase, QFontInfo, QImage, QPainter, QRegion,  # noqa: E402
+                           QTextDocument)
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
@@ -170,6 +171,31 @@ def test_every_sin_has_the_games_icon(qt):
         coloured = sum(image.pixelColor(x, y).alpha() > 200 and image.pixelColor(x, y).hsvSaturation() > 120
                        for x in range(image.width()) for y in range(image.height()))
         assert not image.isNull() and coloured > 50, sin
+
+
+@pytest.mark.parametrize("height", [720, 1440])
+def test_a_heads_sin_icon_is_centred_on_its_text(qt, height):
+    """The icon's drawing and the CJK text beside it share a middle (the user, 2026-11-15: the icons sat low)."""
+    push = overlay.Label((730, 327, 191, 22), events.by_id()[901069]["options"][1])  # a 傲慢 and 嫉妒 check
+    o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
+    o.resize(height * 16 // 9, height)
+    font, _ = o.fonts()
+    doc = o.document(push, 900, 2)
+    doc.setHtml(overlay.head_html(push))
+    overlay.on_baseline(doc)
+    image = QImage(round(doc.idealWidth()) + 2, round(doc.size().height()) + 2, QImage.Format_ARGB32)
+    image.fill(0)
+    painter = QPainter(image)
+    doc.drawContents(painter)
+    painter.end()
+
+    def middle(x0, x1):
+        rows = [y for y in range(image.height()) if any(image.pixelColor(x, y).alpha() > 128 for x in range(x0, x1))]
+        return (rows[0] + rows[-1]) / 2
+
+    icon = round(font.pixelSize() * overlay.SIN_SIDE)
+    assert abs(middle(0, icon) - middle(icon + 2, icon + 2 + 2 * font.pixelSize())) <= 1.5
+    o.close()
 
 
 def test_effects_have_a_dot_between_them_and_their_sinners_before_each_run_of_them(qt):

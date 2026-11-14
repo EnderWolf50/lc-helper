@@ -5,6 +5,7 @@ from functools import cache
 import math
 from math import pi
 
+import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap
 
@@ -180,6 +181,30 @@ def fitted(image, side, ratio):
     p.end()
     pix.setDevicePixelRatio(ratio)  # after painting: the painter worked in device pixels
     return pix
+
+
+def inked(pix):
+    """pix cut to the rows its drawing takes, with no empty rows above or below it."""
+    image = pix.toImage().convertToFormat(QImage.Format_ARGB32)
+    alpha = np.frombuffer(image.constBits(), np.uint8).reshape(image.height(), image.bytesPerLine())
+    rows = np.flatnonzero(alpha[:, 3:image.width() * 4:4].any(axis=1))  # ARGB32 is B, G, R, A in memory
+    if not len(rows):
+        return pix
+    out = pix.copy(0, int(rows[0]), pix.width(), int(rows[-1] - rows[0] + 1))
+    out.setDevicePixelRatio(pix.devicePixelRatio())
+    return out
+
+
+def padded_below(pix, extra):
+    """pix over a transparent strip extra logical pixels tall, at pix's ratio of device pixels to logical ones."""
+    ratio = pix.devicePixelRatio()
+    out = QPixmap(pix.width(), pix.height() + round(extra * ratio))
+    out.setDevicePixelRatio(ratio)  # before painting: pix is drawn at its logical size, which is then its own
+    out.fill(Qt.transparent)
+    p = QPainter(out)
+    p.drawPixmap(0, 0, pix)
+    p.end()
+    return out
 
 
 @cache
