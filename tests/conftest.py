@@ -1,9 +1,20 @@
 from functools import cache
 
 import pytest
+from PySide6.QtGui import QFontDatabase, QGuiApplication
 
-from lc_helper import vision
+from lc_helper import palette, vision
 from sync_maalc import maalc_dir
+
+
+@pytest.fixture(autouse=True)
+def no_application_fonts():
+    """Each test starts with the offscreen platform's own fonts, which are none: the overlay registers maalc's face
+    (palette.display_family), and with no other font there it would stand in for every family, the window's too."""
+    yield
+    if QGuiApplication.instance():
+        palette.display_loaded.cache_clear()
+        QFontDatabase.removeAllApplicationFonts()
 
 
 @pytest.fixture(scope="session")

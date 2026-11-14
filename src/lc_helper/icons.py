@@ -7,11 +7,12 @@ from math import cos, pi, sin
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap
 
+from .palette import INK, display_family
 from .paths import ASSETS
 
 GRID = 24
 STROKE = 2  # grid units: a twelfth of the icon's side
-KEYWORDLESS = "#6b6152"  # the ring for a gift of no keyword: quiet beside the game's coloured icons
+KEYWORDLESS = INK["line-2"]  # the ring for a gift of no keyword: quiet beside the game's coloured icons
 
 
 def solid(p):
@@ -154,6 +155,17 @@ def icon(name, color, side, ratio):
     return QIcon(pixmap(name, color, side, ratio))
 
 
+def chamfered(rect: QRectF, cut) -> QPainterPath:
+    """rect with each corner cut off at 45 degrees, cut pixels along each side: the frames of the game and of maalc."""
+    left, top, right, bottom = rect.left(), rect.top(), rect.right(), rect.bottom()
+    path = QPainterPath(QPointF(left + cut, top))
+    for x, y in ((right - cut, top), (right, top + cut), (right, bottom - cut), (right - cut, bottom),
+                 (left + cut, bottom), (left, bottom - cut), (left, top + cut)):
+        path.lineTo(x, y)
+    path.closeSubpath()
+    return path
+
+
 @cache
 def game_icon(keyword):
     """The game's picture for keyword (assets/keywords, tools/sync_maalc.py), at the size it comes in."""
@@ -183,12 +195,13 @@ def gift_picture(gift_id):
 
 
 BADGE = 0.45  # the keyword icon's share of a gift picture's side, in its bottom-right corner
-# The slot a gift's picture sits in: a dark rounded square with a thin edge, so a thin drawing (a gauntlet seen
-# edge on) reads as the same size as a bulky one. Its corner radius and the picture's margin inside it, as shares of
-# the side.
-SLOT_FILL, SLOT_EDGE, SLOT_ROUND, SLOT_INSET = "#261d14", "#5b4527", 0.14, 0.07
-# A gift's tier on its picture: a Roman numeral in the top-left corner, its height this share of the side.
-TIER, TIER_FONT, TIER_FILL, TIER_OUTLINE = 0.3, "Times New Roman", "#f3cf7e", "#120d08"
+# The slot a gift's picture sits in: a dark square, its corners cut, with a thin edge (maalc's gift tile), so a thin
+# drawing (a gauntlet seen edge on) reads as the same size as a bulky one. Its corners' cut and the picture's margin
+# inside it, as shares of the side.
+SLOT_FILL, SLOT_EDGE, SLOT_CUT, SLOT_INSET = INK["bg"], INK["card-line"], 0.12, 0.07
+# A gift's tier on its picture: a Roman numeral in maalc's condensed face in the top-left corner, its height this share
+# of the side.
+TIER, TIER_FILL, TIER_OUTLINE = 0.3, INK["fg"], INK["bg"]
 
 
 def gift(gift_id, kw, side, ratio, badge=True, tier=""):
@@ -205,8 +218,7 @@ def gift(gift_id, kw, side, ratio, badge=True, tier=""):
     edge = max(1.0, ratio)  # one logical pixel
     p.setPen(QPen(QColor(SLOT_EDGE), edge))
     p.setBrush(QColor(SLOT_FILL))
-    corner_radius = pix.width() * SLOT_ROUND
-    p.drawRoundedRect(QRectF(edge / 2, edge / 2, pix.width() - edge, pix.height() - edge), corner_radius, corner_radius)
+    p.drawPath(chamfered(QRectF(edge / 2, edge / 2, pix.width() - edge, pix.height() - edge), pix.width() * SLOT_CUT))
     inset = round(pix.width() * SLOT_INSET + edge)
     fitted = gift_picture(gift_id).scaled(pix.width() - 2 * inset, pix.height() - 2 * inset, Qt.KeepAspectRatio,
                                           Qt.SmoothTransformation)
@@ -215,7 +227,7 @@ def gift(gift_id, kw, side, ratio, badge=True, tier=""):
         corner = keyword(kw, side * BADGE, ratio)
         p.drawPixmap(pix.width() - corner.width(), pix.height() - corner.height(), corner)
     if tier:
-        font = QFont(TIER_FONT)
+        font = QFont(display_family(700))
         font.setBold(True)
         font.setPixelSize(max(6, round(pix.width() * TIER)))
         path = QPainterPath()

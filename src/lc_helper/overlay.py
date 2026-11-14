@@ -21,6 +21,7 @@ from PySide6.QtWidgets import QWidget
 
 from . import device as devices
 from . import events, follow, gifts, icons, trials
+from .palette import INK, TEXT_FAMILY
 
 GAME_W, GAME_H = 1280, 720
 # The cards' column, in game pixels: from the story panel's left edge to just short of the option frames (x 690),
@@ -42,8 +43,9 @@ POINTER_END = 10  # game px: a card's pointer to its option leaves the card at l
 PICTURE_LINES = (2, 1)
 # A brief card's block per outcome: its fill, and the gap between blocks and the margin inside one, as shares of the
 # small text's size.
-BLOCK_FILL, BLOCK_GAP, BLOCK_PAD = "#241b12", 0.45, 0.35
+BLOCK_FILL, BLOCK_GAP, BLOCK_PAD = INK["raise"], 0.45, 0.35
 EDGE = 8  # game px: a full card taller than the cards' column keeps this far inside the game's picture
+CUT = 6  # game px: a card's corners cut off at 45 degrees, as the game's frames and maalc's are
 SHOW_FOR_MS = 60_000  # a read off a page nothing watches stays this long; a watched page's hints go with the page
 # The sins as the game colours them, with a text colour that reads on each.
 SIN_COLORS = {"暴怒": ("#b8322b", "#fff"), "色慾": ("#d06a1c", "#fff"), "怠惰": ("#d6ad2b", "#1b1408"),
@@ -51,8 +53,8 @@ SIN_COLORS = {"暴怒": ("#b8322b", "#fff"), "色慾": ("#d06a1c", "#fff"), "怠
               "嫉妒": ("#7a46ad", "#fff")}
 # Kinds of option whose card says its kind at the top when there is no check: a sinless check, a battle, pages to come.
 HEADED = {"check", "check_other", "check_fail_gift", "battle", "followup", "followup_other", "random"}
-TONES = {"pass": "#8fd17a", "fail": "#ec7b66", "": "#e0b867"}
-NOTHING = "<span style='color:#9c8b6e'>沒事發生</span>"
+TONES = {"pass": INK["keep"], "fail": INK["bad"], "": INK["accent-ink"]}
+NOTHING = f"<span style='color:{INK['muted']}'>沒事發生</span>"
 STAT_NAMES = {"hp": "HP", "hp%": "HP", "sp": "SP", "sp%": "SP"}
 
 Rect = tuple[int, int, int, int]  # x, y, w, h in physical screen pixels
@@ -100,18 +102,21 @@ def gets_html(gets):
     for g in gets:
         what, target = g[0], (g[2] if len(g) > 2 else None)
         if target != last_target and last_target is not None:
-            parts.append(f"<span style='color:#9c8b6e'>{html.escape(events.TARGETS.get(last_target, last_target))}</span>")
+            parts.append(f"<span style='color:{INK['muted']}'>"
+                         f"{html.escape(events.TARGETS.get(last_target, last_target))}</span>")
         last_target = target
         if what in STAT_NAMES:
-            sign = "#8fd17a" if g[1] == "max" or g[1] > 0 else "#ec7b66"
+            sign = INK["keep"] if g[1] == "max" or g[1] > 0 else INK["bad"]
             amount = "補滿" if g[1] == "max" else f"{g[1]:+g}".replace("-", "−") + ("%" if what.endswith("%") else "")
-            parts.append(f"<span style='color:#b9a888'>{STAT_NAMES[what]}</span> <span style='color:{sign}'>{amount}</span>")
+            parts.append(f"<span style='color:{INK['muted']}'>{STAT_NAMES[what]}</span> "
+                         f"<span style='color:{sign}'>{amount}</span>")
         elif what == "cost":
-            parts.append(f"<span style='color:#b9a888'>經費</span> <span style='color:#e0b867'>{g[1]:+g}</span>")
+            parts.append(f"<span style='color:{INK['muted']}'>經費</span> "
+                         f"<span style='color:{INK['accent-ink']}'>{g[1]:+g}</span>")
         else:
-            parts.append(html.escape(events.get_text(g)))
+            parts.append(f"<span style='color:{INK['fg-2']}'>{html.escape(events.get_text(g))}</span>")
     if last_target is not None:
-        parts.append(f"<span style='color:#9c8b6e'>{html.escape(events.TARGETS.get(last_target, last_target))}</span>")
+        parts.append(f"<span style='color:{INK['muted']}'>{html.escape(events.TARGETS.get(last_target, last_target))}</span>")
     return "&nbsp;&nbsp;".join(parts)
 
 
@@ -130,13 +135,13 @@ def head_html(label):
     if sins:
         head += [f"<span style='background-color:{SIN_COLORS[s][0]};color:{SIN_COLORS[s][1]}'>&nbsp;{s}&nbsp;</span>"
                  for s in sins]
-        head.append("<span style='color:#eadcc4'>優勢判定</span>")
+        head.append(f"<span style='color:{INK['muted']}'>優勢判定</span>")
     elif o["kind"] in HEADED:
-        head.append(f"<span style='color:#b9a888'>{html.escape(events.kind_text(o))}</span>")
+        head.append(f"<span style='color:{INK['muted']}'>{html.escape(events.kind_text(o))}</span>")
     elif label.recommended:
-        head.append("<span style='color:#f0c674'>推薦</span>")
+        head.append(f"<span style='color:{INK['accent']}'>推薦</span>")
     if label.closed:
-        head.append("<span style='color:#9c8b6e'>已選過</span>")
+        head.append(f"<span style='color:{INK['muted']}'>已選過</span>")
     return f"<p style='margin:0 0 2px 0'>{'&nbsp;'.join(head)}</p>" if head else ""
 
 
@@ -145,7 +150,7 @@ def rest_html(option, found):
     rest = hint_rest(option) or ("" if found else "沒有記錄效果")
     if any(f.gifts for f in found) or not rest:
         return ""
-    return f"<p style='margin:0;color:#cbbd9f'>{html.escape(rest)}</p>"
+    return f"<p style='margin:0;color:{INK['fg-2']}'>{html.escape(rest)}</p>"
 
 
 def brief_html(label, small):
@@ -153,7 +158,7 @@ def brief_html(label, small):
     pictures (gift:ID, their keyword and tier on them) and what it costs or gives. The gifts' names and effects wait
     for a click (full_html): most players look only at the pictures (the user, 2026-11-14)."""
     found = events.outcomes(label.option)
-    note = f"color:#a8977a;font-size:{small.pixelSize()}px"
+    note = f"color:{INK['muted']};font-size:{small.pixelSize()}px"
     gap, pad = round(small.pixelSize() * BLOCK_GAP), round(small.pixelSize() * BLOCK_PAD)
     blocks = []
     for f in found:
@@ -181,10 +186,11 @@ def gift_html(gid, how, side, small, first=True):
     keyword = g.get("keyword", "Keywordless")
     tier = events.ROMAN.get(g.get("tier"), "")
     tail = " ".join(x for x in (events.KEYWORDS.get(keyword, keyword), tier, how) if x)
-    text = f"<span style='color:#f3cf7e'>{name}</span> <span style='color:#a8977a'>{html.escape(tail)}</span>"
+    text = (f"<span style='color:{INK['fg']};font-weight:600'>{name}</span> "
+            f"<span style='color:{INK['muted']}'>{html.escape(tail)}</span>")
     desc = (g.get("desc_zh") or g.get("desc_en") or "").strip()
     if desc:
-        text += (f"<br><span style='color:#cbbd9f;font-size:{small.pixelSize()}px'>"
+        text += (f"<br><span style='color:{INK['fg-2']};font-size:{small.pixelSize()}px'>"
                  f"{html.escape(desc).replace(chr(10), '<br>')}</span>")
     above = "" if first else f" style='margin-top:{GIFT_GAP}px'"
     return (f"<table cellspacing='0' cellpadding='0'{above}><tr><td width='{side + PICTURE_GAP:.0f}' valign='top'>"
@@ -210,18 +216,17 @@ def full_html(label, font, small, side):
 def trial_html(w, small, width):
     """A post-boss card's worth: its rank (a star and 推薦 for a pick), its total, how it adds up, and its trial's
     effect in Chinese, cut to the card's width."""
-    gold = "#f0c674"
     head = ("<img src='icon:star' style='vertical-align: middle'> " if w.pick else "") + (
-        f"<span style='color:{gold if w.pick else '#eadcc4'}'>{'推薦 ' if w.pick else ''}第 {w.rank}</span>")
-    total = f"<span style='color:{'#8fd17a' if w.total >= 0 else '#ec7b66'}'>{w.total:+.1f}</span>"
+        f"<span style='color:{INK['accent' if w.pick else 'fg']}'>{'推薦 ' if w.pick else ''}第 {w.rank}</span>")
+    total = f"<span style='color:{INK['keep' if w.total >= 0 else 'bad']}'>{w.total:+.1f}</span>"
     why = "已持有" if w.card.owned else "推薦體系" if w.gift >= trials.GIFT_SCORES["main"] else ""
-    calc = (f"<span style='color:#b9a888;font-size:{small.pixelSize()}px'>飾品 {w.gift:g}{f'（{why}）' if why else ''}"
-            f" − 苦難 {w.burden:.1f}</span>")
+    calc = (f"<span style='color:{INK['muted']};font-size:{small.pixelSize()}px'>飾品 {w.gift:g}"
+            f"{f'（{why}）' if why else ''} − 苦難 {w.burden:.1f}</span>")
     t = trials.book()["trials"].get(w.card.trial) if w.card.trial else None
     effect = (QFontMetricsF(small).elidedText(t["desc_zh"] or t["desc_en"], Qt.ElideRight, width) if t
               else "苦難沒認出：照這層最重的算")
     return (f"<p style='margin:0'>{head}&nbsp;&nbsp;{total}</p><p style='margin:0'>{calc}</p>"
-            f"<p style='margin:0;color:#cbbd9f;font-size:{small.pixelSize()}px'>{html.escape(effect)}</p>")
+            f"<p style='margin:0;color:{INK['fg-2']};font-size:{small.pixelSize()}px'>{html.escape(effect)}</p>")
 
 
 def stack(wants, heights, top=CARD_TOP, bottom=CARD_BOTTOM, gap=CARD_GAP):
@@ -435,7 +440,7 @@ class Overlay(QWidget):
     def fonts(self):
         """The cards' text and small text (the gifts' effects), at the game's scale."""
         sy = self.height() / GAME_H
-        font, small = QFont("Microsoft JhengHei UI"), QFont("Microsoft JhengHei UI")
+        font, small = QFont(TEXT_FAMILY), QFont(TEXT_FAMILY)
         font.setPixelSize(max(9, round(TEXT_PX * sy)))
         small.setPixelSize(max(8, round(SMALL_PX * sy)))
         return font, small
@@ -448,7 +453,7 @@ class Overlay(QWidget):
         doc.setDocumentMargin(0)
         doc.setDefaultFont(font)
         side, ratio = font.pixelSize() * 1.2, self.devicePixelRatioF()
-        doc.addResource(QTextDocument.ImageResource, QUrl("icon:star"), icons.pixmap("star", "#f0c674", side, ratio))
+        doc.addResource(QTextDocument.ImageResource, QUrl("icon:star"), icons.pixmap("star", INK["accent"], side, ratio))
         picture = picture_side(font, small, lines)
         for f in events.outcomes(label.option):
             for gid, _ in f.gifts:
@@ -540,19 +545,26 @@ class Overlay(QWidget):
     def mouseMoveEvent(self, e):
         self.setCursor(Qt.PointingHandCursor if self.card_at(e.position()) else Qt.ArrowCursor)
 
+    def plate(self, p, rect, edge, strong, alpha=245):
+        """A card's plate: maalc's panel, its corners cut, framed in edge, the frame thicker when strong."""
+        sy = self.height() / GAME_H
+        fill = QColor(INK["panel"])
+        fill.setAlpha(alpha)
+        p.setPen(QPen(QColor(edge), (2.0 if strong else 1.0) * max(sy, 1)))
+        p.setBrush(fill)
+        p.drawPath(icons.chamfered(rect, CUT * sy))
+
     def draw_card(self, p, context, label, doc, rect, opened=False):
-        """A card: its frame (gold for the recommended one, light for the open one), its pointer to the option, its
-        text."""
+        """A card: its frame (amber for the recommended one, maalc's focus ink for the open one, else bronze), its
+        pointer to the option, its text."""
         sx, sy = self.width() / GAME_W, self.height() / GAME_H
         pad = PAD_PX * sy
-        gold = label.recommended
-        edge = "#e7b45a" if gold else "#c49a5a" if opened else "#7a5d33"
+        amber = label.recommended
         p.setOpacity(1.0)
-        p.setPen(QPen(QColor(edge), (1.6 if gold or opened else 1.0) * max(sy, 1)))
-        p.setBrush(QColor(14, 11, 8, 250 if opened else 245))
-        p.drawRoundedRect(rect, 6 * sy, 6 * sy)
+        self.plate(p, rect, INK["accent"] if amber else INK["fg"] if opened else INK["line-2"], amber or opened,
+                   250 if opened else 245)
         y = self.pointer(label, rect)
-        p.setPen(QPen(QColor("#e7b45a" if gold else "#a07c45"), 2 * max(sy, 1)))
+        p.setPen(QPen(QColor(INK["accent"] if amber else INK["line-2"]), 2 * max(sy, 1)))
         p.drawLine(QPointF(rect.right(), y), QPointF((OPTION_FRAME - 3) * sx, y))
         p.save()
         p.setOpacity(0.5 if label.closed else 1.0)  # an answered option's card stays solid, its words faint
@@ -568,7 +580,7 @@ class Overlay(QWidget):
         sy = self.height() / GAME_H
         pad = PAD_PX * sy
         context = QAbstractTextDocumentLayout.PaintContext()
-        context.palette.setColor(QPalette.Text, QColor("#eadcc4"))
+        context.palette.setColor(QPalette.Text, QColor(INK["fg"]))
         laid = self.cards()
         opened = self.opened_card(laid)
         for label, doc, rect in laid:
@@ -577,9 +589,7 @@ class Overlay(QWidget):
         if opened:
             self.draw_card(p, context, *opened, opened=True)
         for w, doc, rect in self.trial_cards():
-            p.setPen(QPen(QColor("#e7b45a" if w.pick else "#7a5d33"), (1.6 if w.pick else 1.0) * max(sy, 1)))
-            p.setBrush(QColor(14, 11, 8, 245))
-            p.drawRoundedRect(rect, 6 * sy, 6 * sy)
+            self.plate(p, rect, INK["accent" if w.pick else "line-2"], w.pick)
             p.save()
             p.translate(rect.left() + pad, rect.top() + pad * 0.6)
             doc.documentLayout().draw(p, context)
@@ -594,7 +604,7 @@ class Overlay(QWidget):
         dx, y, w, h = TRIAL_CARD
         font, small = self.fonts()
         side, ratio = font.pixelSize() * 1.2, self.devicePixelRatioF()
-        star = icons.pixmap("star", "#f0c674", side, ratio)
+        star = icons.pixmap("star", INK["accent"], side, ratio)
         cards = []
         for worth in self.trials:
             rect = QRectF((worth.card.x + dx) * sx, y * sy, w * sx, h * sy)

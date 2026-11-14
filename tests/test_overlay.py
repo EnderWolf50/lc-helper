@@ -1,17 +1,19 @@
 import os
 import re
+from pathlib import Path
 
 import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint, Qt, QUrl  # noqa: E402
-from PySide6.QtGui import QColor, QImage, QRegion, QTextDocument  # noqa: E402
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QFontInfo, QImage, QRegion, QTextDocument  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
-from lc_helper import events, gifts, icons, overlay  # noqa: E402
+from lc_helper import events, gifts, icons, overlay, palette  # noqa: E402
 from lc_helper.overlay import Win  # noqa: E402
+from lc_helper.palette import INK  # noqa: E402
 
 # The first line of each option visible on maalc's Choices captures (y of its OCR box); scrolled-out options have none.
 VISIBLE = {
@@ -142,10 +144,17 @@ def test_a_brief_card_has_a_block_per_outcome_with_its_gifts_pictures_marked_wit
         g = gifts.book()[gid]
         marked = doc.resource(QTextDocument.ImageResource, QUrl(f"gift:{gid}")).toImage()
         plain = icons.gift(gid, g["keyword"], side, ratio).toImage()
-        tier_gold = QColor(icons.TIER_FILL).rgb()
-        assert marked != plain and any(marked.pixel(x, y) == tier_gold for x in range(marked.width() // 2)
+        tier_ink = QColor(icons.TIER_FILL).rgb()
+        assert marked != plain and any(marked.pixel(x, y) == tier_ink for x in range(marked.width() // 2)
                                        for y in range(marked.height() // 2)), "the tier in the top-left corner"
     o.close()
+
+
+def test_the_numerals_are_in_maalcs_barlow_condensed(qt):
+    assert palette.display_family() == "Barlow Condensed"
+    for weight in palette.DISPLAY:
+        family = palette.display_family(weight)
+        assert QFontInfo(QFont(family)).family() == family, "loaded, not a stand-in"
 
 
 def test_a_click_opens_a_card_in_full_over_the_others_and_another_click_closes_it(qt):
@@ -211,22 +220,53 @@ def qt():
     return QApplication.instance() or QApplication([])
 
 
-def test_a_drawn_gold_star_marks_the_recommended_label_and_no_other(qt):
-    o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720))
-    o.resize(1280, 720)
-    push = events.by_id()[901069]["options"][1]
-    o.items = [overlay.Label((730, 200, 191, 22), push, recommended=True), overlay.Label((730, 400, 191, 22), push)]
-    rects = [rect for _, _, rect in o.cards()]
-    canvas = QImage(1280, 720, QImage.Format_ARGB32)
+@pytest.fixture(autouse=True)
+def faces(qt):
+    """The cards' faces registered before the test, as the app has them: the offscreen platform has no fonts of its
+    own, so a card's text would measure in whichever face was registered last, maalc's numerals face once a card
+    has drawn one (conftest.no_application_fonts)."""
+    for name in ("msjh.ttc", "msjhbd.ttc"):  # Microsoft JhengHei UI, the text's face, and its bold
+        QFontDatabase.addApplicationFont(str(Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts" / name))
+    palette.display_family()
+
+
+def drawn(width, height, items):
+    """An overlay of width x height with items drawn on black: (the overlay, its cards, the picture)."""
+    o = overlay.Overlay(locate=lambda source: (0, 0, width, height))
+    o.resize(width, height)
+    o.items = items
+    canvas = QImage(width, height, QImage.Format_ARGB32)
     canvas.fill(QColor("#000000"))
     o.render(canvas, QPoint(), QRegion(), QWidget.RenderFlag.DrawChildren)
-    gold = QColor("#f0c674")
+    return o, o.cards(), canvas
+
+
+def test_a_drawn_amber_star_marks_the_recommended_label_and_no_other(qt):
+    push = events.by_id()[901069]["options"][1]
+    o, laid, canvas = drawn(1280, 720, [overlay.Label((730, 200, 191, 22), push, recommended=True),
+                                        overlay.Label((730, 400, 191, 22), push)])
+    amber = QColor(INK["accent"])
 
     def star_pixels(rect):
-        return sum(canvas.pixelColor(x, y) == gold for x in range(int(rect.left()), int(rect.right()))
-                   for y in range(int(rect.top()), int(rect.bottom())))
+        inside = rect.adjusted(4, 4, -4, -4)  # within the recommended card's amber frame
+        return sum(canvas.pixelColor(x, y) == amber for x in range(int(inside.left()), int(inside.right()))
+                   for y in range(int(inside.top()), int(inside.bottom())))
 
-    assert star_pixels(rects[0]) > 20 and star_pixels(rects[1]) == 0
+    assert [label.recommended for label, _, _ in laid] == [True, False]
+    assert star_pixels(laid[0][2]) > 20 and star_pixels(laid[1][2]) == 0
+    o.close()
+
+
+def test_a_cards_frame_is_maalcs_bronze_and_the_recommended_ones_amber(qt):
+    """At 2560 wide every frame is 2 px or more, so a pixel across its top edge is wholly its colour."""
+    push = events.by_id()[901069]["options"][1]
+    o, laid, canvas = drawn(2560, 1440, [overlay.Label((730, 200, 191, 22), push, recommended=True),
+                                         overlay.Label((730, 400, 191, 22), push)])
+    for label, _, rect in laid:
+        x = round(rect.center().x())
+        edge = {canvas.pixelColor(x, y).name() for y in range(int(rect.top()) - 3, int(rect.top()) + 4)}
+        frame, other = (INK["accent"], INK["line-2"]) if label.recommended else (INK["line-2"], INK["accent"])
+        assert frame in edge and other not in edge, (label.recommended, edge)
     o.close()
 
 
