@@ -1,4 +1,5 @@
 import os
+import re
 
 import pytest
 
@@ -8,7 +9,7 @@ from PySide6.QtCore import QPoint, Qt, QUrl  # noqa: E402
 from PySide6.QtGui import QColor, QImage, QRegion, QTextDocument  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
-from lc_helper import events, overlay  # noqa: E402
+from lc_helper import events, gifts, overlay  # noqa: E402
 from lc_helper.overlay import Win  # noqa: E402
 
 # The first line of each option visible on maalc's Choices captures (y of its OCR box); scrolled-out options have none.
@@ -88,9 +89,49 @@ def test_the_busiest_options_fit_three_to_a_page_inside_the_game(qt):
     o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
     o.resize(1280, 720)
     o.items = [overlay.Label(box, option) for box, option in zip(rows, busiest)]
-    rects = [rect for _, _, rect in o.cards()]
+    laid = o.cards()
+    rects = [rect for _, _, rect in laid]
     assert all(0 <= r.top() and r.bottom() <= 720 and r.right() < overlay.OPTION_FRAME for r in rects)
     assert all(a.bottom() < b.top() for a, b in zip(rects, rects[1:]))
+    assert all(r.top() + overlay.POINTER_END <= label.want <= r.bottom() - overlay.POINTER_END
+               for label, _, r in laid), "each card's pointer meets its option's middle"
+    font, small = o.fonts()
+    sides = gift_sides(laid)
+    assert len(sides) == 1, "one size of gift picture on the page"
+    assert sides.pop() >= overlay.picture_side(font, small, 1) - 1, "two lines tall: an outcome's gifts side by side"
+    o.close()
+
+
+def gift_sides(laid):
+    """The sides of the gift pictures on laid-out cards, in overlay px."""
+    sides = set()
+    for _, doc, _ in laid:
+        for gid in set(re.findall(r"gift:(\d+)", doc.toHtml())):
+            picture = doc.resource(QTextDocument.ImageResource, QUrl(f"gift:{gid}"))
+            sides.add(round(picture.width() / picture.devicePixelRatio()))
+    return sides
+
+
+def test_a_page_with_room_shows_its_gifts_pictures_three_lines_tall(screen, qt):
+    o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
+    o.resize(1920, 1080)
+    o.items = overlay.labels(events.read_screen(screen("EventChoices.png")))
+    font, small = o.fonts()
+    sides = gift_sides(o.cards())
+    assert len(sides) == 1 and abs(sides.pop() - overlay.picture_side(font, small, 2)) <= 1, "the name and two lines"
+    o.close()
+
+
+def test_an_outcomes_gifts_go_side_by_side_on_a_crowded_card(qt):
+    two = next(o for e in events.book()["events"] for o in e["options"]
+               if any(len(f.gifts) == 2 for f in events.outcomes(o)))
+    o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
+    o.resize(1280, 720)
+    label = overlay.Label((730, 327, 191, 22), two)
+    stacked, across = o.document(label, 600, 1, 1), o.document(label, 600, 1, 2)
+    assert across.size().height() < stacked.size().height()
+    names = [gifts.book()[gid]["zh"] for f in events.outcomes(two) for gid, _ in f.gifts]
+    assert all(name in across.toPlainText() for name in names)
     o.close()
 
 
@@ -204,5 +245,7 @@ def test_a_gift_on_an_event_card_leads_with_its_picture(qt):
     doc = o.document(overlay.Label((730, 327, 191, 22), push), 600, 1)
     assert "gift:9069" in doc.toHtml()
     picture = doc.resource(QTextDocument.ImageResource, QUrl("gift:9069"))
-    assert not picture.isNull() and picture.width() / picture.devicePixelRatio() >= 2 * overlay.TEXT_PX
+    font, small = o.fonts()
+    side = picture.width() / picture.devicePixelRatio()
+    assert not picture.isNull() and abs(side - overlay.picture_side(font, small, 1)) <= 1, "the name and a line"
     o.close()
