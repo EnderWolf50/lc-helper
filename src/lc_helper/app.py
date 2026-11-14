@@ -66,6 +66,7 @@ PANE_ICONS = {"star": "#f0c674", "bullet": "#eadcc4"}
 # A gift's picture, in glyph sides (glyph_side): in the gift pane, beside its name and the start of its effect; on a
 # gift search row, its keyword in the corner.
 GIFT_PICTURE, GIFT_ROW = 3.2, 2
+GIFT_RULE = "#3e2f1d"  # the line between one gift and the next, in the gift pane and the search results
 DOT = {"idle": "#6b6152", "connecting": "#e7b45a", "connected": "#6cc070", "error": "#d9534f"}
 EVENT_PLACEHOLDER = "<p style='color:#8f8270'>在事件的選項頁按「讀取」，或輸入記得的幾個字查詢。</p>"
 GIFT_PLACEHOLDER = "<p style='color:#8f8270'>在選飾品或獲得飾品的畫面按「讀取」，或輸入飾品名字查詢。</p>"
@@ -95,7 +96,8 @@ QPushButton#start[running="true"]:hover { background: #b8352a; }
 QPushButton#read { background: #6b4a1f; border-color: #e7b45a; color: #fff3dc; font-weight: bold; }
 QPushButton#read:hover { background: #7d5725; }
 QListView#hits { background: #1d1711; border: 1px solid #5b4527; outline: none; }
-QListView#hits::item { padding: 4px 6px; } QListView#hits::item:selected { background: #4a3417; color: #fff3dc; }
+QListView#hits::item { padding: 4px 6px; border-bottom: 1px solid ${rule}; }
+QListView#hits::item:selected { background: #4a3417; color: #fff3dc; }
 QListView#hits::item:disabled { color: #a99c86; }
 QPushButton#link { background: transparent; border: none; color: #e7b45a; padding: 0; text-align: left;
                    text-decoration: underline; }
@@ -147,7 +149,7 @@ def style(base, line):
     """The style sheet for body text of base points and line pixels: secondary text a step smaller, the title and START
     a step bigger. A pill's ends are round with half its height: Qt draws square corners for a radius over that."""
     return STYLE.substitute(body=base, small=base - 1.5, big=base + 1.5, pill=control_height(line) // 2,
-                            arrow=control_height(line) // 2, chip=(line + 6) // 2)
+                            arrow=control_height(line) // 2, chip=(line + 6) // 2, rule=GIFT_RULE)
 
 
 def field_icon_side(font):
@@ -284,10 +286,13 @@ def event_html(event, read_text="", pick=None):
 
 def gift_html(gift_list, heading="", picture=0):
     """Gifts and their effects, as the detail pane shows them: each gift's picture (gift:ID, picture px across) at the
-    left, and beside it its keyword icon and its name, Chinese first, English after, then its effects."""
+    left, and beside it its keyword icon and its name, Chinese first, English after, then its effects. A rule
+    between one gift and the next."""
     rows = [f"<p style='color:#8f8270;margin:0'>{html.escape(heading)}</p>"] if heading else []
     names = gifts.book()
-    for g in gift_list:
+    for i, g in enumerate(gift_list):
+        if i:
+            rows.append(f"<hr style='background-color:{GIFT_RULE}'>")  # Qt draws a rule in its background colour
         body = [f"<p style='margin:0'><img src='keyword:{g['keyword']}' style='vertical-align: middle'> "
                 f"<b style='color:#e7b45a'>{html.escape(gifts.label(g))}</b> "
                 f"<span style='color:#8f8270'>{html.escape(g['en'])}</span></p>"]

@@ -437,3 +437,22 @@ def test_a_gift_in_the_gift_pane_leads_with_its_picture_which_grows_with_the_tex
     assert grown.width() / grown.devicePixelRatio() > side and "地獄蝶之夢" in w.gift_detail.toPlainText()
     w.clear_gifts()
     assert w.gift_view is None
+
+
+def test_a_rule_parts_one_gift_from_the_next_in_the_gift_pane_and_the_search_results(tmp_path, monkeypatch):
+    from PySide6.QtGui import QColor
+
+    book = gifts.book()
+    assert ui.gift_html([book[9001]]).count("<hr") == 0
+    assert ui.gift_html([book[9001], book[9069], book[9002]], "畫面上可以選的飾品").count("<hr") == 2
+    w = shown(tmp_path, monkeypatch, open_sections=["gift"])
+    box = w.gift_search
+    box.field.setText("burn")
+    QTest.keyClick(box.field, Qt.Key_Return)
+    popup = box.list.popup()
+    image = popup.viewport().grab().toImage()
+    row = popup.visualRect(popup.model().index(1, 0))  # not the lit row
+    ratio = image.devicePixelRatio()
+    column = [image.pixelColor(round(row.center().x() * ratio), y).name()
+              for y in range(round((row.bottom() - 2) * ratio), round((row.bottom() + 1) * ratio) + 1)]
+    assert QColor(ui.GIFT_RULE).name() in column, column
