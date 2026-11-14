@@ -80,6 +80,26 @@
 
 還沒驗證的：漢化版遊戲上看起來怎樣（截圖都是英文版）（?）；MuMu 視窗開得小時字會跟著變小，1280×720 時字高 15 像素（?）。
 
+## 0i. 11-14 遊戲內提示換成 maalc 的樣子，罪孽用遊戲圖示，效果之間加分隔
+
+你要提示卡片的樣式和配色跟 maalc 一致，判定的罪孽顯示遊戲的資源圖（圖要從拆包資料拿），效果之間加分隔符號。
+
+- 配色：`src/lc_helper/palette.py` 的 `INK` 就是 maalc 設定視窗的深色主題（maalc `gui/src/index.css` 的 `:root`），overlay 和飾品格的顏色都從這裡拿。
+  - 卡片：面板色底、青銅框、45 度切角（maalc 和遊戲的框都是切角）。
+  - 推薦卡琥珀框，展開中的卡奶油色框（maalc 的焦點色，所以不會看成「選中」）。
+  - 結果標籤：成功青綠、失敗紅、其他琥珀；數值增加青綠、減少紅。
+- 罪孽圖示：`tools/sin_icons.py` 從 maalc 拆包的客戶端（`.local/unpack` 的 APK player data）匯出到 `assets/sin_icons/`。
+  - 來源：遊戲 UI 自己的清單 `UISpriteDataManager.totalAttributeSpriteList`，sprite 是 `BattleUI_Choice 1_<Crimson…Violet>`。
+  - 哪張是哪個罪孽，照遊戲資料對：清單順序 CRIMSON…VIOLET，再對 `EN_AttributeText.json` 的 Wrath…Envy；腳本每次跑都會檢查這個順序。
+  - 跑法：`uv run --group unpack python tools/sin_icons.py`。
+- 數字字型：等級、HP/SP 和數值用 maalc 的 Barlow Condensed（SIL OFL 1.1，授權檔在 `assets/fonts/barlow-condensed/`）。`tools/sync_maalc.py` 從 maalc 的 WOFF 轉成 TTF，因為 Qt 在 Windows 平台讀不了 WOFF。
+- 分隔：效果之間是「 · 」（maalc 串接資訊用的，`gui/src/App.tsx:322`），換行只發生在點後面。對象（判定的罪人、全體）改成那組效果前面的小標籤：「判定的罪人 HP +30 · SP +30 · 其餘罪人 HP +12 · SP +12 · 開始戰鬥」。
+- 主視窗沒有改樣式。但主視窗的飾品格也用同一個畫圖函式，所以會跟著變成切角，無體系的小圈也會變成青銅色（※ 從程式推的，沒畫主視窗來看）。
+- 證據：
+  - `tests/test_overlay.py`：卡片框是青銅、推薦是琥珀；判定頭帶罪孽圖示；每個罪孽圖示都讀得到；效果的順序和點；字型載入。
+  - 畫面：`.local/evidence/overlay-*.png`（1280、1920、2560）。
+- 還沒驗證：在真的遊戲上看起來怎樣（?）。
+
 ## 0h. 11-14 遊戲內提示可以點：簡單顯示，點開看詳細
 
 你問 overlay 能不能互動，選了「點一下展開」，簡單顯示以飾品圖為主（「飾品圖一行高有點太小，感覺可以每個區塊單獨顯示，甚至應該大部分玩家只看圖片」），F9 後捲動選「列表一動就重讀」。
