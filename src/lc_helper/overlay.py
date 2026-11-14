@@ -47,10 +47,7 @@ BLOCK_FILL, BLOCK_GAP, BLOCK_PAD = INK["raise"], 0.45, 0.35
 EDGE = 8  # game px: a full card taller than the cards' column keeps this far inside the game's picture
 CUT = 6  # game px: a card's corners cut off at 45 degrees, as the game's frames and maalc's are
 SHOW_FOR_MS = 60_000  # a read off a page nothing watches stays this long; a watched page's hints go with the page
-# The sins as the game colours them, with a text colour that reads on each.
-SIN_COLORS = {"暴怒": ("#b8322b", "#fff"), "色慾": ("#d06a1c", "#fff"), "怠惰": ("#d6ad2b", "#1b1408"),
-              "暴食": ("#6f9c26", "#fff"), "憂鬱": ("#2f8db0", "#fff"), "傲慢": ("#2f5fb3", "#fff"),
-              "嫉妒": ("#7a46ad", "#fff")}
+SIN_SIDE = 1.35  # a check's sin icon, as a share of its line's text size
 # Kinds of option whose card says its kind at the top when there is no check: a sinless check, a battle, pages to come.
 HEADED = {"check", "check_other", "check_fail_gift", "battle", "followup", "followup_other", "random"}
 TONES = {"pass": INK["keep"], "fail": INK["bad"], "": INK["accent-ink"]}
@@ -133,8 +130,8 @@ def head_html(label):
     head = ["<img src='icon:star' style='vertical-align: middle'>"] if label.recommended else []
     sins = events.check_sins(o)
     if sins:
-        head += [f"<span style='background-color:{SIN_COLORS[s][0]};color:{SIN_COLORS[s][1]}'>&nbsp;{s}&nbsp;</span>"
-                 for s in sins]
+        head.append(" ".join(f"<img src='sin:{icons.SIN_ICONS[s]}' style='vertical-align: middle'>&#8239;"
+                             f"<span style='color:{INK['fg-2']}'>{s}</span>" for s in sins))
         head.append(f"<span style='color:{INK['muted']}'>優勢判定</span>")
     elif o["kind"] in HEADED:
         head.append(f"<span style='color:{INK['muted']}'>{html.escape(events.kind_text(o))}</span>")
@@ -454,6 +451,9 @@ class Overlay(QWidget):
         doc.setDefaultFont(font)
         side, ratio = font.pixelSize() * 1.2, self.devicePixelRatioF()
         doc.addResource(QTextDocument.ImageResource, QUrl("icon:star"), icons.pixmap("star", INK["accent"], side, ratio))
+        for s in events.check_sins(label.option):
+            doc.addResource(QTextDocument.ImageResource, QUrl(f"sin:{icons.SIN_ICONS[s]}"),
+                            icons.sin(s, font.pixelSize() * SIN_SIDE, ratio))
         picture = picture_side(font, small, lines)
         for f in events.outcomes(label.option):
             for gid, _ in f.gifts:

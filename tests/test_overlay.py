@@ -150,6 +150,28 @@ def test_a_brief_card_has_a_block_per_outcome_with_its_gifts_pictures_marked_wit
     o.close()
 
 
+def test_a_check_cards_head_shows_the_games_sin_icons_not_coloured_chips(qt):
+    push = overlay.Label((730, 327, 191, 22), events.by_id()[901069]["options"][1])  # a 傲慢 and 嫉妒 check
+    head = overlay.head_html(push)
+    assert re.findall(r"<img src='sin:(\w+)'", head) == ["Pride", "Envy"]
+    assert "background-color" not in head
+    o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
+    o.resize(1280, 720)
+    doc = o.document(push, 600, 2)
+    for name in ("Pride", "Envy"):
+        assert not doc.resource(QTextDocument.ImageResource, QUrl(f"sin:{name}")).isNull(), name
+    o.close()
+
+
+def test_every_sin_has_the_games_icon(qt):
+    assert set(icons.SIN_ICONS) == set(events.SINS)
+    for sin in events.SINS:
+        image = icons.sin(sin, 24, 1).toImage()
+        coloured = sum(image.pixelColor(x, y).alpha() > 200 and image.pixelColor(x, y).hsvSaturation() > 120
+                       for x in range(image.width()) for y in range(image.height()))
+        assert not image.isNull() and coloured > 50, sin
+
+
 def test_the_numerals_are_in_maalcs_barlow_condensed(qt):
     assert palette.display_family() == "Barlow Condensed"
     for weight in palette.DISPLAY:

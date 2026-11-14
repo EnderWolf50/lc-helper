@@ -1,8 +1,9 @@
-"""The window's icons, drawn on a 24-unit grid in one stroke weight, and the game's keyword icons and gift pictures, as pixmaps for the
-screen's pixel ratio."""
+"""The window's icons, drawn on a 24-unit grid in one stroke weight, and the game's keyword icons, sin icons and gift
+pictures, as pixmaps for the screen's pixel ratio."""
 
 from functools import cache
-from math import cos, pi, sin
+import math
+from math import pi
 
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap
@@ -13,6 +14,9 @@ from .paths import ASSETS
 GRID = 24
 STROKE = 2  # grid units: a twelfth of the icon's side
 KEYWORDLESS = INK["line-2"]  # the ring for a gift of no keyword: quiet beside the game's coloured icons
+# Each of events.SINS and its icon's file in assets/sin_icons (tools/sin_icons.py).
+SIN_ICONS = {"暴怒": "Wrath", "色慾": "Lust", "怠惰": "Sloth", "暴食": "Gluttony", "憂鬱": "Gloom", "傲慢": "Pride",
+             "嫉妒": "Envy"}
 
 
 def solid(p):
@@ -26,7 +30,7 @@ def gear(p):
     for i in range(8):
         for degrees, r in ((-15, 8), (-9, 11), (9, 11), (15, 8)):
             a = (45 * i + degrees) * pi / 180
-            point = QPointF(12 + r * cos(a), 12 + r * sin(a))
+            point = QPointF(12 + r * math.cos(a), 12 + r * math.sin(a))
             rim.lineTo(point) if rim.elementCount() else rim.moveTo(point)
     rim.closeSubpath()
     p.drawPath(rim)
@@ -118,9 +122,9 @@ def star(p):
     """Five points, filled, the tips blunted by the round-joined stroke. The centre sits low, so the top point and
     the two feet end equally far from the top and bottom edges."""
     p.setBrush(p.pen().color())
-    outer, inner = 11, 11 * sin(pi / 10) / sin(3 * pi / 10)
-    middle = 12 + outer * (1 - cos(pi / 5)) / 2
-    p.drawPolygon([QPointF(12 + r * sin(i * pi / 5), middle - r * cos(i * pi / 5))
+    outer, inner = 11, 11 * math.sin(pi / 10) / math.sin(3 * pi / 10)
+    middle = 12 + outer * (1 - math.cos(pi / 5)) / 2
+    p.drawPolygon([QPointF(12 + r * math.sin(i * pi / 5), middle - r * math.cos(i * pi / 5))
                    for i, r in enumerate([outer, inner] * 5)])
 
 
@@ -166,6 +170,18 @@ def chamfered(rect: QRectF, cut) -> QPainterPath:
     return path
 
 
+def fitted(image, side, ratio):
+    """image fitted whole and centred in a square side logical pixels across, with ratio device pixels to each."""
+    pix = QPixmap(round(side * ratio), round(side * ratio))
+    pix.fill(Qt.transparent)
+    scaled = image.scaled(pix.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    p = QPainter(pix)
+    p.drawImage((pix.width() - scaled.width()) // 2, (pix.height() - scaled.height()) // 2, scaled)
+    p.end()
+    pix.setDevicePixelRatio(ratio)  # after painting: the painter worked in device pixels
+    return pix
+
+
 @cache
 def game_icon(keyword):
     """The game's picture for keyword (assets/keywords, tools/sync_maalc.py), at the size it comes in."""
@@ -177,14 +193,19 @@ def keyword(name, side, ratio):
     device pixels to each; a quiet ring for a keyword the game draws none for (Keywordless)."""
     if game_icon(name).isNull():
         return pixmap("ring", KEYWORDLESS, side, ratio)
-    pix = QPixmap(round(side * ratio), round(side * ratio))
-    pix.fill(Qt.transparent)
-    fitted = game_icon(name).scaled(pix.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-    p = QPainter(pix)
-    p.drawImage((pix.width() - fitted.width()) // 2, (pix.height() - fitted.height()) // 2, fitted)
-    p.end()
-    pix.setDevicePixelRatio(ratio)  # after painting: the painter worked in device pixels
-    return pix
+    return fitted(game_icon(name), side, ratio)
+
+
+@cache
+def sin_picture(name):
+    """The game's emblem for sin name, one of events.SINS (assets/sin_icons), at the size it comes in."""
+    return QImage(str(ASSETS / "sin_icons" / f"{SIN_ICONS[name]}.png"))
+
+
+def sin(name, side, ratio):
+    """The game's emblem for sin name, as a Choices page draws it, fitted whole and centred in a square side logical
+    pixels across, with ratio device pixels to each."""
+    return fitted(sin_picture(name), side, ratio)
 
 
 @cache
@@ -220,9 +241,9 @@ def gift(gift_id, kw, side, ratio, badge=True, tier=""):
     p.setBrush(QColor(SLOT_FILL))
     p.drawPath(chamfered(QRectF(edge / 2, edge / 2, pix.width() - edge, pix.height() - edge), pix.width() * SLOT_CUT))
     inset = round(pix.width() * SLOT_INSET + edge)
-    fitted = gift_picture(gift_id).scaled(pix.width() - 2 * inset, pix.height() - 2 * inset, Qt.KeepAspectRatio,
-                                          Qt.SmoothTransformation)
-    p.drawImage((pix.width() - fitted.width()) // 2, (pix.height() - fitted.height()) // 2, fitted)
+    picture = gift_picture(gift_id).scaled(pix.width() - 2 * inset, pix.height() - 2 * inset, Qt.KeepAspectRatio,
+                                           Qt.SmoothTransformation)
+    p.drawImage((pix.width() - picture.width()) // 2, (pix.height() - picture.height()) // 2, picture)
     if badge:
         corner = keyword(kw, side * BADGE, ratio)
         p.drawPixmap(pix.width() - corner.width(), pix.height() - corner.height(), corner)
