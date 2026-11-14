@@ -13,6 +13,7 @@ import html
 import re
 from ctypes import wintypes
 from dataclasses import dataclass
+from itertools import groupby
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, QUrl
 from PySide6.QtGui import (QAbstractTextDocumentLayout, QColor, QFont, QFontMetricsF, QGuiApplication, QPainter,
@@ -21,7 +22,7 @@ from PySide6.QtWidgets import QWidget
 
 from . import device as devices
 from . import events, follow, gifts, icons, trials
-from .palette import INK, TEXT_FAMILY
+from .palette import INK, TEXT_FAMILY, display_family
 
 GAME_W, GAME_H = 1280, 720
 # The cards' column, in game pixels: from the story panel's left edge to just short of the option frames (x 690),
@@ -48,10 +49,15 @@ EDGE = 8  # game px: a full card taller than the cards' column keeps this far in
 CUT = 6  # game px: a card's corners cut off at 45 degrees, as the game's frames and maalc's are
 SHOW_FOR_MS = 60_000  # a read off a page nothing watches stays this long; a watched page's hints go with the page
 SIN_SIDE = 1.35  # a check's sin icon, as a share of its line's text size
+# Barlow Condensed's size as a share of the text's beside it: narrow and short, its digits stand as tall as the CJK
+# text at this.
+NUMERALS = 1.15
 # Kinds of option whose card says its kind at the top when there is no check: a sinless check, a battle, pages to come.
 HEADED = {"check", "check_other", "check_fail_gift", "battle", "followup", "followup_other", "random"}
 TONES = {"pass": INK["keep"], "fail": INK["bad"], "": INK["accent-ink"]}
 NOTHING = f"<span style='color:{INK['muted']}'>沒事發生</span>"
+# Between one effect and the next, maalc's " · " (gui/src/App.tsx): a line breaks after it, never inside an effect.
+SEPARATOR = f"<span style='color:{INK['muted']}'>&nbsp;· </span>"
 STAT_NAMES = {"hp": "HP", "hp%": "HP", "sp": "SP", "sp%": "SP"}
 
 Rect = tuple[int, int, int, int]  # x, y, w, h in physical screen pixels
@@ -93,28 +99,41 @@ def hint_rest(option):
     return re.sub(r"^(進行)?" + events.CHECK.pattern + r"[ ，,]*", "", hint).strip()
 
 
-def gets_html(gets):
-    """A branch's HP, SP, cost and the like: each amount coloured by its sign, the sinners it falls on after."""
-    parts, last_target = [], None
-    for g in gets:
-        what, target = g[0], (g[2] if len(g) > 2 else None)
-        if target != last_target and last_target is not None:
-            parts.append(f"<span style='color:{INK['muted']}'>"
-                         f"{html.escape(events.TARGETS.get(last_target, last_target))}</span>")
-        last_target = target
-        if what in STAT_NAMES:
-            sign = INK["keep"] if g[1] == "max" or g[1] > 0 else INK["bad"]
-            amount = "補滿" if g[1] == "max" else f"{g[1]:+g}".replace("-", "−") + ("%" if what.endswith("%") else "")
-            parts.append(f"<span style='color:{INK['muted']}'>{STAT_NAMES[what]}</span> "
-                         f"<span style='color:{sign}'>{amount}</span>")
-        elif what == "cost":
-            parts.append(f"<span style='color:{INK['muted']}'>經費</span> "
-                         f"<span style='color:{INK['accent-ink']}'>{g[1]:+g}</span>")
+def numerals(text, px, weight, ink):
+    """text in maalc's condensed face at weight, sized to stand as tall as px text beside it."""
+    return (f"<span style='font-family:\"{display_family(weight)}\";font-size:{round(px * NUMERALS)}px;"
+            f"font-weight:{weight};color:{INK[ink]}'>{text}</span>")
+
+
+def effect_html(g, px):
+    """One gets entry at px: a stat's name and amount (coloured by its sign) or the cost and its amount, in maalc's
+    condensed face; else the effect in words."""
+    what = g[0]
+    if what in STAT_NAMES:
+        if g[1] == "max":
+            amount = f"<span style='color:{INK['keep']}'>補滿</span>"
         else:
-            parts.append(f"<span style='color:{INK['fg-2']}'>{html.escape(events.get_text(g))}</span>")
-    if last_target is not None:
-        parts.append(f"<span style='color:{INK['muted']}'>{html.escape(events.TARGETS.get(last_target, last_target))}</span>")
-    return "&nbsp;&nbsp;".join(parts)
+            amount = numerals(f"{g[1]:+g}".replace("-", "−") + ("%" if what.endswith("%") else ""), px, 700,
+                              "keep" if g[1] > 0 else "bad")
+        return numerals(STAT_NAMES[what], px, 600, "muted") + "&nbsp;" + amount
+    if what == "cost":
+        return (f"<span style='color:{INK['muted']}'>經費</span>&nbsp;"
+                + numerals(f"{g[1]:+g}".replace("-", "−"), px, 700, "accent-ink"))
+    return f"<span style='color:{INK['fg-2']}'>{html.escape(events.get_text(g))}</span>"
+
+
+def gets_html(gets, px):
+    """A branch's HP, SP, cost and the like at px, a dot between one effect and the next: each run of effects on the
+    same sinners (a gets entry's third item) led by a chip naming them."""
+    parts = []
+    for target, run in groupby(gets, key=lambda g: g[2] if len(g) > 2 else None):
+        effects = [effect_html(g, px) for g in run]
+        if target is not None:
+            name = html.escape(events.TARGETS.get(target, target)).replace(" ", "&nbsp;")
+            effects[0] = (f"<span style='background-color:{INK['line']};color:{INK['fg-2']}'>&nbsp;{name}&nbsp;</span>"
+                          f"&nbsp;{effects[0]}")
+        parts += effects
+    return SEPARATOR.join(parts)
 
 
 def picture_side(font, small, lines):
@@ -165,7 +184,8 @@ def brief_html(label, small):
                 f"<img src='gift:{gid}'>" + (f"<span style='{note}'>&nbsp;{html.escape(how)}</span>" if how else "")
                 for gid, how in f.gifts) + "</p>")
         if f.gets:
-            parts.append(f"<p style='margin:0;font-size:{small.pixelSize()}px'>{gets_html(f.gets)}</p>")
+            parts.append(f"<p style='margin:0;font-size:{small.pixelSize()}px'>"
+                         f"{gets_html(f.gets, small.pixelSize())}</p>")
         if not (f.gifts or f.gets):
             parts.append(f"<p style='margin:0'>{NOTHING}</p>")
         blocks.append(f"<td bgcolor='{BLOCK_FILL}' valign='top'>{''.join(parts)}</td>")
@@ -203,7 +223,7 @@ def full_html(label, font, small, side):
     for f in found:
         what = [gift_html(gid, how, side, small, first=not j) for j, (gid, how) in enumerate(f.gifts)]
         if f.gets:
-            what.append(f"<p style='margin:0'>{gets_html(f.gets)}</p>")  # under the gifts, which are blocks
+            what.append(f"<p style='margin:0'>{gets_html(f.gets, font.pixelSize())}</p>")  # under the gifts (blocks)
         rows.append(f"<tr><td width='{tag_w:.0f}' style='color:{TONES[f.tone]}'>{html.escape(f.when)}</td>"
                     f"<td>{''.join(what) or NOTHING}</td></tr>")
     body = f"<table width='100%' cellspacing='0' cellpadding='1'>{''.join(rows)}</table>" if rows else ""
@@ -450,7 +470,8 @@ class Overlay(QWidget):
         doc.setDocumentMargin(0)
         doc.setDefaultFont(font)
         side, ratio = font.pixelSize() * 1.2, self.devicePixelRatioF()
-        doc.addResource(QTextDocument.ImageResource, QUrl("icon:star"), icons.pixmap("star", INK["accent"], side, ratio))
+        doc.addResource(QTextDocument.ImageResource, QUrl("icon:star"),
+                        icons.pixmap("star", INK["accent"], side, ratio))
         for s in events.check_sins(label.option):
             doc.addResource(QTextDocument.ImageResource, QUrl(f"sin:{icons.SIN_ICONS[s]}"),
                             icons.sin(s, font.pixelSize() * SIN_SIDE, ratio))

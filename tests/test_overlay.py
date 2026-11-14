@@ -172,6 +172,15 @@ def test_every_sin_has_the_games_icon(qt):
         assert not image.isNull() and coloured > 50, sin
 
 
+def test_effects_have_a_dot_between_them_and_their_sinners_before_each_run_of_them(qt):
+    gets = [("hp", 30, "ChosenPersonality"), ("sp", 30, "ChosenPersonality"), ("hp", 12, "NotAffectedAlly"),
+            ("sp", 12, "NotAffectedAlly"), ("battle",)]
+    doc = QTextDocument()
+    doc.setHtml(overlay.gets_html(gets, 13))
+    words = " ".join(doc.toPlainText().replace("\xa0", " ").split())
+    assert words == "判定的罪人 HP +30 · SP +30 · 其餘罪人 HP +12 · SP +12 · 開始戰鬥"
+
+
 def test_the_numerals_are_in_maalcs_barlow_condensed(qt):
     assert palette.display_family() == "Barlow Condensed"
     for weight in palette.DISPLAY:
