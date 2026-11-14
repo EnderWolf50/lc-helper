@@ -218,7 +218,7 @@ def brief_html(label, small):
 
 
 def gift_html(gid, how, side, small, first=True):
-    """A gift on a full card: the game's picture of it (gift:ID, side px, its keyword in the corner), then its name,
+    """A gift on a full card: the game's slot of it (gift:ID, side px, its tier and keyword on it), then its name,
     keyword and tier, and under them its whole effect. A gift after the first in its outcome sits a little below the
     one before, so their pictures do not touch."""
     g = gifts.book().get(gid) or {}
@@ -486,8 +486,8 @@ class Overlay(QWidget):
         return font, small
 
     def document(self, label, width, lines, full=False):
-        """label's card as a text document width overlay pixels wide, its gifts' pictures as tall as a line and lines
-        small lines: brief (brief_html, the pictures marked with their tier), or full (full_html)."""
+        """label's card as a text document width overlay pixels wide, its gifts in the game's slot (icons.game_gift)
+        as tall as a line and lines small lines: brief (brief_html), or full (full_html)."""
         font, small = self.fonts()
         doc = QTextDocument()
         doc.setDocumentMargin(0)
@@ -502,9 +502,9 @@ class Overlay(QWidget):
         for f in events.outcomes(label.option):
             for gid, _ in f.gifts:
                 g = gifts.book().get(gid) or {}
-                tier = "" if full else events.ROMAN.get(g.get("tier"), "")
                 doc.addResource(QTextDocument.ImageResource, QUrl(f"gift:{gid}"),
-                                icons.gift(gid, g.get("keyword", "Keywordless"), picture, ratio, tier=tier))
+                                icons.game_gift(gid, g.get("keyword", "Keywordless"), picture, ratio,
+                                                events.ROMAN.get(g.get("tier"), "")))
         doc.setTextWidth(width)
         doc.setHtml(full_html(label, font, small, picture) if full else brief_html(label, small))
         on_baseline(doc)

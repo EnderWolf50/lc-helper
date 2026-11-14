@@ -7,7 +7,7 @@ from math import pi
 
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QFont, QFontMetricsF, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap, QTransform
 
 from .palette import INK, display_family
 from .paths import ASSETS
@@ -245,16 +245,67 @@ BADGE = 0.45  # the keyword icon's share of a gift picture's side, in its bottom
 # drawing (a gauntlet seen edge on) reads as the same size as a bulky one. Its corners' cut and the picture's margin
 # inside it, as shares of the side.
 SLOT_FILL, SLOT_EDGE, SLOT_CUT, SLOT_INSET = INK["bg"], INK["card-line"], 0.12, 0.07
-# A gift's tier on its picture: a Roman numeral in maalc's condensed face in the top-left corner, its height this share
-# of the side.
-TIER, TIER_FILL, TIER_OUTLINE = 0.3, INK["fg"], INK["bg"]
+# The game's gift slot (its prefab EgoGiftIconPrefab; tools/gift_slot.py checks these against the client), in its
+# units: the plate fills the slot; the picture is a square this wide, this far above the middle; the keyword's icon is a
+# square this wide, this far in from the bottom-right corner.
+SLOT = {"slot": 350, "picture": 256, "picture_rise": 8, "keyword": 100, "keyword_in": 5}
+# The slot's tier: the game's text colour (tmp_Tier, #F8C200) in maalc's condensed face, with the glow of the game's
+# material (its underlay, (0.689, 0.108, 0)) as a soft edge. Its drawing's left and top edges and height as shares of
+# the side, as the game's Gift GET page draws it (maalc tests/screens/GiftGet.png: II at x 352-368, y 234-271 on a
+# 144 px slot), and the face narrowed to the game's II (0.118 of the side; Barlow Condensed's is 0.139).
+TIER_FILL, TIER_GLOW = "#f8c200", QColor(0xb0, 0x1c, 0x00, 200)
+TIER_LEFT, TIER_TOP, TIER_HEIGHT, TIER_NARROW = 0.097, 0.062, 0.264, 0.85
 
 
-def gift(gift_id, kw, side, ratio, badge=True, tier=""):
-    """The game's picture of a gift in its slot, a square side logical pixels across, with ratio device pixels to
-    each; the picture fitted whole and centred inside the slot's margin. With badge, its keyword kw's icon in the
-    bottom-right corner, as the game's shop marks a gift; with tier (a Roman numeral), that in the top-left corner,
-    outlined so it reads on any picture. The keyword's icon alone when the game has no picture of the gift."""
+@cache
+def plate():
+    """The game's striped plate a gift sits on in its slot (assets/gift_slot, tools/gift_slot.py)."""
+    return QImage(str(ASSETS / "gift_slot" / "plate.png"))
+
+
+def game_gift(gift_id, kw, side, ratio, tier=""):
+    """A gift as the game draws it in its slot (the shop, a Gift GET page, the Gift Search), a square side logical
+    pixels across, with ratio device pixels to each: its picture on the game's striped plate, its tier (a Roman
+    numeral) in the top-left corner and its keyword kw's icon in the bottom-right, none for a gift of no keyword. The
+    keyword's icon alone when the game has no picture of the gift."""
+    if gift_picture(gift_id).isNull():
+        return keyword(kw, side, ratio)
+    n = round(side * ratio)
+    unit = n / SLOT["slot"]
+    pix = QPixmap(n, n)
+    pix.fill(Qt.transparent)
+    p = QPainter(pix)
+    p.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+    p.drawImage(QRectF(0, 0, n, n), plate())
+    box = round(SLOT["picture"] * unit)
+    picture = gift_picture(gift_id).scaled(box, box, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    p.drawImage(QPointF((n - picture.width()) / 2, (n - picture.height()) / 2 - SLOT["picture_rise"] * unit), picture)
+    if not game_icon(kw).isNull():
+        box, inset = round(SLOT["keyword"] * unit), SLOT["keyword_in"] * unit
+        icon = game_icon(kw).scaled(box, box, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        p.drawImage(QPointF(n - inset - (box + icon.width()) / 2, n - inset - (box + icon.height()) / 2), icon)
+    if tier:
+        font = QFont(display_family(700))
+        font.setBold(True)
+        font.setPixelSize(100)  # any size: the drawing is scaled to TIER_HEIGHT
+        path = QPainterPath()
+        path.addText(0, 0, font, tier)
+        ink = path.boundingRect()
+        scale = TIER_HEIGHT * n / ink.height()
+        path = QTransform().translate(TIER_LEFT * n, TIER_TOP * n).scale(scale * TIER_NARROW, scale).translate(
+            -ink.left(), -ink.top()).map(path)
+        p.strokePath(path, QPen(TIER_GLOW, max(1.0, n * 0.02), Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        p.fillPath(path, QColor(TIER_FILL))
+    p.end()
+    pix.setDevicePixelRatio(ratio)  # after painting: the painter worked in device pixels
+    return pix
+
+
+def gift(gift_id, kw, side, ratio, badge=True):
+    """The game's picture of a gift in maalc's tile, a square side logical pixels across, with ratio device pixels to
+    each; the picture fitted whole and centred inside the tile's margin. With badge, its keyword kw's icon in the
+    bottom-right corner, as the game's shop marks a gift. The keyword's icon alone when the game has no picture of the
+    gift."""
     if gift_picture(gift_id).isNull():
         return keyword(kw, side, ratio)
     pix = QPixmap(round(side * ratio), round(side * ratio))
@@ -271,16 +322,9 @@ def gift(gift_id, kw, side, ratio, badge=True, tier=""):
     p.drawImage((pix.width() - picture.width()) // 2, (pix.height() - picture.height()) // 2, picture)
     if badge:
         corner = keyword(kw, side * BADGE, ratio)
-        p.drawPixmap(pix.width() - corner.width(), pix.height() - corner.height(), corner)
-    if tier:
-        font = QFont(display_family(700))
-        font.setBold(True)
-        font.setPixelSize(max(6, round(pix.width() * TIER)))
-        path = QPainterPath()
-        path.addText(inset, inset + QFontMetricsF(font).ascent(), font, tier)
-        p.strokePath(path, QPen(QColor(TIER_OUTLINE), max(2.0, font.pixelSize() / 4), Qt.SolidLine, Qt.RoundCap,
-                                Qt.RoundJoin))
-        p.fillPath(path, QColor(TIER_FILL))
+        # in device pixels, as the painter works: drawn at a point, Qt would shrink it to its logical size
+        p.drawPixmap(QRectF(pix.width() - corner.width(), pix.height() - corner.height(), corner.width(),
+                            corner.height()), corner, QRectF(corner.rect()))
     p.end()
     pix.setDevicePixelRatio(ratio)  # after painting: the painter worked in device pixels
     return pix

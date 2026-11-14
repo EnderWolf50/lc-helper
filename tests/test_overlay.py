@@ -144,7 +144,7 @@ def test_a_brief_card_has_a_block_per_outcome_with_its_gifts_pictures_marked_wit
     for gid in ids:
         g = gifts.book()[gid]
         marked = doc.resource(QTextDocument.ImageResource, QUrl(f"gift:{gid}")).toImage()
-        plain = icons.gift(gid, g["keyword"], side, ratio).toImage()
+        plain = icons.game_gift(gid, g["keyword"], side, ratio).toImage()
         tier_ink = QColor(icons.TIER_FILL).rgb()
         assert marked != plain and any(marked.pixel(x, y) == tier_ink for x in range(marked.width() // 2)
                                        for y in range(marked.height() // 2)), "the tier in the top-left corner"
@@ -171,6 +171,40 @@ def test_every_sin_has_the_games_icon(qt):
         coloured = sum(image.pixelColor(x, y).alpha() > 200 and image.pixelColor(x, y).hsvSaturation() > 120
                        for x in range(image.width()) for y in range(image.height()))
         assert not image.isNull() and coloured > 50, sin
+
+
+def ink_box(image, inked):
+    """The box (left, top, right, bottom) of image's pixels for which inked(x, y) holds; None when there are none."""
+    hits = [(x, y) for y in range(image.height()) for x in range(image.width()) if inked(x, y)]
+    if not hits:
+        return None
+    return min(x for x, _ in hits), min(y for _, y in hits), max(x for x, _ in hits), max(y for _, y in hits)
+
+
+def test_a_gifts_slot_has_its_tier_and_keyword_where_the_games_has_them(qt):
+    """Wound Clerid (9005, Bleed, II) as the game's Gift GET page draws it, 144 px: its II's yellow from x 352 to
+    368, y 234 to 271 on the slot at 338, 225 (maalc tests/screens/GiftGet.png); its keyword's icon a 100 box 5 in from
+    the slot's bottom-right corner, of the slot's 350 (EgoGiftIconPrefab, tools/gift_slot.py)."""
+    slot = icons.game_gift(9005, "Bleed", 144, 1, "II").toImage()
+    yellow = ink_box(slot, lambda x, y: (c := slot.pixelColor(x, y)).red() > 215 and 150 < c.green() < 215
+                     and c.blue() < 70)
+    assert all(abs(a - b) <= 1.5 for a, b in zip(yellow, (352 - 338, 234 - 225, 368 - 338, 271 - 225))), yellow
+    keywordless = icons.game_gift(9005, "Keywordless", 144, 1, "II").toImage()
+    badge = ink_box(slot, lambda x, y: slot.pixel(x, y) != keywordless.pixel(x, y))
+    unit = 144 / icons.SLOT["slot"]
+    corner = 144 - icons.SLOT["keyword_in"] * unit
+    assert badge and badge[0] >= corner - icons.SLOT["keyword"] * unit - 1 and badge[1] >= corner - icons.SLOT[
+        "keyword"] * unit - 1 and badge[2] <= corner and badge[3] <= corner, badge
+
+
+def test_a_tiles_keyword_badge_reaches_its_corner_on_a_scaled_screen(qt):
+    """At two device pixels to a logical one, the badge is drawn in device pixels, not shrunk to half."""
+    gid = next(gid for gid, g in gifts.book().items() if not icons.gift_picture(gid).isNull()
+               and g.get("keyword") == "Bleed")
+    marked, plain = (icons.gift(gid, "Bleed", 40, 2, badge=b).toImage() for b in (True, False))
+    badge = ink_box(marked, lambda x, y: marked.pixel(x, y) != plain.pixel(x, y))
+    tall = badge[3] - badge[1] + 1  # Bleed's icon is taller than wide: it fills the badge's height
+    assert badge[3] >= marked.height() - 3 and tall >= (icons.BADGE - 0.05) * marked.height(), badge
 
 
 @pytest.mark.parametrize("height", [720, 1440])
