@@ -1,10 +1,11 @@
 """Each option's effects drawn on the game itself, as a card beside the option on its Choices page.
 
-The overlay is a click-through window, just above the game's in the z-order (follow.py), laid exactly over the game's
-picture: MuMu's render area (the nemudisplay child of its device window) or the PC client's client area. The cards
-sit over the illustration and the story box, left of the option list, each at its option's height; positions are the
-OCR boxes, in the game's 1280x720 pixels. A card says the check's sins, then each outcome (passed, failed, by chance)
-with its gifts (the game's picture of each, its name, keyword and tier, the start of its effect) and its HP and SP.
+The overlay is a window just above the game's in the z-order (follow.py), laid exactly over the game's picture: MuMu's
+render area (the nemudisplay child of its device window) or the PC client's client area. The cards sit over the
+illustration and the story box, left of the option list, each at its option's height; positions are the OCR boxes, in
+the game's 1280x720 pixels. A card at a glance says the check's sins, then a block per outcome (passed, failed, by
+chance) with its gifts' pictures and its HP and SP; a click opens it in full, each gift's name and whole effect. The
+window takes clicks only on its cards: every other click goes through to the game, and none takes the game's focus.
 """
 
 import ctypes
@@ -15,7 +16,7 @@ from dataclasses import dataclass
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, QUrl
 from PySide6.QtGui import (QAbstractTextDocumentLayout, QColor, QFont, QFontMetricsF, QGuiApplication, QPainter,
-                           QPalette, QPen, QTextDocument)
+                           QPalette, QPen, QRegion, QTextDocument)
 from PySide6.QtWidgets import QWidget
 
 from . import device as devices
@@ -35,10 +36,14 @@ OPTION_TEXT = 90  # an option's text and hint end within this far under its firs
 TEXT_PX, SMALL_PX, PAD_PX = 15, 13, 7  # at 1280x720
 PICTURE_GAP, GIFT_GAP = 6, 3  # overlay px: a gift's picture to its name; one gift's picture to the next's
 POINTER_END = 10  # game px: a card's pointer to its option leaves the card at least this far from its corners
-# How a page's cards set out their gifts, the roomiest first: the lines of each gift's effect, and how many of an
-# outcome's gifts go side by side. Overlay.cards takes the first at which the cards all stay beside their options.
-# The gifts' pictures are as tall as the name and the effect's lines (picture_side), so one size on the page.
-LAYOUTS = ((2, 1), (1, 1), (1, 2), (0, 2))
+# The brief cards' gift pictures, as tall as a line and this many small lines (picture_side), the biggest first:
+# Overlay.cards takes the first at which the cards all stay beside their options. One line alone is too small (the
+# user, 2026-11-14). A full card's pictures are as tall as the first.
+PICTURE_LINES = (2, 1)
+# A brief card's block per outcome: its fill, and the gap between blocks and the margin inside one, as shares of the
+# small text's size.
+BLOCK_FILL, BLOCK_GAP, BLOCK_PAD = "#241b12", 0.45, 0.35
+EDGE = 8  # game px: a full card taller than the cards' column keeps this far inside the game's picture
 SHOW_FOR_MS = 60_000  # a read off a page nothing watches stays this long; a watched page's hints go with the page
 # The sins as the game colours them, with a text colour that reads on each.
 SIN_COLORS = {"暴怒": ("#b8322b", "#fff"), "色慾": ("#d06a1c", "#fff"), "怠惰": ("#d6ad2b", "#1b1408"),
@@ -110,52 +115,15 @@ def gets_html(gets):
     return "&nbsp;&nbsp;".join(parts)
 
 
-def picture_side(font, small, desc_lines):
-    """A gift's picture on an event card, px: as tall as its name's line and the desc_lines lines of its effect
-    beside it. Every card on a page shows as many lines (Overlay.cards), so its pictures are one size (the user,
-    2026-11-14: pictures of different sizes)."""
-    return QFontMetricsF(font).height() + desc_lines * QFontMetricsF(small).height()
+def picture_side(font, small, lines):
+    """A gift's picture on an event card, px: as tall as a line of text and lines lines of small text. Every card on a
+    page has its pictures one size (Overlay.cards; the user, 2026-11-14: pictures of different sizes)."""
+    return QFontMetricsF(font).height() + lines * QFontMetricsF(small).height()
 
 
-def gift_html(gid, how, desc_lines, width, font, small, first=True):
-    """A gift in width px: the game's picture of it (gift:ID, its keyword in the corner), then its name, keyword and
-    tier, and under them its effect cut to desc_lines lines. A gift after the first in its outcome sits a little
-    below the one before, so their pictures do not touch."""
-    g = gifts.book().get(gid) or {}
-    name = html.escape(g.get("zh") or g.get("en") or f"飾品 {gid}")
-    keyword = g.get("keyword", "Keywordless")
-    tier = events.ROMAN.get(g.get("tier"), "")
-    tail = " ".join(x for x in (events.KEYWORDS.get(keyword, keyword), tier, how) if x)
-    side = picture_side(font, small, desc_lines)
-    text = f"<span style='color:#f3cf7e'>{name}</span> <span style='color:#a8977a'>{html.escape(tail)}</span>"
-    desc = " ".join((g.get("desc_zh") or g.get("desc_en") or "").split())
-    if desc_lines and desc:
-        room = (width - side - PICTURE_GAP) * desc_lines - small.pixelSize() * 2
-        cut = QFontMetricsF(small).elidedText(desc, Qt.ElideRight, room)
-        text += f"<br><span style='color:#cbbd9f;font-size:{small.pixelSize()}px'>{html.escape(cut)}</span>"
-    above = "" if first else f" style='margin-top:{GIFT_GAP}px'"
-    return (f"<table cellspacing='0' cellpadding='0'{above}><tr><td width='{side + PICTURE_GAP:.0f}' valign='middle'>"
-            f"<img src='gift:{gid}'></td><td valign='middle'>{text}</td></tr></table>")
-
-
-def gifts_html(found, desc_lines, width, font, small, across):
-    """An outcome's gifts, [(gift id, how)], in width px: across to a row when it has more than one, each in its
-    share of the width less a gap to the next."""
-    across = max(1, min(across, len(found)))
-    if across == 1:
-        return "".join(gift_html(gid, how, desc_lines, width, font, small, first=not j)
-                       for j, (gid, how) in enumerate(found))
-    cell = width / across
-    rows = ["<tr>" + "".join(f"<td width='{cell:.0f}' valign='top'>"
-                             f"{gift_html(gid, how, desc_lines, cell - 2 * PICTURE_GAP, font, small, first=not i)}</td>"
-                             for gid, how in found[i:i + across]) + "</tr>"
-            for i in range(0, len(found), across)]
-    return f"<table width='100%' cellspacing='0' cellpadding='0'>{''.join(rows)}</table>"
-
-
-def card_html(label, font, small, width, desc_lines, across=1):
-    """A card's rich text: a head (star, the check's sins, a battle or a page to come), then a row per outcome, its
-    gifts across to a row (gifts_html)."""
+def head_html(label):
+    """A card's head: a star for the recommended one, the check's sins (else a battle or a page to come), and
+    whether it was answered already; empty for none of these."""
     o = label.option
     head = ["<img src='icon:star' style='vertical-align: middle'>"] if label.recommended else []
     sins = events.check_sins(o)
@@ -169,20 +137,74 @@ def card_html(label, font, small, width, desc_lines, across=1):
         head.append("<span style='color:#f0c674'>推薦</span>")
     if label.closed:
         head.append("<span style='color:#9c8b6e'>已選過</span>")
-    found = events.outcomes(o)
-    metrics = QFontMetricsF(font)
-    tag_w = max((metrics.horizontalAdvance(f.when) for f in found), default=0) + font.pixelSize() * 0.6
+    return f"<p style='margin:0 0 2px 0'>{'&nbsp;'.join(head)}</p>" if head else ""
+
+
+def rest_html(option, found):
+    """What an option says it does when it gives no gift (or that nothing is recorded for it), as a line."""
+    rest = hint_rest(option) or ("" if found else "沒有記錄效果")
+    if any(f.gifts for f in found) or not rest:
+        return ""
+    return f"<p style='margin:0;color:#cbbd9f'>{html.escape(rest)}</p>"
+
+
+def brief_html(label, small):
+    """A card at a glance: its head, then a block per outcome (passed, failed, by chance) with its tag, its gifts'
+    pictures (gift:ID, their keyword and tier on them) and what it costs or gives. The gifts' names and effects wait
+    for a click (full_html): most players look only at the pictures (the user, 2026-11-14)."""
+    found = events.outcomes(label.option)
+    note = f"color:#a8977a;font-size:{small.pixelSize()}px"
+    gap, pad = round(small.pixelSize() * BLOCK_GAP), round(small.pixelSize() * BLOCK_PAD)
+    blocks = []
+    for f in found:
+        parts = [f"<p style='margin:0;color:{TONES[f.tone]}'>{html.escape(f.when)}</p>"]
+        if f.gifts:
+            parts.append("<p style='margin:0'>" + "&nbsp;".join(
+                f"<img src='gift:{gid}'>" + (f"<span style='{note}'>&nbsp;{html.escape(how)}</span>" if how else "")
+                for gid, how in f.gifts) + "</p>")
+        if f.gets:
+            parts.append(f"<p style='margin:0;font-size:{small.pixelSize()}px'>{gets_html(f.gets)}</p>")
+        if not (f.gifts or f.gets):
+            parts.append(f"<p style='margin:0'>{NOTHING}</p>")
+        blocks.append(f"<td bgcolor='{BLOCK_FILL}' valign='top'>{''.join(parts)}</td>")
+    body = (f"<table cellspacing='{gap}' cellpadding='{pad}' style='margin:-{gap}px'>"
+            f"<tr>{''.join(blocks)}</tr></table>" if blocks else "")
+    return head_html(label) + body + rest_html(label.option, found)
+
+
+def gift_html(gid, how, side, small, first=True):
+    """A gift on a full card: the game's picture of it (gift:ID, side px, its keyword in the corner), then its name,
+    keyword and tier, and under them its whole effect. A gift after the first in its outcome sits a little below the
+    one before, so their pictures do not touch."""
+    g = gifts.book().get(gid) or {}
+    name = html.escape(g.get("zh") or g.get("en") or f"飾品 {gid}")
+    keyword = g.get("keyword", "Keywordless")
+    tier = events.ROMAN.get(g.get("tier"), "")
+    tail = " ".join(x for x in (events.KEYWORDS.get(keyword, keyword), tier, how) if x)
+    text = f"<span style='color:#f3cf7e'>{name}</span> <span style='color:#a8977a'>{html.escape(tail)}</span>"
+    desc = (g.get("desc_zh") or g.get("desc_en") or "").strip()
+    if desc:
+        text += (f"<br><span style='color:#cbbd9f;font-size:{small.pixelSize()}px'>"
+                 f"{html.escape(desc).replace(chr(10), '<br>')}</span>")
+    above = "" if first else f" style='margin-top:{GIFT_GAP}px'"
+    return (f"<table cellspacing='0' cellpadding='0'{above}><tr><td width='{side + PICTURE_GAP:.0f}' valign='top'>"
+            f"<img src='gift:{gid}'></td><td valign='middle'>{text}</td></tr></table>")
+
+
+def full_html(label, font, small, side):
+    """A card opened by a click: its head, then a row per outcome with each gift's picture (side px), name, keyword,
+    tier and whole effect, and its HP and SP."""
+    found = events.outcomes(label.option)
+    tag_w = max((QFontMetricsF(font).horizontalAdvance(f.when) for f in found), default=0) + font.pixelSize() * 0.6
     rows = []
     for f in found:
-        what = [gifts_html(f.gifts, desc_lines, width - tag_w, font, small, across)] if f.gifts else []
+        what = [gift_html(gid, how, side, small, first=not j) for j, (gid, how) in enumerate(f.gifts)]
         if f.gets:
             what.append(f"<p style='margin:0'>{gets_html(f.gets)}</p>")  # under the gifts, which are blocks
         rows.append(f"<tr><td width='{tag_w:.0f}' style='color:{TONES[f.tone]}'>{html.escape(f.when)}</td>"
                     f"<td>{''.join(what) or NOTHING}</td></tr>")
     body = f"<table width='100%' cellspacing='0' cellpadding='1'>{''.join(rows)}</table>" if rows else ""
-    if not any(f.gifts for f in found) and (rest := hint_rest(o) or ("" if rows else "沒有記錄效果")):
-        body += f"<p style='margin:0;color:#cbbd9f'>{html.escape(rest)}</p>"
-    return (f"<p style='margin:0 0 2px 0'>{'&nbsp;'.join(head)}</p>" if head else "") + body
+    return head_html(label) + body + rest_html(label.option, found)
 
 
 def trial_html(w, small, width):
@@ -341,20 +363,25 @@ class Overlay(QWidget):
     """The labels, laid over the game. show_labels places it; it follows the game window while shown."""
 
     def __init__(self, locate=game_rect, window_of=game_window):
-        flags = Qt.FramelessWindowHint | Qt.Tool | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
+        # Clicks on the cards open and close them; the mask (set_mask) passes every other click to the game below.
+        # WindowDoesNotAcceptFocus is WS_EX_NOACTIVATE: a click leaves the game the foreground window.
+        flags = Qt.FramelessWindowHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus
         super().__init__(None, flags)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.setMouseTracking(True)
         self.locate, self.window_of = locate, window_of
         self.items: list[Label] = []
         self.trials: list[trials.Worth] = []  # the post-boss cards' worth, shown instead of items
+        self.opened = None  # the text of the option whose card is open in full
+        self.hits: list[tuple[str, QRectF]] = []  # (option text, rect) of each card a click opens or closes, top first
         self.source = None
         self.follow = QTimer(self, interval=500, timeout=self.place)
         self.expire = QTimer(self, singleShot=True, timeout=self.hide_labels)
 
     def show_labels(self, items, source, hold_ms=SHOW_FOR_MS):
-        """Show items over the game read from source; hold_ms 0 keeps them until hide_labels."""
+        """Show items over the game read from source; hold_ms 0 keeps them until hide_labels. An open card stays
+        open while its option is still among them (a page read again)."""
         self.show_cards(list(items), [], source, hold_ms)
 
     def show_trials(self, worths, source):
@@ -363,18 +390,21 @@ class Overlay(QWidget):
 
     def show_cards(self, items, worths, source, hold_ms):
         self.items, self.trials, self.source = items, worths, source
+        if self.opened not in {label.option["text"] for label in items}:
+            self.opened = None
         if not (self.items or self.trials) or not self.place():
             self.hide_labels()
             return
         self.show()
         self.follow.start()
         self.expire.start(hold_ms) if hold_ms else self.expire.stop()
+        self.set_mask()
         self.update()
 
     def hide_labels(self):
         self.follow.stop()
         self.expire.stop()
-        self.items, self.trials = [], []
+        self.items, self.trials, self.opened, self.hits = [], [], None, []
         self.hide()
 
     def place(self):
@@ -395,6 +425,13 @@ class Overlay(QWidget):
         if lifts() and (game := self.window_of(self.source)):
             follow.place_above(int(self.winId()), game)
 
+    def resizeEvent(self, e):
+        """The game's window resized: the cards move, and the mask with them. A hidden window's mask waits for
+        show_cards."""
+        if self.isVisible():
+            self.set_mask()
+        super().resizeEvent(e)
+
     def fonts(self):
         """The cards' text and small text (the gifts' effects), at the game's scale."""
         sy = self.height() / GAME_H
@@ -403,65 +440,142 @@ class Overlay(QWidget):
         small.setPixelSize(max(8, round(SMALL_PX * sy)))
         return font, small
 
-    def document(self, label, width, desc_lines, across=1):
-        """label's card as a text document width overlay pixels wide, its gifts' effects cut to desc_lines lines and
-        an outcome's gifts across to a row."""
+    def document(self, label, width, lines, full=False):
+        """label's card as a text document width overlay pixels wide, its gifts' pictures as tall as a line and lines
+        small lines: brief (brief_html, the pictures marked with their tier), or full (full_html)."""
         font, small = self.fonts()
         doc = QTextDocument()
         doc.setDocumentMargin(0)
         doc.setDefaultFont(font)
         side, ratio = font.pixelSize() * 1.2, self.devicePixelRatioF()
         doc.addResource(QTextDocument.ImageResource, QUrl("icon:star"), icons.pixmap("star", "#f0c674", side, ratio))
-        picture = picture_side(font, small, desc_lines)
+        picture = picture_side(font, small, lines)
         for f in events.outcomes(label.option):
             for gid, _ in f.gifts:
-                k = (gifts.book().get(gid) or {}).get("keyword", "Keywordless")
-                doc.addResource(QTextDocument.ImageResource, QUrl(f"gift:{gid}"), icons.gift(gid, k, picture, ratio))
+                g = gifts.book().get(gid) or {}
+                tier = "" if full else events.ROMAN.get(g.get("tier"), "")
+                doc.addResource(QTextDocument.ImageResource, QUrl(f"gift:{gid}"),
+                                icons.gift(gid, g.get("keyword", "Keywordless"), picture, ratio, tier=tier))
         doc.setTextWidth(width)
-        doc.setHtml(card_html(label, font, small, width, desc_lines, across))
+        doc.setHtml(full_html(label, font, small, picture) if full else brief_html(label, small))
         return doc
 
     def cards(self):
-        """Each label's card laid out on the overlay, top to bottom: (label, document, rect in overlay pixels). Every
-        card on the page sets out its gifts alike, by the roomiest of LAYOUTS at which they all stay beside their
-        options."""
+        """Each label's brief card laid out on the overlay, top to bottom: (label, document, rect in overlay pixels).
+        Every card on the page has its gifts' pictures one size, the biggest of PICTURE_LINES at which they all stay
+        beside their options, and one width, as wide as the widest needs: right against the options, over as little
+        of the story as it can."""
         sx, sy = self.width() / GAME_W, self.height() / GAME_H
         pad = PAD_PX * sy
         width = (CARD_RIGHT - CARD_LEFT) * sx
         items = sorted(self.items, key=lambda label: label.want)
         wants = [label.want for label in items]
-        for lines, across in LAYOUTS:
-            docs = [self.document(label, width - 2 * pad, lines, across) for label in items]
+        for lines in PICTURE_LINES:
+            docs = [self.document(label, width - 2 * pad, lines) for label in items]
+            card_w = min(width, max((doc.idealWidth() for doc in docs), default=0) + 2 * pad)
+            for doc in docs:
+                doc.setTextWidth(card_w - 2 * pad)
             heights = [(doc.size().height() + 2 * pad) / sy for doc in docs]
             tops = stack(wants, heights)
             if beside(wants, tops, heights):
                 break
-        return [(label, doc, QRectF(CARD_LEFT * sx, top * sy, width, h * sy))
+        return [(label, doc, QRectF(CARD_RIGHT * sx - card_w, top * sy, card_w, h * sy))
                 for label, doc, top, h in zip(items, docs, tops, heights)]
+
+    def opened_card(self, laid):
+        """The card opened by a click, in full and the column's whole width, from its brief card's top down over the
+        cards below, moved up as far as it must to stay in the cards' column (or, taller than that, in the game's
+        picture): (label, document, rect in overlay pixels), or None."""
+        sx, sy = self.width() / GAME_W, self.height() / GAME_H
+        pad = PAD_PX * sy
+        width = (CARD_RIGHT - CARD_LEFT) * sx
+        for label, _, rect in laid:
+            if label.option["text"] == self.opened:
+                doc = self.document(label, width - 2 * pad, PICTURE_LINES[0], full=True)
+                h = (doc.size().height() + 2 * pad) / sy
+                lo, hi = (CARD_TOP, CARD_BOTTOM) if h <= CARD_BOTTOM - CARD_TOP else (EDGE, GAME_H - EDGE)
+                top = max(lo, min(rect.top() / sy, hi - h))
+                return label, doc, QRectF(CARD_LEFT * sx, top * sy, width, h * sy)
+        return None
+
+    def pointer(self, label, rect):
+        """The y of a card's pointer to its option, in overlay pixels: the option's middle, kept off the corners."""
+        sy = self.height() / GAME_H
+        return min(max(label.want * sy, rect.top() + POINTER_END * sy), rect.bottom() - POINTER_END * sy)
+
+    def set_mask(self):
+        """Take clicks only where cards are drawn (with their pointers): every other click goes to the game. The
+        event cards are the ones a click opens or closes (self.hits)."""
+        if not (self.items or self.trials) or self.width() <= 0:
+            self.hits = []
+            return
+        sx, sy = self.width() / GAME_W, self.height() / GAME_H
+        laid = self.cards()
+        opened = self.opened_card(laid)
+        shown = [(label, rect) for label, _, rect in laid] + ([opened[::2]] if opened else [])
+        region = QRegion()
+        for label, rect in shown:
+            region = region.united(rect.toAlignedRect())
+            y, half = self.pointer(label, rect), 2 * max(sy, 1)
+            line = QRectF(rect.right(), y - half, (OPTION_FRAME - 3) * sx - rect.right(), 2 * half)
+            region = region.united(line.toAlignedRect())
+        for _, _, rect in self.trial_cards():
+            region = region.united(rect.toAlignedRect())
+        self.setMask(region)
+        self.hits = [(label.option["text"], rect) for label, rect in reversed(shown)]
+
+    def card_at(self, point):
+        """The text of the option whose card is under point (the open card first, as it lies on top), or None."""
+        return next((text for text, rect in self.hits if rect.contains(point)), None)
+
+    def mousePressEvent(self, e):
+        """A click on a brief card opens it in full; on the open card, closes it; on another, opens that one."""
+        text = self.card_at(e.position()) if e.button() == Qt.LeftButton else None
+        if text is None:
+            return
+        self.opened = None if text == self.opened else text
+        self.set_mask()
+        self.update()
+
+    def mouseMoveEvent(self, e):
+        self.setCursor(Qt.PointingHandCursor if self.card_at(e.position()) else Qt.ArrowCursor)
+
+    def draw_card(self, p, context, label, doc, rect, opened=False):
+        """A card: its frame (gold for the recommended one, light for the open one), its pointer to the option, its
+        text."""
+        sx, sy = self.width() / GAME_W, self.height() / GAME_H
+        pad = PAD_PX * sy
+        gold = label.recommended
+        edge = "#e7b45a" if gold else "#c49a5a" if opened else "#7a5d33"
+        p.setOpacity(1.0)
+        p.setPen(QPen(QColor(edge), (1.6 if gold or opened else 1.0) * max(sy, 1)))
+        p.setBrush(QColor(14, 11, 8, 250 if opened else 245))
+        p.drawRoundedRect(rect, 6 * sy, 6 * sy)
+        y = self.pointer(label, rect)
+        p.setPen(QPen(QColor("#e7b45a" if gold else "#a07c45"), 2 * max(sy, 1)))
+        p.drawLine(QPointF(rect.right(), y), QPointF((OPTION_FRAME - 3) * sx, y))
+        p.save()
+        p.setOpacity(0.5 if label.closed else 1.0)  # an answered option's card stays solid, its words faint
+        p.translate(rect.left() + pad, rect.top() + pad)
+        doc.documentLayout().draw(p, context)
+        p.restore()
 
     def paintEvent(self, _):
         if not (self.items or self.trials):
             return
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        sx, sy = self.width() / GAME_W, self.height() / GAME_H
+        sy = self.height() / GAME_H
         pad = PAD_PX * sy
         context = QAbstractTextDocumentLayout.PaintContext()
         context.palette.setColor(QPalette.Text, QColor("#eadcc4"))
-        for label, doc, rect in self.cards():
-            gold = label.recommended
-            p.setOpacity(1.0)
-            p.setPen(QPen(QColor("#e7b45a" if gold else "#7a5d33"), (1.6 if gold else 1.0) * max(sy, 1)))
-            p.setBrush(QColor(14, 11, 8, 245))
-            p.drawRoundedRect(rect, 6 * sy, 6 * sy)
-            y = min(max(label.want * sy, rect.top() + POINTER_END * sy), rect.bottom() - POINTER_END * sy)  # to the option
-            p.setPen(QPen(QColor("#e7b45a" if gold else "#a07c45"), 2 * max(sy, 1)))
-            p.drawLine(QPointF(rect.right(), y), QPointF((OPTION_FRAME - 3) * sx, y))
-            p.save()
-            p.setOpacity(0.5 if label.closed else 1.0)  # an answered option's card stays solid, its words faint
-            p.translate(rect.left() + pad, rect.top() + pad)
-            doc.documentLayout().draw(p, context)
-            p.restore()
+        laid = self.cards()
+        opened = self.opened_card(laid)
+        for label, doc, rect in laid:
+            if opened is None or label is not opened[0]:
+                self.draw_card(p, context, label, doc, rect)
+        if opened:
+            self.draw_card(p, context, *opened, opened=True)
         for w, doc, rect in self.trial_cards():
             p.setPen(QPen(QColor("#e7b45a" if w.pick else "#7a5d33"), (1.6 if w.pick else 1.0) * max(sy, 1)))
             p.setBrush(QColor(14, 11, 8, 245))

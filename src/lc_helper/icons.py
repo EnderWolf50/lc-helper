@@ -5,7 +5,7 @@ from functools import cache
 from math import cos, pi, sin
 
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap
 
 from .paths import ASSETS
 
@@ -187,13 +187,15 @@ BADGE = 0.45  # the keyword icon's share of a gift picture's side, in its bottom
 # edge on) reads as the same size as a bulky one. Its corner radius and the picture's margin inside it, as shares of
 # the side.
 SLOT_FILL, SLOT_EDGE, SLOT_ROUND, SLOT_INSET = "#261d14", "#5b4527", 0.14, 0.07
+# A gift's tier on its picture: a Roman numeral in the top-left corner, its height this share of the side.
+TIER, TIER_FONT, TIER_FILL, TIER_OUTLINE = 0.3, "Times New Roman", "#f3cf7e", "#120d08"
 
 
-def gift(gift_id, kw, side, ratio, badge=True):
+def gift(gift_id, kw, side, ratio, badge=True, tier=""):
     """The game's picture of a gift in its slot, a square side logical pixels across, with ratio device pixels to
     each; the picture fitted whole and centred inside the slot's margin. With badge, its keyword kw's icon in the
-    bottom-right corner, as the game's shop marks a gift. The keyword's icon alone when the game has no picture of
-    the gift."""
+    bottom-right corner, as the game's shop marks a gift; with tier (a Roman numeral), that in the top-left corner,
+    outlined so it reads on any picture. The keyword's icon alone when the game has no picture of the gift."""
     if gift_picture(gift_id).isNull():
         return keyword(kw, side, ratio)
     pix = QPixmap(round(side * ratio), round(side * ratio))
@@ -212,6 +214,15 @@ def gift(gift_id, kw, side, ratio, badge=True):
     if badge:
         corner = keyword(kw, side * BADGE, ratio)
         p.drawPixmap(pix.width() - corner.width(), pix.height() - corner.height(), corner)
+    if tier:
+        font = QFont(TIER_FONT)
+        font.setBold(True)
+        font.setPixelSize(max(6, round(pix.width() * TIER)))
+        path = QPainterPath()
+        path.addText(inset, inset + QFontMetricsF(font).ascent(), font, tier)
+        p.strokePath(path, QPen(QColor(TIER_OUTLINE), max(2.0, font.pixelSize() / 4), Qt.SolidLine, Qt.RoundCap,
+                                Qt.RoundJoin))
+        p.fillPath(path, QColor(TIER_FILL))
     p.end()
     pix.setDevicePixelRatio(ratio)  # after painting: the painter worked in device pixels
     return pix

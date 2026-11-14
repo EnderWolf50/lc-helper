@@ -7,9 +7,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint, Qt, QUrl  # noqa: E402
 from PySide6.QtGui import QColor, QImage, QRegion, QTextDocument  # noqa: E402
+from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
-from lc_helper import events, gifts, overlay  # noqa: E402
+from lc_helper import events, gifts, icons, overlay  # noqa: E402
 from lc_helper.overlay import Win  # noqa: E402
 
 # The first line of each option visible on maalc's Choices captures (y of its OCR box); scrolled-out options have none.
@@ -47,27 +48,26 @@ def test_an_answered_option_is_a_closed_label(screen):
     assert [label.closed for label in overlay.labels(reading)] == [True, False]
 
 
-def test_a_card_says_the_checks_sins_the_gift_and_what_failing_costs(qt):
-    push = events.by_id()[901069]["options"][1]
+def test_a_card_says_the_checks_sins_and_each_outcome_at_a_glance_and_the_gift_in_full_when_opened(qt):
+    push = overlay.Label((730, 327, 191, 22), events.by_id()[901069]["options"][1])
     font, small = overlay.Overlay().fonts()
-    card = overlay.card_html(overlay.Label((730, 327, 191, 22), push), font, small, 600, 1)
-    document = QTextDocument()
-    document.setHtml(card)
-    text = document.toPlainText()
-    for said in ("傲慢", "嫉妒", "優勢判定", "成功", "護腕", "充能 I", "失敗", "HP", "−11", "SP", "判定的罪人"):
-        assert said in text, said
-    assert "回合開始時" in text, "the start of the gift's effect"
-    bare = QTextDocument()
-    bare.setHtml(overlay.card_html(overlay.Label((730, 327, 191, 22), push), font, small, 600, 0))
-    assert "回合開始時" not in bare.toPlainText(), "no effect line when there is no room"
+    brief, full = QTextDocument(), QTextDocument()
+    brief.setHtml(overlay.brief_html(push, small))
+    full.setHtml(overlay.full_html(push, font, small, 30))
+    for said in ("傲慢", "嫉妒", "優勢判定", "成功", "失敗", "HP", "−11", "SP", "判定的罪人"):
+        assert said in brief.toPlainText() and said in full.toPlainText(), said
+    assert "gift:9069" in brief.toHtml() and "護腕" not in brief.toPlainText(), "the gift's picture, not its name"
+    assert "護腕" in full.toPlainText() and "充能 I" in full.toPlainText()
+    assert "若該友方單位擁有傲慢攻擊技能" in full.toPlainText(), "the gift's whole effect, to its last sentence"
 
 
 def test_a_card_with_nothing_recorded_is_one_line(qt):
     font, small = overlay.Overlay().fonts()
-    turn_back = events.by_id()[901095]["options"][3]
-    document = QTextDocument()
-    document.setHtml(overlay.card_html(overlay.Label((730, 400, 100, 22), turn_back), font, small, 600, 2))
-    assert document.toPlainText() == "沒有記錄效果"
+    turn_back = overlay.Label((730, 400, 100, 22), events.by_id()[901095]["options"][3])
+    for card in (overlay.brief_html(turn_back, small), overlay.full_html(turn_back, font, small, 30)):
+        document = QTextDocument()
+        document.setHtml(card)
+        assert document.toPlainText() == "沒有記錄效果"
 
 
 def test_cards_are_centred_on_their_options_when_there_is_room_and_never_overlap():
@@ -98,7 +98,7 @@ def test_the_busiest_options_fit_three_to_a_page_inside_the_game(qt):
     font, small = o.fonts()
     sides = gift_sides(laid)
     assert len(sides) == 1, "one size of gift picture on the page"
-    assert sides.pop() >= overlay.picture_side(font, small, 1) - 1, "two lines tall: an outcome's gifts side by side"
+    assert sides.pop() >= overlay.picture_side(font, small, 1) - 1, "never as small as one line"
     o.close()
 
 
@@ -117,21 +117,62 @@ def test_a_page_with_room_shows_its_gifts_pictures_three_lines_tall(screen, qt):
     o.resize(1920, 1080)
     o.items = overlay.labels(events.read_screen(screen("EventChoices.png")))
     font, small = o.fonts()
-    sides = gift_sides(o.cards())
-    assert len(sides) == 1 and abs(sides.pop() - overlay.picture_side(font, small, 2)) <= 1, "the name and two lines"
+    laid = o.cards()
+    sides = gift_sides(laid)
+    assert len(sides) == 1 and abs(sides.pop() - overlay.picture_side(font, small, 2)) <= 1, "a line and two small"
+    assert all(rect.right() == overlay.CARD_RIGHT * 1.5 and rect.width() < 0.8 * (overlay.CARD_RIGHT - overlay.CARD_LEFT)
+               * 1.5 for _, _, rect in laid), "as wide as they need, against the options"
     o.close()
 
 
-def test_an_outcomes_gifts_go_side_by_side_on_a_crowded_card(qt):
+def test_a_brief_card_has_a_block_per_outcome_with_its_gifts_pictures_marked_with_their_tier(qt):
     two = next(o for e in events.book()["events"] for o in e["options"]
                if any(len(f.gifts) == 2 for f in events.outcomes(o)))
     o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
     o.resize(1280, 720)
     label = overlay.Label((730, 327, 191, 22), two)
-    stacked, across = o.document(label, 600, 1, 1), o.document(label, 600, 1, 2)
-    assert across.size().height() < stacked.size().height()
-    names = [gifts.book()[gid]["zh"] for f in events.outcomes(two) for gid, _ in f.gifts]
-    assert all(name in across.toPlainText() for name in names)
+    doc = o.document(label, 600, 2)
+    found = events.outcomes(two)
+    font, small = o.fonts()
+    assert overlay.brief_html(label, small).count(f"bgcolor='{overlay.BLOCK_FILL}'") == len(found)
+    ids = [gid for f in found for gid, _ in f.gifts]
+    assert all(gifts.book()[gid]["zh"] not in doc.toPlainText() for gid in ids)
+    side, ratio = overlay.picture_side(font, small, 2), o.devicePixelRatioF()
+    for gid in ids:
+        g = gifts.book()[gid]
+        marked = doc.resource(QTextDocument.ImageResource, QUrl(f"gift:{gid}")).toImage()
+        plain = icons.gift(gid, g["keyword"], side, ratio).toImage()
+        tier_gold = QColor(icons.TIER_FILL).rgb()
+        assert marked != plain and any(marked.pixel(x, y) == tier_gold for x in range(marked.width() // 2)
+                                       for y in range(marked.height() // 2)), "the tier in the top-left corner"
+    o.close()
+
+
+def test_a_click_opens_a_card_in_full_over_the_others_and_another_click_closes_it(qt):
+    o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720), window_of=lambda source: None)
+    assert not o.windowFlags() & Qt.WindowTransparentForInput, "its cards take clicks"
+    assert o.windowFlags() & Qt.WindowDoesNotAcceptFocus, "WS_EX_NOACTIVATE: a click leaves the game in front"
+    o.resize(1280, 720)
+    shake, push = events.by_id()[901069]["options"]
+    items = [overlay.Label((730, 217, 191, 22), shake), overlay.Label((730, 327, 191, 22), push)]
+    o.show_labels(items, "127.0.0.1:16384")
+    rect = next(r for label, _, r in o.cards() if label.option is push)
+    mask = o.mask()
+    assert mask.contains(rect.center().toPoint()), "a card takes clicks"
+    for elsewhere in (QPoint(100, 300), QPoint(300, 680), QPoint(1000, 400)):  # the story, the party, the options
+        assert not mask.contains(elsewhere), elsewhere
+    QTest.mouseClick(o, Qt.LeftButton, pos=rect.center().toPoint())
+    assert o.opened == push["text"]
+    label, doc, opened = o.opened_card(o.cards())
+    assert label.option is push and "若該友方單位擁有傲慢攻擊技能" in doc.toPlainText()
+    assert opened.width() > rect.width() and o.mask().contains(QPoint(100, round(opened.center().y())))
+    o.show_labels(items, "127.0.0.1:16384")  # the page read again: still open
+    assert o.opened == push["text"]
+    QTest.mouseClick(o, Qt.LeftButton, pos=QPoint(100, round(opened.center().y())))
+    assert o.opened is None and not o.mask().contains(QPoint(100, round(opened.center().y())))
+    QTest.mouseClick(o, Qt.LeftButton, pos=rect.center().toPoint())
+    o.show_labels(items[:1], "127.0.0.1:16384")  # a page without that option
+    assert o.opened is None
     o.close()
 
 
@@ -238,14 +279,14 @@ def test_each_post_boss_cards_worth_sits_above_its_card_and_fits(qt):
     o.close()
 
 
-def test_a_gift_on_an_event_card_leads_with_its_picture(qt):
+def test_a_gift_on_an_opened_card_leads_with_its_picture(qt):
     push = events.by_id()[901069]["options"][1]
     o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
     o.resize(1280, 720)
-    doc = o.document(overlay.Label((730, 327, 191, 22), push), 600, 1)
-    assert "gift:9069" in doc.toHtml()
+    doc = o.document(overlay.Label((730, 327, 191, 22), push), 600, 2, full=True)
+    assert doc.toHtml().index("gift:9069") < doc.toHtml().index("護腕")
     picture = doc.resource(QTextDocument.ImageResource, QUrl("gift:9069"))
     font, small = o.fonts()
     side = picture.width() / picture.devicePixelRatio()
-    assert not picture.isNull() and abs(side - overlay.picture_side(font, small, 1)) <= 1, "the name and a line"
+    assert not picture.isNull() and abs(side - overlay.picture_side(font, small, 2)) <= 1, "a line and two small"
     o.close()

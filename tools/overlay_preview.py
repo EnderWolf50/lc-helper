@@ -5,7 +5,8 @@ Usage: uv run python tools/overlay_preview.py [width]   (default 1920: the game 
 
 The captures are maalc's tests/screens (tools/sync_maalc.py), read as lc-helper reads them, with Charge and Sinking
 as the recommended keywords. The "busiest" pictures put the options with the most to say (gifts, chances, a check's
-costs) on EventChoicesLitTop.png's three rows: their text on the game is not theirs, only the cards are. The post-boss
+costs) on EventChoicesLitTop.png's three rows: their text on the game is not theirs, only the cards are; their
+"opened" twins have the top card opened in full, as a click on it does. The post-boss
 captures get each card's worth above it (trials.worth), the same keywords as the team's.
 """
 
@@ -35,11 +36,11 @@ def qimage(image, width):
     return picture.scaledToWidth(width, Qt.SmoothTransformation).convertToFormat(QImage.Format_ARGB32_Premultiplied)
 
 
-def draw(image, items, width, out, worths=()):
+def draw(image, items, width, out, worths=(), opened=None):
     picture = qimage(image, width)
     o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
     o.resize(picture.width(), picture.height())
-    o.items, o.trials = items, list(worths)
+    o.items, o.trials, o.opened = items, list(worths), opened
     p = QPainter(picture)
     o.render(p, QPoint(0, 0), renderFlags=QWidget.RenderFlag.DrawChildren)
     p.end()
@@ -73,6 +74,8 @@ def main():
         items = [overlay.Label(box, o, recommended=j == 0, middle=box[1] + 13)
                  for j, (box, o) in enumerate(zip(ROWS, options[i:i + 3]))]
         draw(background, items, width, out / f"overlay-busiest-{i // 3 + 1}-{width}.png")
+        draw(background, items, width, out / f"overlay-busiest-{i // 3 + 1}-opened-{width}.png",
+             opened=items[0].option["text"])
     for name in TRIAL_CAPTURES:
         image = vision.imread(screens / name)
         page = trials.read_page(image, ocr.lines, gifts.read_gifts(image, "choice", ocr.lines))
