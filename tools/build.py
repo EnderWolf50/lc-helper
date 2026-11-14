@@ -112,6 +112,7 @@ def build():
                     "--distpath", str(DIST), "--workpath", str(ROOT / "build/pyinstaller"),
                     "--specpath", str(ROOT / "build")], check=True)
     shutil.copytree(ROOT / "assets", APP / "assets", dirs_exist_ok=True)
+    shutil.copy2(ROOT / "NOTICE.md", APP)  # what the folder hands on carries its licences (CC BY-NC-SA 4.0 for LLC's text)
 
 
 if __name__ == "__main__":
