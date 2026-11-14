@@ -24,6 +24,13 @@ sync = [
     "opencc-python-reimplemented",
     "pyyaml>=6.0.3",
 ]
+# tools/sin_icons.py: the game's sin icons out of maalc's unpacked client (UnityPy, as maalc pins it); it finds maalc
+# through tools/sync_maalc.py, which needs the sync group.
+unpack = [
+    "pillow",
+    "unitypy==1.25.4",
+    { include-group = "sync" },
+]
 
 [build-system]
 requires = ["hatchling"]
