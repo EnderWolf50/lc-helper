@@ -218,6 +218,19 @@ def test_an_event_page_read_by_hand_is_watched_until_it_goes_and_then_left_alone
     assert left == [3] and game.shots == 3, "no more looks once it is told"
 
 
+def test_an_event_page_read_by_hand_is_read_again_when_its_list_scrolls(screen):
+    """Auto read off: F9's hints follow the options a scroll brings on screen, not the ones read before it."""
+    readings, left = [], []
+    images = [screen("EventChoicesLitTop.png"), screen("EventChoicesLitTop.png"),
+              screen("EventChoicesScrolledBack.png"), screen("MirrorMap.png")]
+    started(Slides(images), event=readings.append, page_left=lambda: left.append(1)).send("read_event")
+    wait_for(lambda: left)
+    assert [r.event["id"] for r in readings] == [901095, 901095] and all(r.watched for r in readings)
+    tops = [sorted(box[1] for _, box in r.lines) for r in readings]
+    assert tops[0] != tops[1], "the second read is of the scrolled list"
+    assert len(left) == 1
+
+
 def test_a_read_that_found_no_event_is_not_watched(screen):
     readings, left = [], []
     game = Counted([screen("MirrorMap.png")])

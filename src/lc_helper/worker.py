@@ -23,6 +23,11 @@ SKIP_EVERY = 0.3  # s between looks while skipping an event's story (maalc taps 
 OCR_IDLE = 180.0
 
 
+def choices_look(image):
+    """A Choices page's story box and option list in thumbnails: the page read again once they look different."""
+    return [vision.thumb(vision.crop(image, roi)) for roi in (vision.EVENT_STORY, vision.CHOICE_ROWS)]
+
+
 @dataclass
 class Callbacks:
     device: Callable[[str, str], None] = lambda state, text: None  # ("connected" | "connecting" | "error", text)
@@ -257,6 +262,7 @@ class Worker(threading.Thread):
         else:
             reading = self.read(image)
             self.left_choices = reading.event is not None and self.on_choices_page(image)
+            self.last_page = choices_look(image) if self.left_choices else None
             self.cb.event(replace(reading, watched=self.left_choices))
 
     def read_gift_screen(self, image, page):
@@ -344,10 +350,11 @@ class Worker(threading.Thread):
 
     def watch_tick(self):
         """A look at the screen once a second, while auto read is on or a Choices page or post-boss trials F9 read are
-        shown: that page going is told once. Auto read also reads the event page once a new one shows or its option
-        list moves (a scroll, a lit row): a Choices page whose story box or option list differs from the last read;
-        off it, a gift screen (and its trials) once it looks different (watch_gifts). F9's Choices page alone costs a
-        look at its header, no OCR while the header stays as it was; F9's trials, the gift choice's Refuse Gift read."""
+        shown: that page going is told once. A Choices page is read again once its story box or option list differs
+        from the last read (a scroll, a lit row), so the hints follow the options now on screen, F9's page too (the
+        user, 2026-11-14); auto read also reads a new one, and off it, a gift screen (and its trials) once it looks
+        different (watch_gifts). A Choices page that stays as it was costs a look at its header and no OCR; F9's
+        trials, the gift choice's Refuse Gift read."""
         now = time.monotonic()
         if now - self.last_watch < WATCH_EVERY:
             return
@@ -372,10 +379,10 @@ class Worker(threading.Thread):
                 self.last_gifts = self.last_gift_look = self.last_trials = None
             return
         self.trials_gone(None)
-        if not self.watch:
-            return  # the page F9 read, still there
+        if not (self.watch or self.left_choices):
+            return
         self.left_choices = True
-        page = [vision.thumb(vision.crop(image, roi)) for roi in (vision.EVENT_STORY, vision.CHOICE_ROWS)]
+        page = choices_look(image)
         if self.last_page is not None and all(vision.same_screen(a, b) for a, b in zip(self.last_page, page)):
             return
         reading = self.read(image)
