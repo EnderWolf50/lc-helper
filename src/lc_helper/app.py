@@ -882,8 +882,9 @@ class Window(QWidget):
                                    s["pc_input"], "PC 版點擊方式")
         self.pc_inputs.chosen.connect(self.set_pc_input)
         lay.addLayout(self.labelled("PC 點擊", self.pc_inputs))
-        self.pc_sizes = self.control(QComboBox(accessibleName="PC 版戰鬥時的解析度",
-                                               toolTip="自動戰鬥時把 PC 版遊戲畫面調成這個大小，停下後還原"))
+        self.pc_sizes = self.control(QComboBox(accessibleName="PC 版自動功能時的解析度",
+                                               toolTip="自動戰鬥、自動讀取或跳過劇情開著時，把 PC 版遊戲畫面調成這個大小，"
+                                                       "都關掉後還原"))
         for key, (name, _) in devices.PC_SIZES.items():
             self.pc_sizes.addItem(name, key)
         self.pc_sizes.setCurrentIndex(self.pc_sizes.findData(s["pc_size"]))

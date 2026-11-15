@@ -79,7 +79,8 @@ PC_INPUTS = {
     "seize": ("前景操作", "戰鬥時佔用滑鼠", "Seize", True),
 }
 PC_INPUT = "window"
-# The game's client size while lc-helper's auto battle runs, put back when it stops: (name, (w, h) or None to leave).
+# The game's client size while any of lc-helper's auto features runs (auto battle, auto read, story skip), put back
+# once they are all off: (name, (w, h) or None to leave).
 # All 16:9: every reading is measured on a 16:9 screen (screen_size_problem).
 PC_SIZES = {
     "keep": ("不調整", None),
@@ -105,11 +106,19 @@ class MaaDevice:
         self.cover = cover  # (x, y) -> the program whose window covers that game point, or None when the game shows
         self.moves_window = moves_window  # MaaFramework leaves the window moved after a touch until inactive
 
-    def screenshot(self):
+    def capture(self):
         job = self.ctl.post_screencap().wait()
         image = job.get() if job.succeeded else None
         if image is None or image.size == 0:
             raise RuntimeError(f"{self.what}截圖失敗，可能已關閉、斷線或縮到最小")
+        return image
+
+    def screenshot(self):
+        """The screen to read. RuntimeError, with the reason, when the PC client is off 16:9: nothing reads right
+        there, so nothing is tapped from it either."""
+        image = self.capture()
+        if self.hwnd is not None and (problem := screen_size_problem(image)):
+            raise RuntimeError(problem)
         return image
 
     def uncovered(self, x, y):
@@ -253,7 +262,8 @@ def screen_size_problem(image) -> str | None:
     h, w = image.shape[:2]
     if (w, h) == (1280, 720):
         return None
-    return f"遊戲畫面比例不是 16:9（縮放後 {w}×{h}），請把 PC 版視窗設成 1280×720 或 1920×1080"
+    return (f"遊戲畫面比例不是 16:9（縮放後 {w}×{h}），讀不準。開自動功能時會照「PC 解析度」調整，"
+            "或自己把視窗調成 16:9")
 
 
 def connect(address: str | None = None, pc_input: str = PC_INPUT) -> tuple[MaaDevice, Target]:
@@ -297,6 +307,7 @@ def _connect_pc(toolkit, pc_input):
     # the user's Discord window over 胜率 swallowed 16 taps). Window and cursor inputs post to the game's window.
     cover = covering(window.hwnd) if method in ("AnchoredTouch", "Seize") else None
     device = MaaDevice(ctl, can_hold, "PC 版遊戲", cover, method.endswith("WithWindowPos"), window.hwnd)
-    if problem := screen_size_problem(device.screenshot()):
-        raise RuntimeError(problem)
+    # Any size connects (the user, 2026-11-15): the game opens at the size it last had, and an auto feature sizes it
+    # (worker.fit_pc). Off 16:9, a read is refused instead (screenshot).
+    device.capture()
     return device, Target(f"{PC_NAME}（{name}）", PC)

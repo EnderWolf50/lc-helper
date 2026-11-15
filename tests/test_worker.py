@@ -354,6 +354,47 @@ def test_a_size_the_game_cannot_take_is_told_and_the_battle_runs_anyway(screen):
     w.join(3)
 
 
+def test_every_auto_feature_sizes_the_pc_client_and_it_gets_its_own_back_once_all_are_off(screen):
+    """The user, 2026-11-15: whatever size the game opens at, an auto feature on sizes it as chosen, and turning them
+    all off puts it back."""
+    pc, said, statuses = Sized(screen("MirrorMap.png")), [], []
+    w = on_pc(pc, error=said.append, battle=statuses.append)
+    w.send("set_pc_size", "720")
+    w.send("set_watch", True)
+    wait_for(lambda: pc.sizes)
+    w.send("start_battle", Plan(), False)
+    w.send("set_skip", True)
+    wait_for(lambda: statuses)
+    w.stop_battle()
+    w.send("set_watch", False)
+    wait_for(lambda: statuses[-1].phase is Phase.STOPPED)
+    time.sleep(0.3)
+    assert pc.sizes == [(1280, 720)], "story skip still runs"
+    w.send("set_skip", False)
+    wait_for(lambda: "back" in pc.sizes)
+    assert pc.sizes == [(1280, 720), "back"]
+    assert "遊戲畫面調成 1280×720，自動功能都關掉後還原" in said
+    wait_for(lambda: "遊戲畫面還原成原本的大小" in said)
+    w.shutdown()
+    w.join(3)
+    assert pc.sizes == [(1280, 720), "back"], "put back once"
+
+
+def test_a_new_pc_input_gives_the_pc_client_its_size_back_and_the_next_use_sizes_it_again(screen):
+    pc = Sized(screen("MirrorMap.png"))
+    w = on_pc(pc)
+    w.send("set_pc_size", "720")
+    w.send("set_skip", True)
+    wait_for(lambda: pc.sizes)
+    w.send("set_pc_input", "touch")
+    wait_for(lambda: "back" in pc.sizes)
+    w.send("set_skip", True)
+    wait_for(lambda: len(pc.sizes) == 3)
+    w.shutdown()
+    w.join(3)
+    assert pc.sizes == [(1280, 720), "back", (1280, 720), "back"]
+
+
 def test_an_emulator_keeps_its_size_and_an_unknown_size_is_the_default(screen):
     emulator, pc = Sized(screen("EventChoices.png")), Sized(screen("EventChoices.png"))
     w, v = started(emulator), on_pc(pc)

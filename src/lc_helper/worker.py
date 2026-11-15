@@ -54,8 +54,8 @@ class Worker(threading.Thread):
         self.device = None
         self.address: str | None = None  # the emulator to connect to on first use; None: the first one found
         self.pc_input = devices.PC_INPUT  # how taps reach the PC client (devices.PC_INPUTS)
-        self.pc_size = devices.PC_SIZE  # the PC client's size while a battle runs (devices.PC_SIZES)
-        self.size_back = None  # puts the PC client's window back as it was before the battle resized it
+        self.pc_size = devices.PC_SIZE  # the PC client's size while an auto feature runs (devices.PC_SIZES)
+        self.size_back = None  # puts the PC client's window back as it was before an auto feature sized it
         self.target: devices.Target | None = None  # what the device is connected to
         self.battle: AutoBattle | None = None
         self.battle_stop = threading.Event()
@@ -154,6 +154,7 @@ class Worker(threading.Thread):
 
     def do_connect(self, address):
         self.end_battle()
+        self.size_restored()
         self.device, self.address = None, address
         self.cb.device("connecting", address or "自動")
         try:
@@ -161,6 +162,9 @@ class Worker(threading.Thread):
             self.cb.device("connected", self.target.label)
         except Exception as e:
             self.cb.device("error", str(e))
+            return
+        if self.auto_on():
+            self.say(self.fit_pc())
 
     def do_set_pc_input(self, method):
         """A new way to tap the PC client: a PC connection is dropped (ending its battle) and made again on next use."""
@@ -169,6 +173,7 @@ class Worker(threading.Thread):
         self.pc_input = method
         if changed and self.device is not None and self.target.address == devices.PC:
             self.end_battle("換了 PC 版點擊方式，請重新開始")
+            self.size_restored()
             self.device = None
             self.cb.device("idle", "換了點擊方式：下次開始戰鬥或讀取事件時重新連線")
 
@@ -179,30 +184,55 @@ class Worker(threading.Thread):
         self.battle_stop.clear()
         self.battle = AutoBattle(self.device, plan, self.battle_stop, self.cb.battle, hold=self.holds(hold),
                                  on_fight=self.fought, stop_after_victory=self.stop_after_victory)
-        self.battle.emit(Phase.WAITING, self.resize_pc())
+        self.battle.emit(Phase.WAITING, self.fit_pc())
 
     def do_set_pc_size(self, key):
-        """The PC client's size for the next battle; a running one keeps its size until it stops."""
+        """The PC client's size for the next auto feature; one already sized keeps its size until they all stop."""
         self.pc_size = key if key in devices.PC_SIZES else devices.PC_SIZE  # a hand-edited settings.json
 
-    def resize_pc(self):
-        """The PC client resized for the battle when asked: what to tell the user about it."""
+    def auto_on(self):
+        return self.battle is not None or self.watch or self.skip
+
+    def fit_pc(self):
+        """The PC client at the chosen size while an auto feature runs, whatever size the game opened at (the user,
+        2026-11-15): what to tell the user about it, or "" when nothing changed."""
         name, size = devices.PC_SIZES[self.pc_size]
-        if size is None or self.target is None or self.target.address != devices.PC:
+        if size is None or self.size_back is not None or self.device is None or self.target.address != devices.PC:
             return ""
         try:
             self.size_back = self.device.resized(size)
         except Exception as e:
             return f"沒有調整解析度：{e}"
-        return f"遊戲畫面調成 {name}，停下後還原"
+        return f"遊戲畫面調成 {name}，自動功能都關掉後還原"
+
+    def unfit_pc(self):
+        """The PC client's own size back once no auto feature runs: what to tell the user about it."""
+        if not self.auto_on() and self.size_restored():
+            return "遊戲畫面還原成原本的大小"
+        return ""
+
+    def auto_started(self):
+        """Auto read or story skip turned on: the device connected, and the PC client sized for it."""
+        if self.device is None:
+            self.do_connect(self.address)  # sizes it once connected
+        else:
+            self.say(self.fit_pc())
+
+    def say(self, note):
+        if note:
+            self.cb.error(note)
 
     def size_restored(self):
+        """The PC client put back as it was before an auto feature sized it: whether it was."""
         back, self.size_back = self.size_back, None
-        if back is not None:
-            try:
-                back()
-            except Exception as e:  # the game closed mid-battle
-                self.cb.error(f"沒能還原遊戲視窗大小：{e}")
+        if back is None:
+            return False
+        try:
+            back()
+        except Exception as e:  # the game closed mid-battle
+            self.cb.error(f"沒能還原遊戲視窗大小：{e}")
+            return False
+        return True
 
     def fought(self, fight):
         self.cb.fight(fight, self.target.name if self.target else "")
@@ -239,10 +269,12 @@ class Worker(threading.Thread):
         idle clock that drops it."""
         self.watch, self.last_page = on, None
         if on:
-            self.ready()
+            self.auto_started()
             if not ocr.loaded():
                 self.do_warm()
-        elif self.ocr_used is not None:
+            return
+        self.say(self.unfit_pc())
+        if self.ocr_used is not None:
             self.ocr_used = time.monotonic()
 
     def do_read_event(self):
@@ -302,7 +334,7 @@ class Worker(threading.Thread):
         if self.battle is None:
             return
         battle, self.battle = self.battle, None
-        self.size_restored()
+        self.unfit_pc()
         battle.emit(Phase.STOPPED, note or battle.stop_note)
 
     def page_tick(self):
@@ -316,7 +348,9 @@ class Worker(threading.Thread):
     def do_set_skip(self, on):
         self.skip, self.skipper, self.skip_said = on, event_skip.Skipper(self.read_text), None
         if on:
-            self.ready()
+            self.auto_started()
+        else:
+            self.say(self.unfit_pc())
 
     def read_text(self, image, roi, only_rec=False):
         self.ocr_used = time.monotonic()

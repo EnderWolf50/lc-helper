@@ -25,6 +25,22 @@ def test_only_a_16_by_9_client_is_readable():
     assert problem and "1152×720" in problem
 
 
+def shows(image):
+    """A MaaFramework controller whose screenshot is image."""
+    job = SimpleNamespace(succeeded=True, get=lambda: image)
+    return SimpleNamespace(post_screencap=lambda: SimpleNamespace(wait=lambda: job))
+
+
+def test_a_pc_screenshot_off_16_by_9_is_refused_and_says_why_but_the_capture_still_works():
+    """2026-11-15: the game reopened at 2904x1677 (1247x720 scaled). Connecting must not care; reading must refuse."""
+    off = np.zeros((720, 1247, 3), np.uint8)
+    pc = device.MaaDevice(shows(off), what="PC 版遊戲", hwnd=1)
+    with pytest.raises(RuntimeError, match="1247×720"):
+        pc.screenshot()
+    assert pc.capture() is off, "connecting only checks the capture works"
+    assert device.MaaDevice(shows(np.zeros((720, 1280, 3), np.uint8)), hwnd=1).screenshot().shape == (720, 1280, 3)
+
+
 def test_every_pc_input_names_a_maafw_input_method():
     from maa.define import MaaWin32InputMethodEnum
 
