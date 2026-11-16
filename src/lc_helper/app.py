@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (QAbstractButton, QApplication, QButtonGroup, QChe
 
 from . import device as devices
 from .paths import LOCAL
-from . import events, fights, follow, gifts, icons, recommend, trials
+from . import events, fights, follow, gifts, icons, package, recommend, startup, trials
 from .overlay import SHOW_FOR_MS, Overlay, game_window, labels, lifts
 from .battle import FOREVER, Phase, Pick, Plan, Status
 from .worker import Callbacks, Worker
@@ -1429,7 +1429,8 @@ def self_test():
     hits = events.search("螺旋")
     found = gifts.search("地獄蝶")
     table = trials.book()["trials"]
-    lines = [f"search 螺旋: {len(hits)} events, first {hits[0]['id'] if hits else None}",
+    lines = [f"package: {package.manifest()['version']}",
+             f"search 螺旋: {len(hits)} events, first {hits[0]['id'] if hits else None}",
              f"gift 地獄蝶: {found[0]['en'] if found else None}",
              f"trials: {len(table)}, 強韌V: {trials.read_trial('强韧V', '', table)[0]}",
              f"gift picture 9001: {icons.gift_picture(9001).size().toTuple()}",  # webp, read by Qt's qwebp plugin
@@ -1439,6 +1440,8 @@ def self_test():
 
 
 def main(worker_factory=Worker):
+    if worker_factory is Worker:  # the tools that start the window with their own worker leave the package alone
+        startup.start(sys.argv)  # before anything reads the package; --offline and --self-test skip the network
     if "--self-test" in sys.argv[1:]:
         self_test()
         return

@@ -9,8 +9,8 @@ import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap, QTransform
 
+from . import paths
 from .palette import INK, display_family
-from .paths import PACKAGE
 
 GRID = 24
 STROKE = 2  # grid units: a twelfth of the icon's side
@@ -211,7 +211,7 @@ def padded_below(pix, extra):
 def game_icon(keyword):
     """The game's picture for keyword (the package's data/keyword_icons), at the size it comes in; null for a keyword
     without one."""
-    return QImage(str(PACKAGE / "data/keyword_icons" / f"{keyword}.webp"))
+    return QImage(str(paths.PACKAGE / "data/keyword_icons" / f"{keyword}.webp"))
 
 
 def keyword(name, side, ratio):
@@ -225,7 +225,7 @@ def keyword(name, side, ratio):
 @cache
 def sin_picture(name):
     """The game's emblem for sin name, one of events.SINS (the package's data/sin_icons), at the size it comes in."""
-    return QImage(str(PACKAGE / "data/sin_icons" / f"{SIN_ICONS[name]}.png"))
+    return QImage(str(paths.PACKAGE / "data/sin_icons" / f"{SIN_ICONS[name]}.png"))
 
 
 def sin(name, side, ratio):
@@ -238,7 +238,7 @@ def sin(name, side, ratio):
 def gift_picture(gift_id):
     """The game's picture of gift gift_id (the package's data/gift_icons), at the size it comes in; null when there is
     none."""
-    return QImage(str(PACKAGE / "data/gift_icons" / f"{gift_id}.webp"))
+    return QImage(str(paths.PACKAGE / "data/gift_icons" / f"{gift_id}.webp"))
 
 
 BADGE = 0.45  # the keyword icon's share of a gift picture's side, in its bottom-right corner
@@ -261,7 +261,7 @@ TIER_LEFT, TIER_TOP, TIER_HEIGHT, TIER_NARROW = 0.097, 0.062, 0.264, 0.85
 @cache
 def plate():
     """The game's striped plate a gift sits on in its slot (the package's data/gift_slot)."""
-    return QImage(str(PACKAGE / "data/gift_slot/plate.png"))
+    return QImage(str(paths.PACKAGE / "data/gift_slot/plate.png"))
 
 
 def game_gift(gift_id, kw, side, ratio, tier=""):
