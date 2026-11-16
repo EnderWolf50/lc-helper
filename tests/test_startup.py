@@ -236,3 +236,80 @@ def test_the_log_keeps_its_last_lines_and_never_grows_without_end(tmp_path):
     lines = log.read_text(encoding="utf-8").splitlines()
     assert len(lines) <= startup.LOG_LINES + startup.LOG_SLACK
     assert lines[-1].endswith(f"line {startup.LOG_LINES + startup.LOG_SLACK + 29}")
+
+
+def test_a_download_that_hangs_on_one_file_is_given_up_at_its_budget(where):
+    install(where.bundled)
+    served = publish("2026.1.2", files={"data/event_table.json": b"new"}).served
+    release = threading.Event()
+
+    def server(url):
+        if url.endswith("event_table.json"):
+            release.wait(5)
+        return served[url]
+    try:
+        started = time.monotonic()
+        assert where.run(server, download_seconds=0.3) == where.bundled
+        assert time.monotonic() - started < 3
+    finally:
+        release.set()
+    assert not where.downloaded.exists()
+    assert sum("kept" in line for line in where.lines) == 1
+
+
+def test_a_swap_that_fails_leaves_the_download_that_was_there(where, monkeypatch):
+    install(where.bundled, "2026.1.1")
+    install(where.downloaded, "2026.1.2")
+    real = type(where.downloaded).rename
+
+    def rename(self, target):
+        if self.name == "resource.new":
+            raise PermissionError("another process holds a file of it")
+        return real(self, target)
+    monkeypatch.setattr(type(where.downloaded), "rename", rename)
+    got = where.run(publish("2026.1.3"))
+    assert got == where.downloaded and where.version(got) == "2026.1.2"
+    assert sorted(p.name for p in where.downloaded.parent.iterdir()) == ["resource"]
+    assert sum("kept" in line for line in where.lines) == 1
+
+
+def test_a_start_killed_between_the_two_renames_finds_its_download_again(where):
+    install(where.bundled, "2026.1.1")
+    install(where.downloaded.parent / "resource.old", "2026.1.2")  # the folder moved aside; nothing moved in yet
+    (where.downloaded.parent / "resource.new").mkdir()
+    assert where.run(publish("2026.1.2")) == where.downloaded
+    assert where.version(where.downloaded) == "2026.1.2"
+    assert sorted(p.name for p in where.downloaded.parent.iterdir()) == ["resource"]
+
+
+def test_the_success_line_names_the_version_that_was_replaced(where):
+    install(where.bundled, "2026.1.1")
+    install(where.downloaded, "2026.1.2")
+    where.run(publish("2026.1.3"))
+    assert any("2026.1.2 -> 2026.1.3" in line for line in where.lines)
+
+
+def test_only_one_process_holds_the_lock_at_a_time(tmp_path):
+    first = startup.acquire(tmp_path / "resource.lock")
+    assert first is not None
+    assert startup.acquire(tmp_path / "resource.lock") is None
+    startup.release(first)
+    again = startup.acquire(tmp_path / "resource.lock")
+    assert again is not None
+    startup.release(again)
+
+
+def test_a_start_while_another_lc_helper_runs_reads_the_package_and_swaps_nothing(where):
+    install(where.bundled, "2026.1.1")
+    install(where.downloaded, "2026.1.2")
+    server = publish("2026.1.3")
+    lines = []
+    running = startup.acquire(where.downloaded.parent / "resource.lock")
+    try:
+        got = startup.start(["lc-helper.exe"], bundled=where.bundled, downloaded=where.downloaded, fetch=server,
+                            log=lines.append, lock=where.downloaded.parent / "resource.lock")
+    finally:
+        startup.release(running)
+    assert got == where.downloaded and where.version(got) == "2026.1.2"
+    assert server.requests == []
+    assert any("another lc-helper" in line for line in lines)

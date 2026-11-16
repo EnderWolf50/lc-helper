@@ -7,7 +7,7 @@ import json
 from lc_helper import package
 
 SOURCE = "https://example.test/pkg"
-LICENCES = ("LICENSE", "NOTICE.md")
+LICENCES = package.LICENCES
 
 
 def sha(data):

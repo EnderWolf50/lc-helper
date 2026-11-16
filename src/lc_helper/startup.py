@@ -11,11 +11,16 @@ checked against the manifest's size and sha256; a format or template version thi
 keeps its files), and only a copy that is whole replaces the downloaded folder. Any failure (offline, a timeout, a bad
 file, a download past its budget) deletes the copy, keeps the folder at hand, and logs one line. Nothing here raises.
 
+Only the lc-helper that holds .local/resource.lock checks and swaps: the lock lives as long as the process, so a second
+lc-helper started meanwhile reads the folder as it is and never swaps it under the first.
+
 The readers take the folder from `paths.PACKAGE` when they read, so `start` sets it before the window opens.
 """
 
+import msvcrt
 import shutil
 import sys
+import threading
 import time
 
 from . import package, paths
@@ -24,6 +29,28 @@ DOWNLOAD_SECONDS = 60  # all the files of one update; a start waits for them, so
 LOG_LINES = 200  # the log keeps this many of its last lines, give or take LOG_SLACK
 LOG_SLACK = 50
 LOG = paths.LOCAL / "resource.log"
+LOCK = paths.LOCAL / "resource.lock"
+_held = []  # the lock file's handle, open until the process ends
+
+
+def acquire(path):
+    """The open lock file at path when this process now holds its lock, None when another one does. Windows releases the
+    lock when the handle closes, however the process ends."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle = open(path, "a+b")
+    try:
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError:
+        handle.close()
+        return None
+    return handle
+
+
+def release(handle):
+    handle.seek(0)
+    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    handle.close()
 
 
 def info(folder):
@@ -52,12 +79,37 @@ def describe(folder, bundled):
             f"{found.get('format', '?')}, template {found.get('template', '?')}), {where}")
 
 
+def recover(downloaded):
+    """Undo what a start killed between the two renames of a swap left: the folder it moved aside goes back, and the
+    copy it was building is deleted. Only the start that holds the lock calls this."""
+    new, old = _beside(downloaded, "new"), _beside(downloaded, "old")
+    shutil.rmtree(new, ignore_errors=True)
+    if old.exists():
+        if downloaded.exists():
+            shutil.rmtree(old, ignore_errors=True)
+        else:
+            old.rename(downloaded)
+
+
+def _beside(downloaded, suffix):
+    return downloaded.parent / f"{downloaded.name}.{suffix}"
+
+
 def run(offline=False, bundled=paths.BUNDLED, downloaded=paths.DOWNLOADED, fetch=package.download, log=print,
-        seconds=package.CHECK_SECONDS, download_seconds=DOWNLOAD_SECONDS):
-    """The folder to read the package from, after an update when one is due. Never raises."""
+        seconds=package.CHECK_SECONDS, download_seconds=DOWNLOAD_SECONDS, may_update=True):
+    """The folder to read the package from, after an update when one is due. Never raises. may_update is False for a
+    start that does not hold the lock: it reads what is there and checks nothing."""
+    try:
+        if may_update:
+            recover(downloaded)
+    except OSError as e:
+        log(f"resource update: could not tidy {downloaded.parent}: {e}")
     folder = choose(bundled, downloaded)
     log(describe(folder, bundled))
     if offline:
+        return folder
+    if not may_update:
+        log("resource update: skipped, another lc-helper is running and may be reading the package")
         return folder
     try:
         return update(folder, bundled, downloaded, fetch, log, seconds, download_seconds)
@@ -95,11 +147,11 @@ def update(folder, bundled, downloaded, fetch, log, seconds, download_seconds):
 
 
 def download(folder, bundled, downloaded, source, version, fetch, log, seconds):
-    """A copy of folder with package `version` synced into it, which then becomes the downloaded folder."""
+    """A copy of folder with package `version` synced into it, which then becomes the downloaded folder: the folder that
+    was there is moved aside, the copy moved in, and the old one deleted; a failure moves the old one back."""
     parent = downloaded.parent
-    new, old = parent / f"{downloaded.name}.new", parent / f"{downloaded.name}.old"
-    for leftover in (new, old):  # what a crash of an earlier start left
-        shutil.rmtree(leftover, ignore_errors=True)
+    new, old = _beside(downloaded, "new"), _beside(downloaded, "old")
+    before = package.version_key(info(folder)["version"])
     deadline = time.monotonic() + seconds
 
     def within_budget(url):
@@ -107,20 +159,42 @@ def download(folder, bundled, downloaded, source, version, fetch, log, seconds):
             raise OSError(f"the download took longer than {seconds:g} s")
         return fetch(url)
 
+    box = {}
+
+    def work():
+        try:
+            box["count"] = package.sync(new, source, version, fetch=within_budget,
+                                        on_skip=lambda line: log(f"resource update: {line}"))
+        except BaseException as e:  # handed to the caller below
+            box["error"] = e
+
     try:
         parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(folder, new)
-        count = package.sync(new, source, version, fetch=within_budget, on_skip=lambda line: log(f"resource update: {line}"))
+        # one slow read is no more than urlopen's own timeout, but the files together are bounded here: the thread is
+        # left behind when the time is up, and its next fetch raises
+        thread = threading.Thread(target=work, daemon=True)
+        thread.start()
+        thread.join(max(deadline - time.monotonic(), 0) + 1)
+        if thread.is_alive():
+            raise OSError(f"the download took longer than {seconds:g} s")
+        if "error" in box:
+            raise box["error"]
         if downloaded.exists():
             downloaded.rename(old)
-        new.rename(downloaded)
+        try:
+            new.rename(downloaded)
+        except OSError:
+            if not downloaded.exists() and old.exists():
+                old.rename(downloaded)  # the folder that was there stays
+            raise
+        shutil.rmtree(old, ignore_errors=True)
     except (package.PackageError, OSError) as e:
         log(f"resource update: kept {describe(folder, bundled)}: {e}")
         return folder
     finally:
         shutil.rmtree(new, ignore_errors=True)
-        shutil.rmtree(old, ignore_errors=True)
-    log(f"resource update: {info(folder)['version']} -> {version}, {count} files downloaded")
+    log(f"resource update: {'.'.join(map(str, before))} -> {version}, {box['count']} files downloaded")
     return choose(bundled, downloaded)
 
 
@@ -135,9 +209,9 @@ def append_log(path, line):
         path.write_text("\n".join(lines[-LOG_LINES:]) + "\n", encoding="utf-8")
 
 
-def start(argv, bundled=paths.BUNDLED, downloaded=paths.DOWNLOADED, fetch=package.download, log=None):
+def start(argv, bundled=paths.BUNDLED, downloaded=paths.DOWNLOADED, fetch=package.download, log=None, lock=LOCK):
     """Choose, and update when due, the package folder, and make it the one the readers use. --offline and --self-test
-    never touch the network."""
+    never touch the network, and take no lock."""
     def write(line):
         try:
             append_log(LOG, line)
@@ -146,7 +220,16 @@ def start(argv, bundled=paths.BUNDLED, downloaded=paths.DOWNLOADED, fetch=packag
         if sys.stdout is not None:  # None in the built lc-helper.exe, which has no console
             print(line)
 
-    folder = run(offline=bool({"--offline", "--self-test"} & set(argv)), bundled=bundled, downloaded=downloaded, fetch=fetch,
-                 log=log or write)
+    offline = bool({"--offline", "--self-test"} & set(argv))
+    mine = None
+    if not offline:
+        try:
+            mine = acquire(lock)
+        except OSError:
+            mine = None
+        if mine:
+            _held.append(mine)
+    folder = run(offline=offline, bundled=bundled, downloaded=downloaded, fetch=fetch, log=log or write,
+                 may_update=bool(mine))
     paths.use_package(folder)
     return folder

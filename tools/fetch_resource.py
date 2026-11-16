@@ -14,17 +14,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from lc_helper import package  # noqa: E402
-from lc_helper.paths import PACKAGE  # noqa: E402
+from lc_helper.paths import BUNDLED  # noqa: E402
 
 
 def main():
     lock = package.read_lock()
     try:
-        count = package.sync(PACKAGE, lock["source"], lock["version"])
+        count = package.sync(BUNDLED, lock["source"], lock["version"])
     except package.PackageError as e:
         sys.exit(f"resource package {lock['version']}: {e}")
-    info = package.manifest(PACKAGE)
-    print(f"resource package {info['version']} (client {info['client']}) in {PACKAGE}: {count} files downloaded")
+    info = package.manifest(BUNDLED)
+    print(f"resource package {info['version']} (client {info['client']}) in {BUNDLED}: {count} files downloaded")
 
 
 if __name__ == "__main__":
