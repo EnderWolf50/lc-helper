@@ -6,8 +6,7 @@ the files under data/, image/ and pipeline/. maalc publishes each version as a t
 newest manifest. The lock file `resource.lock.json` names the version this checkout uses; tools/fetch_resource.py
 syncs it, and the app reads the folder through `path` and `manifest`.
 
-`sync` is the one entry point that downloads: the tool calls it with the lock, and an updater at startup can call it
-with a folder it may write and `newest()` (EnderWolf50/lc-helper#5).
+`sync` is the one entry point that downloads: the tool calls it with the lock.
 """
 
 import hashlib
@@ -34,7 +33,7 @@ WORKERS = 8
 USED = (
     "data/event_table.json", "data/event_text.json", "data/gift_text.json", "data/trial_text.json",
     "data/gift_recipes.json", "data/trials.yaml", "data/stagger_word.png",
-    "data/keyword_icons/*.webp", "data/gift_icons/*.webp",
+    "data/keyword_icons/*.webp", "data/gift_icons/*.webp", "data/sin_icons/*.png", "data/gift_slot/plate.png",
     "image/Battle/BattleTurn.png", "image/Battle/BattleTurnPressed.png", "image/Battle/BattleStart.png",
     "image/Battle/BattlePause.png", "image/Battle/BattleMenuResume.png",
     "image/Screen/Connecting.png", "image/Screen/DialogButton.png",
@@ -91,11 +90,6 @@ def path(relative, folder=PACKAGE):
     return found
 
 
-def newest(source, fetch=download):
-    """The version in the newest manifest (`main`) of source."""
-    return json.loads(fetch(f"{source}/main/manifest.json"))["version"]
-
-
 def _same(file, entry):
     if not file.is_file() or file.stat().st_size != entry["size"]:
         return False
@@ -145,7 +139,7 @@ def sync(folder, source, version, fetch=download, wanted=used):
         target.write_bytes(data)
 
     try:
-        with ThreadPoolExecutor(WORKERS) as pool:  # one request takes a third of a second; 499 files in a row, 3 minutes
+        with ThreadPoolExecutor(WORKERS) as pool:  # one request takes a third of a second; the files one after another take minutes
             list(pool.map(stage, missing))
         for relative in missing:
             target = folder / relative

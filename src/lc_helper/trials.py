@@ -3,9 +3,9 @@ the enemies, read off the screen, and how much each card is worth taking.
 
 After a floor's boss the gift choice pairs each E.G.O gift with a Mounting Trial that every later enemy carries: an
 Enemy Level Up +N badge and the trial's effects. Hard takes two cards (Select 0/2), Normal one; Refuse Gift hands out
-random trials instead. The data is the resource package's trials.yaml and trial_text.json (gamedata.trials): maalc's trial table, whose
-score is in pt (1 pt = the enemies' Clash Power +1), with LLC's Chinese name and text. Reading and scoring are maalc's
-(agent/event_actions.py trial_card and PickGift, agent/rewards.py read_trial and scores, docs/spec/03 section 12): a
+random trials instead. The data is the resource package's trials.yaml and trial_text.json (gamedata.trials): maalc's
+trial table, whose score is in pt (1 pt = the enemies' Clash Power +1), with LLC's Chinese name and text. Reading and
+scoring are maalc's (agent/event_actions.py trial_card and PickGift, agent/rewards.py read_trial and scores, docs/spec/03 section 12): a
 card is worth its gift's score less its trial's burden, the trial's score and 0.36 pt per Enemy Level Up; its gift
 scores 3 for a keyword of the team (here the recommended keywords), 2 for another, 0 held already, 0.5 more per tier
 above I but held.
@@ -33,7 +33,7 @@ GIFT_SCORES = {"main": 3, "other": 2, "owned": 0}
 TIER_STEP = 0.5
 NAME_MATCH, CN_NAME_MATCH = 88, 75  # as gifts.py's names
 NUMBER = r"\s*(\d+(?:\.\d+)?)"
-# What a trial adds to the enemies, as its effect line shows it (trials.json's effects keys): maalc's English, and
+# What a trial adds to the enemies, as its effect line shows it (the effects keys of trials.yaml): maalc's English, and
 # LLC's Simplified, every phrase of the 105 trials' desc_cn (tests/test_trials.py). Minus Coin Power comes with Plus
 # Coin Power, the same number: coin is the plus one.
 EFFECTS = {
@@ -105,7 +105,7 @@ class Card:
     x: int  # its centre, in the game's 1280x720 pixels
     gift: dict | None  # gifts.book()'s entry; None when its title was not read as a gift
     owned: bool
-    trial: str | None  # its trial's English name (trials.json's key); None when not read
+    trial: str | None  # its trial's English name (its key in the book); None when not read
     level: int | None  # Enemy Level Up +N; None when the badge was not read
     how: str | None = None  # how the trial was told: "effects", "name" or None
 

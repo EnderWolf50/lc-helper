@@ -1,9 +1,12 @@
 """The game data lc-helper reads, built from the resource package's data/ files (src/lc_helper/gamedata.py).
 
-Expected values are literals from the shipped game text, not recomputed from the package.
+Expected values are literals from the shipped game text, except the counts and the LLC release, which are read from
+the fetched files so that a new package version changes only the lock file.
 """
 
 import json
+
+import yaml
 
 from lc_helper import events, gifts, trials
 from lc_helper.paths import PACKAGE
@@ -22,7 +25,8 @@ def test_an_event_has_its_text_in_three_scripts_and_its_options_in_the_tables_or
 
 def test_a_page_is_marked_and_event_ids_are_unique():
     book = events.book()["events"]
-    assert len({e["id"] for e in book}) == len(book) == 217
+    table = json.loads((PACKAGE / "data/event_table.json").read_text(encoding="utf-8"))
+    assert len({e["id"] for e in book}) == len(book) == len(table["events"]) + len(table["pages"])
     assert [e["id"] for e in book if e["page"]][:3] == [800201, 800203, 800205]
 
 
@@ -30,15 +34,15 @@ def test_an_options_hint_is_the_tables_english_and_the_texts_chinese():
     table = json.loads((PACKAGE / "data/event_table.json").read_text(encoding="utf-8"))
     row = next(e for e in table["events"] if e["id"] == 108201)
     option = events.by_id()[108201]["options"][0]
-    assert option["hint"] == "Weakens the Poise Passive 「Adaptation」 for this Encounter"
-    assert option["hint"] == row["options"][0]["hint"]
+    assert option["hint"] == "Weakens the Poise Passive 「Adaptation」 for this Encounter" == row["options"][0]["hint"]
     assert option["hint_zh"] == "選擇後，本場戰鬥中弱化呼吸法相關被動技能 “適應”"
 
 
 def test_the_events_gift_names_come_from_the_gift_table():
     gift = events.book()["gifts"]["9001"]
     assert gift == {"en": "Hellterfly's Dream", "zh": "地獄蝶之夢", "keyword": "Burn", "tier": 2}
-    assert events.book()["zh_release"] == "2026111401"
+    text = json.loads((PACKAGE / "data/event_text.json").read_text(encoding="utf-8"))
+    assert events.book()["zh_release"] == text["zh_release"]
 
 
 def test_a_gift_has_names_effects_and_its_recipe():
@@ -56,4 +60,5 @@ def test_a_trial_is_keyed_by_its_english_name_with_its_table_row_and_its_text():
     trial = table["trials"]["Offense Level Up I"]
     assert trial["id"] == "MD511" and trial["effects"] == {"offense": 1}
     assert (trial["cn"], trial["zh"], trial["desc_en"], trial["desc_cn"]) == ("攻击等级强化I", "攻擊等級強化I", "Offense Level +1", "攻击等级+1")
-    assert len(table["trials"]) == 105
+    book = yaml.safe_load((PACKAGE / "data/trials.yaml").read_text(encoding="utf-8"))["trials"]
+    assert len(table["trials"]) == len(book)

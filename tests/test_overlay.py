@@ -184,7 +184,7 @@ def ink_box(image, inked):
 def test_a_gifts_slot_has_its_tier_and_keyword_where_the_games_has_them(qt):
     """Wound Clerid (9005, Bleed, II) as the game's Gift GET page draws it, 144 px: its II's yellow from x 352 to
     368, y 234 to 271 on the slot at 338, 225 (maalc tests/screens/GiftGet.png); its keyword's icon a 100 box 5 in from
-    the slot's bottom-right corner, of the slot's 350 (EgoGiftIconPrefab, tools/gift_slot.py)."""
+    the slot's bottom-right corner, of the slot's 350 (EgoGiftIconPrefab, maalc's tools/gift_slot.py)."""
     slot = icons.game_gift(9005, "Bleed", 144, 1, "II").toImage()
     yellow = ink_box(slot, lambda x, y: (c := slot.pixelColor(x, y)).red() > 215 and 150 < c.green() < 215
                      and c.blue() < 70)

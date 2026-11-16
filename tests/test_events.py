@@ -50,11 +50,17 @@ def test_other_screens_are_no_choices_page(screen, name):
     assert not events.on_choices_page(screen(name))
 
 
-def same_or_locked_extra(a, b):
-    """Two option lists of one story: the same, or one with the option a gift unlocks added at the end (the page shows
-    only the others without the gift: 971123 and 97112302, the Knight of Despair, package 2026.11.16)."""
-    short, long = sorted((a, b), key=len)
-    return long[:len(short)] == short and len(long) - len(short) <= 1
+LOCKED_EXTRA = {971123, 97112302}  # the Knight of Despair's page without and with the option a gift unlocks (2026.11.16)
+
+
+def same_or_locked_extra(a, b, field="text"):
+    """Two events of one story: the same options, or (the pair in LOCKED_EXTRA) one with the gift-unlocked option added
+    at the end, which the page shows only with the gift."""
+    short, long = sorted((a, b), key=lambda e: len(e["options"]))
+    texts = [[o[field] for o in e["options"]] for e in (short, long)]
+    if texts[0] == texts[1]:
+        return True
+    return {a["id"], b["id"]} == LOCKED_EXTRA and texts[1][:len(texts[0])] == texts[0]
 
 
 def test_every_event_is_found_from_its_own_text_and_twins_come_together():
@@ -64,8 +70,7 @@ def test_every_event_is_found_from_its_own_text_and_twins_come_together():
         found = events.candidates(e["story"], [o["text"] for o in e["options"]])
         assert e in found, e["id"]
         for other in found:
-            assert same_or_locked_extra([o["text"] for o in other["options"]], [o["text"] for o in e["options"]]), (
-                e["id"], other["id"])
+            assert same_or_locked_extra(other, e), (e["id"], other["id"])
 
 
 def test_every_event_is_found_from_its_own_simplified_text_and_twins_come_together():
@@ -75,8 +80,7 @@ def test_every_event_is_found_from_its_own_simplified_text_and_twins_come_togeth
         found = events.candidates(e["story_cn"], [o["text_cn"] for o in e["options"]])
         assert e in found, e["id"]
         for other in found:
-            assert same_or_locked_extra([o["text_cn"] for o in other["options"]], [o["text_cn"] for o in e["options"]]), (
-                e["id"], other["id"])
+            assert same_or_locked_extra(other, e, "text_cn"), (e["id"], other["id"])
     for a, b in [(971098, 971099), (971105, 971107)]:  # read the same in English and in LLC's Chinese
         twin = events.by_id()[a]
         assert {e["id"] for e in events.candidates(twin["story_cn"], [o["text_cn"] for o in twin["options"]])} == {a, b}

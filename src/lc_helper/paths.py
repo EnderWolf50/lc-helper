@@ -1,6 +1,6 @@
 """Where lc-helper's files are: the repository when run from source, the folder of lc-helper.exe when built.
 
-assets/ holds what lc-helper keeps itself (hand-cut templates, sin icons, fonts) and the OCR model; resource/ the
+assets/ holds what lc-helper keeps itself (hand-cut templates, fonts) and the OCR model; resource/ the
 resource package fetched from maalc-resource (src/lc_helper/package.py, gitignored); .local/ settings and logs.
 """
 

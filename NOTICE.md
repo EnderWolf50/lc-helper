@@ -9,13 +9,11 @@ lc-helper 的程式碼採 [PolyForm Noncommercial 1.0.0](https://polyformproject
 lc-helper 讀的遊戲資料、圖與模板在資源包裡，著作權屬於 © Project Moon，不在本專案的授權範圍內，來源與修改見資源包的 NOTICE.md「Limbus Company 遊戲素材」與「觀測飾品與合成飾品的資料」兩節：
 
 - `resource/data/` 的事件表、飾品表、試煉表與事件、飾品、試煉的文字（`event_table.json`、`event_text.json`、`gift_text.json`、`gift_recipes.json`、`trials.yaml`、`trial_text.json`）。
-- `resource/data/gift_icons/` 的飾品圖、`resource/data/keyword_icons/` 的體系圖示。
+- `resource/data/gift_icons/` 的飾品圖、`resource/data/keyword_icons/` 的體系圖示、`resource/data/sin_icons/` 的 7 個罪孽圖示、`resource/data/gift_slot/plate.png` 的飾品格底板。
 - `resource/image/` 與 `resource/data/stagger_word.png` 的 8 個戰鬥與事件模板。
 
 下列檔案留在本 repo，同樣是 © Project Moon，不在本專案的授權範圍內：
 
-- `assets/sin_icons/` 的 7 個罪孽圖示：`tools/sin_icons.py` 從客戶端 1.118.1 的 `UISpriteDataManager`（`totalAttributeSpriteList`，精靈圖 `BattleUI_Choice 1_<顏色>`）匯出。
-- `assets/gift_slot/plate.png` 的飾品格底板：`tools/gift_slot.py` 從客戶端 1.118.1 的 Legacy 主題圖集 `EgoGift` 匯出（`EgoGift_bg1`）。
 - `assets/templates/` 的 5 個模板（`battle_turn_llc*.png`、`victory.png`、`wipe_text.png`）與 `tests/screens_llc/` 的測試截圖：裁自遊戲畫面。
 
 ## 都市零漢化組（LLC）的中文名稱與效果文字

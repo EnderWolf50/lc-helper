@@ -1,5 +1,5 @@
 """Where a maalc checkout is, for the tools and tests that read what the resource package does not carry: maalc's
-tests/screens (live captures), and for tools/sin_icons.py and tools/gift_slot.py its unpacked client (.local/unpack).
+tests/screens (live captures).
 
 The folder is the path in .local/maalc_dir, else ../maalc next to this repository. lc-helper itself needs none of it
 to run or build: the game data, templates and icons come from the resource package (tools/fetch_resource.py).

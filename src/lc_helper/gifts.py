@@ -1,7 +1,7 @@
 """E.G.O gifts: their effects looked up by name, and the gifts a screen shows.
 
-The data is the resource package's gift_text.json and gift_recipes.json (gamedata.gifts). Two screens are read, both by OCR in maalc's
-regions (agent/actions.py): the gift choice after a battle (its "Refuse Gift" button; the cards' titles) and the
+The data is the resource package's gift_text.json and gift_recipes.json (gamedata.gifts). Two screens are read, both
+by OCR in maalc's regions (agent/actions.py): the gift choice after a battle (its "Refuse Gift" button; the cards' titles) and the
 "E.G.O Gift GET!" window (its name plate). A line is a gift when it reads as a gift's whole English name, or as
 LLC's whole Simplified name (cn) on a client with LLC installed.
 """

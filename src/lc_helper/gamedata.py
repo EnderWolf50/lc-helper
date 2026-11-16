@@ -16,7 +16,7 @@ from . import package
 from .paths import PACKAGE
 
 
-def load(name, folder=PACKAGE):
+def load(name, folder: Path = PACKAGE):
     return json.loads(package.path(f"data/{name}", folder).read_text(encoding="utf-8"))
 
 

@@ -4,9 +4,9 @@ Usage: uv run --group build python tools/build.py
 
 PyInstaller onedir (not onefile: a onefile exe unpacks itself to a temp folder on every start). MaaFramework's
 native libraries sit in the maa package's bin folder, which PyInstaller's import analysis does not see, so they are
-collected explicitly (MaaFramework issue #440 is a build that missed them). assets/ (templates, events.json, the OCR
-model) is copied beside the exe, where lc_helper.paths looks when frozen; settings go to .local/ there too. PyInstaller
-empties dist/lc-helper on every build, so its .local is set aside first and put back after: a rebuild keeps the
+collected explicitly (MaaFramework issue #440 is a build that missed them). assets/ (hand-cut templates, fonts, the OCR
+model) and resource/ (the package) are copied beside the exe, where lc_helper.paths looks when frozen; settings go to
+.local/ there too. PyInstaller empties dist/lc-helper on every build, so its .local is set aside first and put back after: a rebuild keeps the
 settings of the build it replaces.
 
 Two builds at once lost the built app's settings on 2026-11-14: the one stopped early put the other's set-aside .local

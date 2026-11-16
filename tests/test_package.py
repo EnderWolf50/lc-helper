@@ -140,16 +140,12 @@ def test_a_path_that_leaves_the_folder_is_refused(tmp_path):
     assert not (tmp_path / "evil.json").exists()
 
 
-def test_the_newest_version_is_the_one_in_main_manifest(tmp_path):
-    served = {f"{SOURCE}/main/manifest.json": json.dumps({"version": "2026.1.7"}).encode()}
-    assert package.newest(SOURCE, fetch=Server(served)) == "2026.1.7"
-
-
 def test_lc_helper_wants_what_it_reads_and_nothing_of_the_pipeline():
     wanted = package.used
     assert wanted("data/event_text.json") and wanted("data/gift_icons/9001.webp")
     assert wanted("data/keyword_icons/Burn.webp") and wanted("data/stagger_word.png")
     assert wanted("image/Battle/BattleTurn.png") and wanted("image/Screen/DialogButton.png")
+    assert wanted("data/sin_icons/Envy.png") and wanted("data/gift_slot/plate.png")
     assert not wanted("pipeline/mirror_dungeon.json") and not wanted("image/GiftSearch/x.png")
 
 
