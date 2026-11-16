@@ -1,5 +1,5 @@
 """The game's seven sin icons for the overlay's check cards: assets/sin_icons/<Wrath|Lust|Sloth|Gluttony|Gloom|Pride|
-Envy>.png, read from the client maalc unpacked (its .local/unpack; maalc's folder as tools/sync_maalc.py finds it).
+Envy>.png, read from the client maalc unpacked (its .local/unpack; maalc's folder as tools/maalc_checkout.py finds it).
 
 Usage: uv run --group unpack python tools/sin_icons.py
 
@@ -19,7 +19,7 @@ from pathlib import Path
 import UnityPy
 from PIL import Image
 
-from sync_maalc import REPO, maalc_dir
+from maalc_checkout import REPO, maalc_dir
 
 # Bundles carry a stripped Unity version; the client's own (maalc .local/unpack/NOTES.md, from libunity.so).
 UnityPy.config.FALLBACK_UNITY_VERSION = "6000.3.12f1"

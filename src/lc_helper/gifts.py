@@ -1,21 +1,19 @@
 """E.G.O gifts: their effects looked up by name, and the gifts a screen shows.
 
-The data is assets/gifts.json (tools/sync_maalc.py build_gifts). Two screens are read, both by OCR in maalc's
+The data is the resource package's gift_text.json and gift_recipes.json (gamedata.gifts). Two screens are read, both by OCR in maalc's
 regions (agent/actions.py): the gift choice after a battle (its "Refuse Gift" button; the cards' titles) and the
 "E.G.O Gift GET!" window (its name plate). A line is a gift when it reads as a gift's whole English name, or as
 LLC's whole Simplified name (cn) on a client with LLC installed.
 """
 
-import json
 import re
 from dataclasses import dataclass
 from functools import cache
 
 from rapidfuzz import fuzz, process
 
-from . import labels
+from . import gamedata, labels
 from .events import KEYWORDS, ROMAN, has_cjk, key_cn
-from .paths import ASSETS
 
 GIFT_CHOICE_HEADER = (870, 560, 160, 40)  # "Refuse Gift" (maalc GiftChoice node)
 GIFT_CARDS = (100, 150, 1080, 410)  # every card's text on the gift choice (maalc GIFT_CARDS)
@@ -31,8 +29,7 @@ CN_NAME_MATCH = 75
 
 @cache
 def book():
-    return {int(i): {"id": int(i), **g} for i, g in
-            json.loads((ASSETS / "gifts.json").read_text(encoding="utf-8"))["gifts"].items()}
+    return {int(i): {"id": int(i), **g} for i, g in gamedata.gifts()["gifts"].items()}
 
 
 def plain(text):

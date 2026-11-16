@@ -1,6 +1,6 @@
 """Render the floating window offscreen in the states a user sees, as PNGs: the evidence for UI changes.
 
-Usage: uv run --group sync python tools/render_window.py [out folder]   (default .local/evidence)
+Usage: uv run python tools/render_window.py [out folder]   (default .local/evidence)
 
 No emulator: a stand-in worker takes the commands; the battle states are fed in as the real worker would, and the
 event pane shows what the real reader makes of maalc's EventChoices.png capture (OCR included).
@@ -30,7 +30,7 @@ from lc_helper import app as ui  # noqa: E402
 from lc_helper import events, vision  # noqa: E402
 from lc_helper.battle import FOREVER, Phase, Pick, Plan, Status  # noqa: E402
 from lc_helper.device import PC, Target  # noqa: E402
-from sync_maalc import maalc_dir  # noqa: E402
+from maalc_checkout import maalc_dir  # noqa: E402
 
 
 class StandIn:

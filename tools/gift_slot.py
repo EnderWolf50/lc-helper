@@ -1,5 +1,5 @@
 """The game's E.G.O gift slot for the overlay's cards: its striped plate as assets/gift_slot/plate.png, read from the
-client maalc unpacked (its .local/unpack; maalc's folder as tools/sync_maalc.py finds it), and a check that the slot's
+client maalc unpacked (its .local/unpack; maalc's folder as tools/maalc_checkout.py finds it), and a check that the slot's
 layout is still the one lc_helper.icons draws.
 
 Usage: uv run --group unpack python tools/gift_slot.py
@@ -25,7 +25,7 @@ import UnityPy
 from PIL import Image
 
 from lc_helper import icons
-from sync_maalc import REPO, maalc_dir
+from maalc_checkout import REPO, maalc_dir
 
 UnityPy.config.FALLBACK_UNITY_VERSION = "6000.3.12f1"  # bundles carry a stripped one (maalc .local/unpack/NOTES.md)
 UNPACK = ".local/unpack"

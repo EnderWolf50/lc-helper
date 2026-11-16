@@ -1,6 +1,6 @@
 """Cut lc-helper's own templates out of live captures into assets/templates.
 
-Usage: uv run --group sync python tools/make_templates.py
+Usage: uv run python tools/make_templates.py
 
 wipe_text.png: the line "All participating Sinners have been" of the wipe dialog (maalc's WipeDialog.png), found by
 OCR so the cut follows the text. tests/test_vision.py checks it fires on that capture and on no other.
@@ -25,7 +25,7 @@ import cv2
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from lc_helper import ocr, vision  # noqa: E402
-from sync_maalc import maalc_dir  # noqa: E402
+from maalc_checkout import maalc_dir  # noqa: E402
 
 LLC_SCREENS = Path(__file__).resolve().parent.parent / "tests/screens_llc"
 PLATE_END = (1026, 536, 26, 20)  # the Win Rate plate's right end (triangle, border) on maalc's BattleTurn.png

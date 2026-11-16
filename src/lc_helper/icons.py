@@ -10,7 +10,7 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap, QTransform
 
 from .palette import INK, display_family
-from .paths import ASSETS
+from .paths import ASSETS, PACKAGE
 
 GRID = 24
 STROKE = 2  # grid units: a twelfth of the icon's side
@@ -209,8 +209,9 @@ def padded_below(pix, extra):
 
 @cache
 def game_icon(keyword):
-    """The game's picture for keyword (assets/keywords, tools/sync_maalc.py), at the size it comes in."""
-    return QImage(str(ASSETS / "keywords" / f"{keyword}.png"))
+    """The game's picture for keyword (the package's data/keyword_icons), at the size it comes in; null for a keyword
+    without one."""
+    return QImage(str(PACKAGE / "data/keyword_icons" / f"{keyword}.webp"))
 
 
 def keyword(name, side, ratio):
@@ -235,9 +236,9 @@ def sin(name, side, ratio):
 
 @cache
 def gift_picture(gift_id):
-    """The game's picture of gift gift_id (assets/gift_icons, tools/sync_maalc.py), at the size it comes in; null when
-    there is none."""
-    return QImage(str(ASSETS / "gift_icons" / f"{gift_id}.webp"))
+    """The game's picture of gift gift_id (the package's data/gift_icons), at the size it comes in; null when there is
+    none."""
+    return QImage(str(PACKAGE / "data/gift_icons" / f"{gift_id}.webp"))
 
 
 BADGE = 0.45  # the keyword icon's share of a gift picture's side, in its bottom-right corner

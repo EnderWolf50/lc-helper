@@ -1,10 +1,10 @@
 """Mirror Dungeon events: find one by its text (typed, or read off the screen) and say what each option does.
 
-The data is assets/events.json (tools/sync_maalc.py): maalc's event table with the full English and Chinese text.
+The data is the resource package's event_table.json and event_text.json (gamedata.events): maalc's event table with
+the full English and Chinese text.
 A screen is read in the game's English or in LLC's Simplified Chinese (Script): each against its own text.
 """
 
-import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -13,8 +13,7 @@ from functools import cache
 
 from rapidfuzz import fuzz, process
 
-from . import labels
-from .paths import ASSETS
+from . import gamedata, labels
 
 KEYWORDS = {"Burn": "燒傷", "Bleed": "流血", "Tremor": "震顫", "Rupture": "破裂", "Sinking": "沉淪", "Poise": "呼吸",
             "Charge": "充能", "Slash": "斬擊", "Pierce": "突刺", "Blunt": "打擊", "Keywordless": "無體系"}
@@ -89,7 +88,7 @@ def script(text):
 
 @cache
 def book():
-    data = json.loads((ASSETS / "events.json").read_text(encoding="utf-8"))
+    data = gamedata.events()
     for e in data["events"]:
         e["key_cn"] = key_cn(e["story_cn"])[-CN_KEY:]
     return data

@@ -3,7 +3,7 @@ the enemies, read off the screen, and how much each card is worth taking.
 
 After a floor's boss the gift choice pairs each E.G.O gift with a Mounting Trial that every later enemy carries: an
 Enemy Level Up +N badge and the trial's effects. Hard takes two cards (Select 0/2), Normal one; Refuse Gift hands out
-random trials instead. The data is assets/trials.json (tools/sync_maalc.py build_trials): maalc's trial table, whose
+random trials instead. The data is the resource package's trials.yaml and trial_text.json (gamedata.trials): maalc's trial table, whose
 score is in pt (1 pt = the enemies' Clash Power +1), with LLC's Chinese name and text. Reading and scoring are maalc's
 (agent/event_actions.py trial_card and PickGift, agent/rewards.py read_trial and scores, docs/spec/03 section 12): a
 card is worth its gift's score less its trial's burden, the trial's score and 0.36 pt per Enemy Level Up; its gift
@@ -11,7 +11,6 @@ scores 3 for a keyword of the team (here the recommended keywords), 2 for anothe
 above I but held.
 """
 
-import json
 import re
 from collections import Counter
 from dataclasses import dataclass, replace
@@ -19,10 +18,9 @@ from functools import cache
 
 from rapidfuzz import fuzz, process
 
-from . import labels
+from . import gamedata, labels
 from .events import has_cjk, key_cn
 from .gifts import GIFT_CARDS, plain
-from .paths import ASSETS
 
 TRIAL_HALF = (-125, 438, 250, 105)  # around a card's centre x: its trial half, badge to effect line (maalc)
 TRIAL_NAME_FOOT = 470  # a trial name's box starts above it, its effect line's below (maalc)
@@ -55,8 +53,8 @@ EFFECTS = {
 
 @cache
 def book():
-    """trials.json: {"model": maalc's scoring model, "trials": {English name: its entry}}."""
-    return json.loads((ASSETS / "trials.json").read_text(encoding="utf-8"))
+    """{"model": maalc's scoring model, "trials": {English name: its entry}}."""
+    return gamedata.trials()
 
 
 def parse_effects(text):

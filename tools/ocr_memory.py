@@ -1,7 +1,7 @@
 """What the OCR model costs in memory, and what dropping it gives back: three rounds of read the story box of maalc's
 EventChoices.png capture, then ocr.release(), with private memory after each step. No window, no emulator.
 
-Usage: uv run --group sync python tools/ocr_memory.py
+Usage: uv run python tools/ocr_memory.py
 """
 
 import sys
@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from lc_helper import ocr, vision  # noqa: E402
 from measure_memory import memory_mb  # noqa: E402
-from sync_maalc import maalc_dir  # noqa: E402
+from maalc_checkout import maalc_dir  # noqa: E402
 
 
 def mark(step):

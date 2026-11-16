@@ -3,7 +3,7 @@ without the game: a PNG per capture in .local/evidence/overlay-*.png.
 
 Usage: uv run python tools/overlay_preview.py [width]   (default 1920: the game window's width; 1280 is the smallest)
 
-The captures are maalc's tests/screens (tools/sync_maalc.py), read as lc-helper reads them, with Charge and Sinking
+The captures are maalc's tests/screens (tools/maalc_checkout.py), read as lc-helper reads them, with Charge and Sinking
 as the recommended keywords. The "busiest" pictures put the options with the most to say (gifts, chances, a check's
 costs) on EventChoicesLitTop.png's three rows: their text on the game is not theirs, only the cards are; their
 "opened" twins have the top card opened in full, as a click on it does. The post-boss
@@ -22,7 +22,7 @@ from PySide6.QtGui import QImage, QPainter  # noqa: E402
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
 from lc_helper import events, gifts, ocr, overlay, recommend, trials, vision  # noqa: E402
-from sync_maalc import maalc_dir  # noqa: E402
+from maalc_checkout import maalc_dir  # noqa: E402
 
 KEYWORDS = ["Charge", "Sinking"]
 CAPTURES = ["EventChoices.png", "EventChoicesLitTop.png", "EventChoicesUsed.png", "EventChoicesScrolledBack.png"]

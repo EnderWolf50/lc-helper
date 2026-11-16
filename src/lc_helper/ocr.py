@@ -41,7 +41,7 @@ def _get():
             from maa.tasker import Tasker
 
             if not (ASSETS / "maa/model/ocr/rec.onnx").is_file():
-                raise RuntimeError("沒有 OCR 模型：執行 uv run --group sync python tools/sync_maalc.py")
+                raise RuntimeError("沒有 OCR 模型：執行 uv run python tools/fetch_ocr.py")
             from .device import maa_options
 
             maa_options()  # the log switch the PC and emulator connections use too

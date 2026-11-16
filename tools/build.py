@@ -34,7 +34,9 @@ KEEP_BACKUPS = 5
 
 def main():
     if not (ROOT / "assets/maa/model/ocr/rec.onnx").is_file():
-        sys.exit("no OCR model: run uv run --group sync python tools/sync_maalc.py first")
+        sys.exit("no OCR model: run uv run python tools/fetch_ocr.py first")
+    if not (ROOT / "resource/manifest.json").is_file():
+        sys.exit("no resource package: run uv run python tools/fetch_resource.py first")
     with alone():
         if running(APP / "lc-helper.exe"):
             sys.exit(f"{APP / 'lc-helper.exe'} is open: close it first, the build empties the folder it runs from")
@@ -112,6 +114,7 @@ def build():
                     "--distpath", str(DIST), "--workpath", str(ROOT / "build/pyinstaller"),
                     "--specpath", str(ROOT / "build")], check=True)
     shutil.copytree(ROOT / "assets", APP / "assets", dirs_exist_ok=True)
+    shutil.copytree(ROOT / "resource", APP / "resource", dirs_exist_ok=True)  # the game data, icons and templates
     for name in ("LICENSE", "NOTICE.md"):  # what the folder hands on carries its licences (CC BY-NC-SA 4.0 for LLC's text)
         shutil.copy2(ROOT / name, APP)
 

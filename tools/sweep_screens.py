@@ -1,6 +1,6 @@
 """Run lc-helper's screen readings over every screenshot in a folder and print one row per screen.
 
-Usage: uv run python tools/sweep_screens.py [folder]   (default: maalc's tests/screens, see tools/sync_maalc.py)
+Usage: uv run python tools/sweep_screens.py [folder]   (default: maalc's tests/screens, see tools/maalc_checkout.py)
 
 Columns: battle_turn box and score, turn_playing, start plaque, disc lit, focused gear, staggered slots.
 The thresholds' claims ("never fires on X") are checked against this sweep (tests/test_vision.py runs it).
@@ -13,7 +13,7 @@ import cv2
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from lc_helper import vision  # noqa: E402
-from sync_maalc import maalc_dir  # noqa: E402
+from maalc_checkout import maalc_dir  # noqa: E402
 
 
 def best(image, name, roi):

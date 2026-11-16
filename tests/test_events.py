@@ -50,6 +50,13 @@ def test_other_screens_are_no_choices_page(screen, name):
     assert not events.on_choices_page(screen(name))
 
 
+def same_or_locked_extra(a, b):
+    """Two option lists of one story: the same, or one with the option a gift unlocks added at the end (the page shows
+    only the others without the gift: 971123 and 97112302, the Knight of Despair, package 2026.11.16)."""
+    short, long = sorted((a, b), key=len)
+    return long[:len(short)] == short and len(long) - len(short) <= 1
+
+
 def test_every_event_is_found_from_its_own_text_and_twins_come_together():
     for e in events.book()["events"]:
         if e["page"]:
@@ -57,7 +64,8 @@ def test_every_event_is_found_from_its_own_text_and_twins_come_together():
         found = events.candidates(e["story"], [o["text"] for o in e["options"]])
         assert e in found, e["id"]
         for other in found:
-            assert [o["text"] for o in other["options"]] == [o["text"] for o in e["options"]], (e["id"], other["id"])
+            assert same_or_locked_extra([o["text"] for o in other["options"]], [o["text"] for o in e["options"]]), (
+                e["id"], other["id"])
 
 
 def test_every_event_is_found_from_its_own_simplified_text_and_twins_come_together():
@@ -67,8 +75,8 @@ def test_every_event_is_found_from_its_own_simplified_text_and_twins_come_togeth
         found = events.candidates(e["story_cn"], [o["text_cn"] for o in e["options"]])
         assert e in found, e["id"]
         for other in found:
-            assert [o["text_cn"] for o in other["options"]] == [o["text_cn"] for o in e["options"]], (e["id"],
-                                                                                                    other["id"])
+            assert same_or_locked_extra([o["text_cn"] for o in other["options"]], [o["text_cn"] for o in e["options"]]), (
+                e["id"], other["id"])
     for a, b in [(971098, 971099), (971105, 971107)]:  # read the same in English and in LLC's Chinese
         twin = events.by_id()[a]
         assert {e["id"] for e in events.candidates(twin["story_cn"], [o["text_cn"] for o in twin["options"]])} == {a, b}

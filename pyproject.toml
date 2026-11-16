@@ -8,6 +8,7 @@ dependencies = [
     "numpy",
     "opencv-python-headless",
     "pyside6-essentials",
+    "pyyaml>=6.0.3",
     "rapidfuzz",
 ]
 
@@ -19,18 +20,11 @@ build = [
     "pyinstaller>=6.22.3",
 ]
 dev = ["pytest", "ruff"]
-# tools/sync_maalc.py: Simplified to Traditional Chinese for the LLC event text; maalc's WOFF fonts as TrueType.
-sync = [
-    "fonttools",
-    "opencc-python-reimplemented",
-    "pyyaml>=6.0.3",
-]
-# tools/sin_icons.py: the game's sin icons out of maalc's unpacked client (UnityPy, as maalc pins it); it finds maalc
-# through tools/sync_maalc.py, which needs the sync group.
+# tools/sin_icons.py and tools/gift_slot.py: the game's sin icons and gift slot out of maalc's unpacked client
+# (UnityPy, as maalc pins it); they find maalc through tools/maalc_checkout.py.
 unpack = [
     "pillow",
     "unitypy==1.25.4",
-    { include-group = "sync" },
 ]
 
 [build-system]
