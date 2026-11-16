@@ -30,6 +30,7 @@ KEPT = DIST / "lc-helper.local"  # the replaced build's .local while PyInstaller
 LOCK = ROOT / "build/build.lock"
 BACKUPS = ROOT / ".local/app-backups"
 KEEP_BACKUPS = 5
+LICENCES = ("LICENSE", "NOTICE.md")  # src/lc_helper/package.py LICENCES: what a synced package carries beside its manifest
 
 
 def main():
@@ -37,6 +38,9 @@ def main():
         sys.exit("no OCR model: run uv run python tools/fetch_ocr.py first")
     if not (ROOT / "resource/manifest.json").is_file():
         sys.exit("no resource package: run uv run python tools/fetch_resource.py first")
+    for name in LICENCES:  # the package's own licence and notice go with its files (fetch_resource brings them)
+        if not (ROOT / "resource" / name).is_file():
+            sys.exit(f"resource/{name} is missing: run uv run python tools/fetch_resource.py first")
     with alone():
         if running(APP / "lc-helper.exe"):
             sys.exit(f"{APP / 'lc-helper.exe'} is open: close it first, the build empties the folder it runs from")

@@ -13,14 +13,13 @@ from pathlib import Path
 import yaml
 
 from . import package
-from .paths import PACKAGE
 
 
-def load(name, folder: Path = PACKAGE):
+def load(name, folder: Path | None = None):
     return json.loads(package.path(f"data/{name}", folder).read_text(encoding="utf-8"))
 
 
-def events(folder: Path = PACKAGE):
+def events(folder: Path | None = None):
     """{"client", "zh_release", "gifts": {id: {en, zh, keyword, tier}}, "events": [...]}: every event and page of
     event_table.json with its text; an option holds its table row (gifts as gift_keywords) and its text."""
     table, text, gift_text = load("event_table.json", folder), load("event_text.json", folder), load("gift_text.json", folder)
@@ -40,7 +39,7 @@ def events(folder: Path = PACKAGE):
     return {"client": text["client"], "zh_release": text["zh_release"], "gifts": gifts, "events": rows}
 
 
-def gifts(folder: Path = PACKAGE):
+def gifts(folder: Path | None = None):
     """{"gifts": {id: row}}: gift_text.json's rows, each with the `recipe` ({recipes, groups}, only the keys the row
     has) of its gift_recipes.json row when it has one."""
     recipes = {str(g["id"]): {k: g[k] for k in ("recipes", "groups") if k in g} for g in load("gift_recipes.json", folder)["gifts"]}
@@ -50,7 +49,7 @@ def gifts(folder: Path = PACKAGE):
     return {"gifts": rows}
 
 
-def trials(folder: Path = PACKAGE):
+def trials(folder: Path | None = None):
     """{"client", "model", "trials": {English name: row}}: each trials.yaml entry with its text, by buff id."""
     table = yaml.safe_load(package.path("data/trials.yaml", folder).read_text(encoding="utf-8"))
     text = load("trial_text.json", folder)["trials"]
