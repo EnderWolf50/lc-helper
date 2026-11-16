@@ -28,7 +28,7 @@ INK = {
 }
 TEXT_FAMILY = "Microsoft JhengHei UI"
 # Barlow Condensed's weights, each the family its file names itself: the 600 one is a family of its own, so a weight
-# alone would not reach it (assets/fonts/barlow-condensed, tools/sync_maalc.py copy_fonts).
+# alone would not reach it (assets/fonts/barlow-condensed, committed).
 DISPLAY = {600: "Barlow Condensed SemiBold", 700: "Barlow Condensed"}
 
 

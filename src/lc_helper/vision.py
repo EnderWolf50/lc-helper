@@ -10,6 +10,7 @@ from functools import cache
 import cv2
 import numpy as np
 
+from . import package
 from .paths import ASSETS
 
 
@@ -64,7 +65,9 @@ def imread(path):
 
 @cache
 def template(name):
-    return imread(ASSETS / "templates" / name)
+    """A template by its lc-helper name: the package's image when maalc supplies it (package.TEMPLATES), else the one
+    lc-helper cut itself (assets/templates)."""
+    return imread(package.path(package.TEMPLATES[name]) if name in package.TEMPLATES else ASSETS / "templates" / name)
 
 
 def crop(image, roi):

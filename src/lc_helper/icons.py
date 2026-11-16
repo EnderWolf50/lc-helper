@@ -10,12 +10,12 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap, QTransform
 
 from .palette import INK, display_family
-from .paths import ASSETS
+from .paths import PACKAGE
 
 GRID = 24
 STROKE = 2  # grid units: a twelfth of the icon's side
 KEYWORDLESS = INK["line-2"]  # the ring for a gift of no keyword: quiet beside the game's coloured icons
-# Each of events.SINS and its icon's file in assets/sin_icons (tools/sin_icons.py).
+# Each of events.SINS and its icon's file in the package's data/sin_icons.
 SIN_ICONS = {"暴怒": "Wrath", "色慾": "Lust", "怠惰": "Sloth", "暴食": "Gluttony", "憂鬱": "Gloom", "傲慢": "Pride",
              "嫉妒": "Envy"}
 
@@ -209,8 +209,9 @@ def padded_below(pix, extra):
 
 @cache
 def game_icon(keyword):
-    """The game's picture for keyword (assets/keywords, tools/sync_maalc.py), at the size it comes in."""
-    return QImage(str(ASSETS / "keywords" / f"{keyword}.png"))
+    """The game's picture for keyword (the package's data/keyword_icons), at the size it comes in; null for a keyword
+    without one."""
+    return QImage(str(PACKAGE / "data/keyword_icons" / f"{keyword}.webp"))
 
 
 def keyword(name, side, ratio):
@@ -223,8 +224,8 @@ def keyword(name, side, ratio):
 
 @cache
 def sin_picture(name):
-    """The game's emblem for sin name, one of events.SINS (assets/sin_icons), at the size it comes in."""
-    return QImage(str(ASSETS / "sin_icons" / f"{SIN_ICONS[name]}.png"))
+    """The game's emblem for sin name, one of events.SINS (the package's data/sin_icons), at the size it comes in."""
+    return QImage(str(PACKAGE / "data/sin_icons" / f"{SIN_ICONS[name]}.png"))
 
 
 def sin(name, side, ratio):
@@ -235,9 +236,9 @@ def sin(name, side, ratio):
 
 @cache
 def gift_picture(gift_id):
-    """The game's picture of gift gift_id (assets/gift_icons, tools/sync_maalc.py), at the size it comes in; null when
-    there is none."""
-    return QImage(str(ASSETS / "gift_icons" / f"{gift_id}.webp"))
+    """The game's picture of gift gift_id (the package's data/gift_icons), at the size it comes in; null when there is
+    none."""
+    return QImage(str(PACKAGE / "data/gift_icons" / f"{gift_id}.webp"))
 
 
 BADGE = 0.45  # the keyword icon's share of a gift picture's side, in its bottom-right corner
@@ -245,8 +246,8 @@ BADGE = 0.45  # the keyword icon's share of a gift picture's side, in its bottom
 # drawing (a gauntlet seen edge on) reads as the same size as a bulky one. Its corners' cut and the picture's margin
 # inside it, as shares of the side.
 SLOT_FILL, SLOT_EDGE, SLOT_CUT, SLOT_INSET = INK["bg"], INK["card-line"], 0.12, 0.07
-# The game's gift slot (its prefab EgoGiftIconPrefab; tools/gift_slot.py checks these against the client), in its
-# units: the plate fills the slot; the picture is a square this wide, this far above the middle; the keyword's icon is a
+# The game's gift slot (its prefab EgoGiftIconPrefab; maalc's tools/gift_slot.py holds the same numbers and checks
+# them against the client: change both together), in its units: the plate fills the slot; the picture is a square this wide, this far above the middle; the keyword's icon is a
 # square this wide, this far in from the bottom-right corner.
 SLOT = {"slot": 350, "picture": 256, "picture_rise": 8, "keyword": 100, "keyword_in": 5}
 # The slot's tier: the game's text colour (tmp_Tier, #F8C200) in maalc's condensed face, with the glow of the game's
@@ -259,8 +260,8 @@ TIER_LEFT, TIER_TOP, TIER_HEIGHT, TIER_NARROW = 0.097, 0.062, 0.264, 0.85
 
 @cache
 def plate():
-    """The game's striped plate a gift sits on in its slot (assets/gift_slot, tools/gift_slot.py)."""
-    return QImage(str(ASSETS / "gift_slot" / "plate.png"))
+    """The game's striped plate a gift sits on in its slot (the package's data/gift_slot)."""
+    return QImage(str(PACKAGE / "data/gift_slot/plate.png"))
 
 
 def game_gift(gift_id, kw, side, ratio, tier=""):

@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: echo "sha=$(tr -d '[:space:]' < .github/maalc-commit)" >> "$GITHUB_OUTPUT"
 
-      # event_table.json is the file sync_maalc.maalc_dir() looks for to accept a folder as a maalc checkout.
+      # Only the screens: the game data, templates and icons come from the resource package (tools/fetch_resource.py).
       - uses: actions/checkout@v4
         with:
           repository: EnderWolf50/maalc
@@ -30,7 +30,6 @@ jobs:
           fetch-depth: 1
           sparse-checkout: |
             tests/screens
-            assets/resource/base/data/event_table.json
           sparse-checkout-cone-mode: false
 
       - name: Point the tests at it
@@ -42,15 +41,18 @@ jobs:
       # conftest skips the screen tests when maalc_dir() fails; a bad pin must fail the run instead.
       - name: Check the screens arrived
         shell: bash
-        run: test -n "$(ls maalc/tests/screens/*.png)" && test -f maalc/assets/resource/base/data/event_table.json
+        run: test -n "$(ls maalc/tests/screens/*.png)"
 
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
+      # resource.lock.json names the package version (a tag of maalc-resource); the tool checks every file's sha256.
+      - name: Fetch the resource package
+        run: uv run python tools/fetch_resource.py
+
       - name: Fetch the OCR model
         run: uv run python tools/fetch_ocr.py
 
       - name: pytest
-        # conftest imports sync_maalc, which needs the sync group.
-        run: uv run --group sync pytest -ra
+        run: uv run pytest -ra

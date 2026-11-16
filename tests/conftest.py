@@ -4,7 +4,7 @@ import pytest
 from PySide6.QtGui import QFontDatabase, QGuiApplication
 
 from lc_helper import palette, vision
-from sync_maalc import maalc_dir
+from maalc_checkout import maalc_dir
 
 
 @pytest.fixture(autouse=True)
