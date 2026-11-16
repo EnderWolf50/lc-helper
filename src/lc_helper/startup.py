@@ -151,7 +151,7 @@ def download(folder, bundled, downloaded, source, version, fetch, log, seconds):
     was there is moved aside, the copy moved in, and the old one deleted; a failure moves the old one back."""
     parent = downloaded.parent
     new, old = _beside(downloaded, "new"), _beside(downloaded, "old")
-    before = package.version_key(info(folder)["version"])
+    before = info(folder)["version"]
     deadline = time.monotonic() + seconds
 
     def within_budget(url):
@@ -194,7 +194,7 @@ def download(folder, bundled, downloaded, source, version, fetch, log, seconds):
         return folder
     finally:
         shutil.rmtree(new, ignore_errors=True)
-    log(f"resource update: {'.'.join(map(str, before))} -> {version}, {box['count']} files downloaded")
+    log(f"resource update: {before} -> {version}, {box['count']} files downloaded")
     return choose(bundled, downloaded)
 
 
