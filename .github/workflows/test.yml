@@ -1,0 +1,48 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pytest:
+    # Windows like the players' machines: the app and its tests use user32, kernel32 and winreg.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The tests read maalc's tests/screens; .github/maalc-commit pins the commit (one line to change).
+      # event_table.json is the file sync_maalc.maalc_dir() looks for to accept a folder as a maalc checkout.
+      - name: Read the pinned maalc commit
+        id: pin
+        shell: bash
+        run: echo "sha=$(tr -d '[:space:]' < .github/maalc-commit)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          repository: EnderWolf50/maalc
+          ref: ${{ steps.pin.outputs.sha }}
+          path: maalc
+          fetch-depth: 1
+          sparse-checkout: |
+            tests/screens
+            assets/resource/base/data/event_table.json
+          sparse-checkout-cone-mode: false
+
+      - name: Point the tests at it
+        shell: bash
+        run: |
+          mkdir -p .local
+          echo "$GITHUB_WORKSPACE/maalc" > .local/maalc_dir
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Fetch the OCR model
+        run: uv run python tools/fetch_ocr.py
+
+      - name: pytest
+        # conftest imports sync_maalc, which needs the sync group.
+        run: uv run --group sync pytest -ra

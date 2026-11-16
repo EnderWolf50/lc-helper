@@ -65,6 +65,8 @@ uv run --group sync python tools/ocr_memory.py      # OCR 讀一次、釋放，�
 bash tools/check_commits.sh                         # 逐一切到每個 commit 跑測試和 lint
 ```
 
+CI（`.github/workflows/test.yml`）在 Windows 上跑 `pytest`：用 sparse checkout 抓 maalc 的 `tests/screens`，commit 記在 `.github/maalc-commit`（換 commit 只改那一行），OCR 模型由 `tools/fetch_ocr.py` 照 maalc 的來源下載。
+
 ## 授權
 
 - 事件與飾品的中文文字：[都市零漢化組](https://github.com/LocalizeLimbusCompany/LocalizeLimbusCompany)，CC BY-NC-SA 4.0。
