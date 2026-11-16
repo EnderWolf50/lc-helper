@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   pytest:
     # Windows like the players' machines: the app and its tests use user32, kernel32 and winreg.
@@ -13,12 +16,12 @@ jobs:
       - uses: actions/checkout@v4
 
       # The tests read maalc's tests/screens; .github/maalc-commit pins the commit (one line to change).
-      # event_table.json is the file sync_maalc.maalc_dir() looks for to accept a folder as a maalc checkout.
       - name: Read the pinned maalc commit
         id: pin
         shell: bash
         run: echo "sha=$(tr -d '[:space:]' < .github/maalc-commit)" >> "$GITHUB_OUTPUT"
 
+      # event_table.json is the file sync_maalc.maalc_dir() looks for to accept a folder as a maalc checkout.
       - uses: actions/checkout@v4
         with:
           repository: EnderWolf50/maalc
@@ -35,6 +38,11 @@ jobs:
         run: |
           mkdir -p .local
           echo "$GITHUB_WORKSPACE/maalc" > .local/maalc_dir
+
+      # conftest skips the screen tests when maalc_dir() fails; a bad pin must fail the run instead.
+      - name: Check the screens arrived
+        shell: bash
+        run: test -n "$(ls maalc/tests/screens/*.png)" && test -f maalc/assets/resource/base/data/event_table.json
 
       - uses: astral-sh/setup-uv@v6
         with:
