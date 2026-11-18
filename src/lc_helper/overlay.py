@@ -5,7 +5,9 @@ render area (the nemudisplay child of its device window) or the PC client's clie
 illustration and the story box, left of the option list, each at its option's height; positions are the OCR boxes, in
 the game's 1280x720 pixels. A card at a glance says the check's sins, then a block per outcome (passed, failed, by
 chance) with its gifts' pictures and its HP and SP; a click opens it in full, each gift's name and whole effect. The
-window takes clicks only on its cards: every other click goes through to the game, and none takes the game's focus.
+post-boss gift choice gets each card's worth above it, and the shop's fuse page the gift a recipe makes beside the
+wheel. The window takes clicks only on its cards: every other click goes through to the game, and none takes the
+game's focus.
 """
 
 import ctypes
@@ -47,6 +49,13 @@ PICTURE_LINES = (2, 1)
 BLOCK_FILL, BLOCK_GAP, BLOCK_PAD = INK["raise"], 0.45, 0.35
 EDGE = 8  # game px: a full card taller than the cards' column keeps this far inside the game's picture
 CUT = 6  # game px: a card's corners cut off at 45 degrees, as the game's frames and maalc's are
+# The fuse page's box, in game pixels: left of the wheel, whose left material slot starts at x 187 (ShopFuseRecipe.png),
+# so that it covers no material slot (a 4- or 5-material recipe's, unseen, also sit on the wheel ※), the forecast row or
+# the owned gifts on the right; under the shop's top-left button (y 25-80), its middle at the centre slot's.
+FUSE_LEFT, FUSE_RIGHT, FUSE_TOP = EDGE, 178, 100
+# The fuse box's effect text, px at 1280x720: the largest at which the whole effect fits the strip's height, else the
+# last with the effect cut. Of the 61 fusion gifts, 41 fit whole at 13 px, 51 at 12, 57 at 11 (2026-11-19).
+FUSE_SMALL = (13, 12, 11)
 SHOW_FOR_MS = 60_000  # a read off a page nothing watches stays this long; a watched page's hints go with the page
 SIN_SIDE = 1.35  # a check's sin icon, as a share of its line's text size
 # Barlow Condensed's size as a share of the text's beside it: narrow and short, its digits stand as tall as the CJK
@@ -217,10 +226,14 @@ def brief_html(label, small):
     return head_html(label) + body + rest_html(label.option, found)
 
 
-def gift_html(gid, how, side, small, first=True):
-    """A gift on a full card: the game's slot of it (gift:ID, side px, its tier and keyword on it), then its name,
-    keyword and tier, and under them its whole effect. A gift after the first in its outcome sits a little below the
-    one before, so their pictures do not touch."""
+def gift_effect(gid):
+    g = gifts.book().get(gid) or {}
+    return (g.get("desc_zh") or g.get("desc_en") or "").strip()
+
+
+def gift_text(gid, how, px, cut=None):
+    """A gift's name, its keyword, tier and how, and under them its effect at px: whole, or its first cut characters
+    and an ellipsis."""
     g = gifts.book().get(gid) or {}
     name = html.escape(g.get("zh") or g.get("en") or f"飾品 {gid}")
     keyword = g.get("keyword", "Keywordless")
@@ -228,13 +241,28 @@ def gift_html(gid, how, side, small, first=True):
     tail = " ".join(x for x in (events.KEYWORDS.get(keyword, keyword), tier, how) if x)
     text = (f"<span style='color:{INK['fg']};font-weight:600'>{name}</span> "
             f"<span style='color:{INK['muted']}'>{html.escape(tail)}</span>")
-    desc = (g.get("desc_zh") or g.get("desc_en") or "").strip()
+    desc = gift_effect(gid) if cut is None else gift_effect(gid)[:cut].rstrip() + "…"
     if desc:
-        text += (f"<br><span style='color:{INK['fg-2']};font-size:{small.pixelSize()}px'>"
+        text += (f"<br><span style='color:{INK['fg-2']};font-size:{px}px'>"
                  f"{html.escape(desc).replace(chr(10), '<br>')}</span>")
+    return text
+
+
+def gift_html(gid, how, side, small, first=True):
+    """A gift on a full card: the game's slot of it (gift:ID, side px, its tier and keyword on it), then its text
+    (gift_text). A gift after the first in its outcome sits a little below the one before, so their pictures do not
+    touch."""
     above = "" if first else f" style='margin-top:{GIFT_GAP}px'"
     return (f"<table cellspacing='0' cellpadding='0'{above}><tr><td width='{side + PICTURE_GAP:.0f}' valign='top'>"
-            f"<img src='gift:{gid}'></td><td valign='middle'>{text}</td></tr></table>")
+            f"<img src='gift:{gid}'></td><td valign='middle'>{gift_text(gid, how, small.pixelSize())}</td></tr>"
+            "</table>")
+
+
+def fuse_html(gid, px, cut=None):
+    """The fuse box: the gift's text (gift_text), and where to read the rest of an effect cut to fit."""
+    rest = (f"<br><span style='color:{INK['muted']};font-size:{px}px'>全文見 LC Helper 視窗</span>"
+            if cut is not None else "")
+    return gift_text(gid, "", px, cut) + rest
 
 
 def full_html(label, font, small, side):
@@ -418,6 +446,7 @@ class Overlay(QWidget):
         self.locate, self.window_of = locate, window_of
         self.items: list[Label] = []
         self.trials: list[trials.Worth] = []  # the post-boss cards' worth, shown instead of items
+        self.fuse = None  # (gift, its picture's box): the gift the fuse page's recipe makes, shown instead of items
         self.opened = None  # the text of the option whose card is open in full
         self.hits: list[tuple[str, QRectF]] = []  # (option text, rect) of each card a click opens or closes, top first
         self.source = None
@@ -433,11 +462,16 @@ class Overlay(QWidget):
         """Each post-boss card's worth above it, until hide_labels: the worker tells the page's leaving."""
         self.show_cards([], list(worths), source, 0)
 
-    def show_cards(self, items, worths, source, hold_ms):
-        self.items, self.trials, self.source = items, worths, source
+    def show_fuse(self, gift, box, source):
+        """The gift the fuse page's recipe makes, its picture at box, beside the wheel until hide_labels: the worker
+        tells the page's leaving."""
+        self.show_cards([], [], source, 0, (gift, box))
+
+    def show_cards(self, items, worths, source, hold_ms, fuse=None):
+        self.items, self.trials, self.fuse, self.source = items, worths, fuse, source
         if self.opened not in {label.option["text"] for label in items}:
             self.opened = None
-        if not (self.items or self.trials) or not self.place():
+        if not self.showing() or not self.place():
             self.hide_labels()
             return
         self.show()
@@ -449,8 +483,11 @@ class Overlay(QWidget):
     def hide_labels(self):
         self.follow.stop()
         self.expire.stop()
-        self.items, self.trials, self.opened, self.hits = [], [], None, []
+        self.items, self.trials, self.fuse, self.opened, self.hits = [], [], None, None, []
         self.hide()
+
+    def showing(self):
+        return bool(self.items or self.trials or self.fuse)
 
     def place(self):
         """Lay the window over the game's picture: whether the game is on screen. Placed natively, in physical
@@ -556,7 +593,7 @@ class Overlay(QWidget):
     def set_mask(self):
         """Take clicks only where cards are drawn (with their pointers): every other click goes to the game. The
         event cards are the ones a click opens or closes (self.hits)."""
-        if not (self.items or self.trials) or self.width() <= 0:
+        if not self.showing() or self.width() <= 0:
             self.hits = []
             return
         sx, sy = self.width() / GAME_W, self.height() / GAME_H
@@ -571,6 +608,8 @@ class Overlay(QWidget):
             region = region.united(line.toAlignedRect())
         for _, _, rect in self.trial_cards():
             region = region.united(rect.toAlignedRect())
+        if fused := self.fuse_card():
+            region = region.united(fused[1].toAlignedRect())
         self.setMask(region)
         self.hits = [(label.option["text"], rect) for label, rect in reversed(shown)]
 
@@ -618,7 +657,7 @@ class Overlay(QWidget):
         p.restore()
 
     def paintEvent(self, _):
-        if not (self.items or self.trials):
+        if not self.showing():
             return
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
@@ -637,6 +676,13 @@ class Overlay(QWidget):
             self.plate(p, rect, INK["accent" if w.pick else "line-2"], w.pick)
             p.save()
             p.translate(rect.left() + pad, rect.top() + pad * 0.6)
+            doc.documentLayout().draw(p, context)
+            p.restore()
+        if fused := self.fuse_card():
+            doc, rect = fused
+            self.plate(p, rect, INK["line-2"], False)
+            p.save()
+            p.translate(rect.left() + pad, rect.top() + pad)
             doc.documentLayout().draw(p, context)
             p.restore()
         p.end()
@@ -662,3 +708,39 @@ class Overlay(QWidget):
             on_baseline(doc)
             cards.append((worth, doc, rect))
         return cards
+
+    def fuse_card(self):
+        """The fuse box laid out left of the wheel, its middle at the centre slot's picture's if it can be, between
+        FUSE_TOP and the game's foot: (document, rect in overlay pixels), or None when there is none."""
+        if self.fuse is None:
+            return None
+        (gift, box), sx, sy = self.fuse, self.width() / GAME_W, self.height() / GAME_H
+        pad = PAD_PX * sy
+        width = (FUSE_RIGHT - FUSE_LEFT) * sx
+        doc = self.fuse_document(gift["id"], width - 2 * pad, (GAME_H - EDGE - FUSE_TOP) * sy - 2 * pad)
+        h = doc.size().height() + 2 * pad
+        top = min(max((box[1] + box[3] / 2) * sy - h / 2, FUSE_TOP * sy), (GAME_H - EDGE) * sy - h)
+        return doc, QRectF(FUSE_LEFT * sx, top, width, h)
+
+    def fuse_document(self, gid, width, room):
+        """The fuse box's text width overlay pixels wide, no taller than room: its effect at the largest of FUSE_SMALL
+        that fits it whole, else at the last, cut to the most characters that fit."""
+        font, _ = self.fonts()
+        sy = self.height() / GAME_H
+
+        def laid(px, cut=None):
+            doc = QTextDocument()
+            doc.setDocumentMargin(0)
+            doc.setDefaultFont(font)
+            doc.setTextWidth(width)
+            doc.setHtml(fuse_html(gid, max(8, round(px * sy)), cut))
+            return doc
+
+        for px in FUSE_SMALL:
+            if (doc := laid(px)).size().height() <= room:
+                return doc
+        lo, hi = 0, len(gift_effect(gid))
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            lo, hi = (mid, hi) if laid(FUSE_SMALL[-1], mid).size().height() <= room else (lo, mid - 1)
+        return laid(FUSE_SMALL[-1], lo)

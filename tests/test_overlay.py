@@ -421,3 +421,41 @@ def test_a_gift_on_an_opened_card_leads_with_its_picture(qt):
     side = picture.width() / picture.devicePixelRatio()
     assert not picture.isNull() and abs(side - overlay.picture_side(font, small, 2)) <= 1, "a line and two small"
     o.close()
+
+
+# ShopFuseRecipe.png: Cask Spirits in the fuse page's centre slot, its picture's box as gifts.read_gifts finds it.
+CASK_SPIRITS = (328, 308, 78, 78)
+
+
+def test_the_fuse_box_sits_left_of_the_wheel_and_says_the_gift_in_full(qt):
+    """Left of the left material slot (x 187 up), in the game's picture, beside the centre slot; its clicks are its
+    own, and the wheel's go to the game."""
+    o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720), window_of=lambda source: None)
+    o.resize(1280, 720)
+    cask = gifts.book()[9180]
+    o.show_fuse(cask, CASK_SPIRITS, "127.0.0.1:16384")
+    doc, rect = o.fuse_card()
+    assert rect.left() >= 0 and rect.right() < 187 and rect.top() >= 0 and rect.bottom() <= 720
+    assert rect.top() < 347 < rect.bottom(), "beside the centre slot"
+    text = doc.toPlainText()
+    assert text.startswith("桶裝烈酒 呼吸 IV") and cask["desc_zh"].split("\n")[-1] in text, "its whole effect"
+    assert o.mask().contains(rect.center().toPoint())
+    for wheel in (QPoint(365, 340), QPoint(228, 352), QPoint(505, 352), QPoint(367, 214)):  # centre, materials
+        assert not o.mask().contains(wheel), wheel
+    o.hide_labels()
+    assert o.fuse is None and not o.isVisible()
+    o.close()
+
+
+@pytest.mark.parametrize("height", [720, 1440])
+def test_a_fuse_box_too_long_for_the_strip_is_cut_and_says_where_the_rest_is(qt, height):
+    o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
+    o.resize(height * 16 // 9, height)
+    o.fuse = (gifts.book()[9176], CASK_SPIRITS)  # Impending Wave: 764 characters of effect
+    doc, rect = o.fuse_card()
+    sy = height / 720
+    assert rect.top() >= overlay.FUSE_TOP * sy - 1 and rect.bottom() <= (720 - overlay.EDGE) * sy + 1
+    assert rect.right() < 187 * sy
+    text = doc.toPlainText()
+    assert text.startswith("襲來的浪潮") and text.endswith("…\n全文見 LC Helper 視窗")
+    o.close()
