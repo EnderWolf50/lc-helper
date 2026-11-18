@@ -7,7 +7,9 @@ The captures are maalc's tests/screens (tools/maalc_checkout.py), read as lc-hel
 as the recommended keywords. The "busiest" pictures put the options with the most to say (gifts, chances, a check's
 costs) on EventChoicesLitTop.png's three rows: their text on the game is not theirs, only the cards are; their
 "opened" twins have the top card opened in full, as a click on it does. The post-boss
-captures get each card's worth above it (trials.worth), the same keywords as the team's.
+captures get each card's worth above it (trials.worth), the same keywords as the team's. The fuse page's recipe
+captures get the box of the gift their centre slot shows; "fuse-longest" puts the fusion gift with the longest effect
+in ShopFuseRecipe.png's centre, its text cut to the strip.
 """
 
 import os
@@ -27,6 +29,7 @@ from maalc_checkout import maalc_dir  # noqa: E402
 KEYWORDS = ["Charge", "Sinking"]
 CAPTURES = ["EventChoices.png", "EventChoicesLitTop.png", "EventChoicesUsed.png", "EventChoicesScrolledBack.png"]
 TRIAL_CAPTURES = ["BossGiftTrials.png", "BossGiftTrialsHard.png", "BossGiftTrialsFloor3.png"]
+FUSE_CAPTURES = ["ShopFuseRecipe.png", "ShopFuseRecipeTwo.png"]
 ROWS = [(733, 217, 300, 22), (733, 343, 300, 22), (733, 470, 300, 22)]  # EventChoicesLitTop.png's first lines
 
 
@@ -36,11 +39,11 @@ def qimage(image, width):
     return picture.scaledToWidth(width, Qt.SmoothTransformation).convertToFormat(QImage.Format_ARGB32_Premultiplied)
 
 
-def draw(image, items, width, out, worths=(), opened=None):
+def draw(image, items, width, out, worths=(), opened=None, fuse=None):
     picture = qimage(image, width)
     o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
     o.resize(picture.width(), picture.height())
-    o.items, o.trials, o.opened = items, list(worths), opened
+    o.items, o.trials, o.opened, o.fuse = items, list(worths), opened, fuse
     p = QPainter(picture)
     o.render(p, QPoint(0, 0), renderFlags=QWidget.RenderFlag.DrawChildren)
     p.end()
@@ -80,6 +83,14 @@ def main():
         image = vision.imread(screens / name)
         page = trials.read_page(image, ocr.lines, gifts.read_gifts(image, "choice", ocr.lines))
         draw(image, [], width, out / f"overlay-{Path(name).stem}-{width}.png", trials.worth(page, KEYWORDS))
+    for name in FUSE_CAPTURES:
+        image = vision.imread(screens / name)
+        reading = gifts.read_gifts(image, "fuse", ocr.lines)
+        draw(image, [], width, out / f"overlay-{Path(name).stem}-{width}.png", fuse=reading.gifts[0])
+    image = vision.imread(screens / FUSE_CAPTURES[0])
+    longest = max(gifts.fusions(), key=lambda i: len(overlay.gift_effect(i)))
+    box = gifts.read_gifts(image, "fuse", ocr.lines).gifts[0][1]
+    draw(image, [], width, out / f"overlay-fuse-longest-{width}.png", fuse=(gifts.book()[longest], box))
 
 
 if __name__ == "__main__":
