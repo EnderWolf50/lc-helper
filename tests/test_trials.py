@@ -1,6 +1,10 @@
+from pathlib import Path
+
 import pytest
 
-from lc_helper import gifts, ocr, trials
+from lc_helper import gifts, ocr, trials, vision
+
+LLC_SCREENS = Path(__file__).resolve().parent / "screens_llc"
 
 # maalc's post-boss captures, labelled by eye in maalc's tests/test_trial_screens.py: (card centre x, Enemy Level Up N,
 # trial, gift id), and how many cards the page takes (Select 0/n).
@@ -47,6 +51,17 @@ def test_each_post_boss_card_is_read_with_its_gift_and_trial(screen, name):
     assert [(c.level, c.trial, c.gift["id"]) for c in page.cards] == [(n, t, g) for _, n, t, g in want]
     assert all(abs(c.x - x) <= 3 for c, (x, *_) in zip(page.cards, want))
     assert {c.x for c in page.cards if c.owned} == {x for n, x in OWNED if n == name}
+
+
+def test_a_gift_effect_saying_acquire_is_no_card_of_its_own():
+    """LlcBossGiftTrials.png, the user's LLC capture of their second post-boss choice (2026-11-19, lc-helper's labels
+    above the cards): Gear Shrapnel's and Employee Card's effects write 获得, as the Acquire E.G.O Gift tags do."""
+    image = vision.imread(LLC_SCREENS / "LlcBossGiftTrials.png")
+    page = trials.read_page(image, ocr.lines, gifts.read_gifts(image, "choice", ocr.lines))
+    assert page.picks == 2
+    assert [(c.level, c.trial, c.gift["id"]) for c in page.cards] == [
+        (1, "Keen III", 9049), (1, "Resilient V", 9770), (1, "Growth III", 9005), (2, "Resilient IV", 9043)]
+    assert [w.rank for w in trials.worth(page, ["Poise", "Bleed", "Burn", "Slash"])] == [4, 2, 1, 3]
 
 
 def test_a_fights_gift_choice_has_no_trials(screen):
