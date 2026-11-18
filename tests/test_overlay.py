@@ -424,7 +424,7 @@ def test_a_gift_on_an_opened_card_leads_with_its_picture(qt):
 
 
 # ShopFuseRecipe.png: Cask Spirits in the fuse page's centre slot, its picture's box as gifts.read_gifts finds it.
-CASK_SPIRITS = (328, 308, 78, 78)
+CASK_SPIRITS = (328, 309, 78, 78)
 
 
 def test_the_fuse_box_sits_left_of_the_wheel_and_says_the_gift_in_full(qt):
