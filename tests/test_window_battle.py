@@ -62,7 +62,7 @@ def test_the_status_line_shows_a_running_battle_and_why_one_stopped_and_takes_no
     w = window(tmp_path, monkeypatch)
     assert not w.status.isVisible()
     w.on_battle(Status(Phase.PLAYING, Plan(Pick.DAMAGE, 0), 2))
-    assert w.status.isVisible() and w.status.text() == "回合進行中 · 傷害 · 已打 2 回合"
+    assert w.status.isVisible() and w.status.text() == "回合進行中 · 已打 2 回合", "the pick shows on its own buttons"
     w.on_battle(Status(Phase.STOPPED, Plan(), 2))
     assert not w.status.isVisible(), "stopped by the user: nothing to say"
     w.on_battle(Status(Phase.STOPPED, Plan(), 4, "連續 3 個回合按 START 都沒開始，自動戰鬥停止"))
