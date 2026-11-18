@@ -26,7 +26,7 @@ TRIAL_HALF = (-125, 438, 250, 105)  # around a card's centre x: its trial half, 
 TRIAL_NAME_FOOT = 470  # a trial name's box starts above it, its effect line's below (maalc)
 TRIAL_BADGE_X = -60  # the badge's "+N" starts further left of the centre than this, the name less (maalc)
 TAB_TO_CENTRE = 114  # the Acquire E.G.O Gift tab's right edge, right of its card's centre (maalc)
-OWNED_FOOT = 178  # the Owned tag sits over a card's top edge, above the title (BossGiftTrialsFloor3.png: y 152-170)
+TAG_FOOT = 178  # the Owned and Acquire tags sit over a card's top edge, above the title (BossGiftTrialsFloor3.png: y 152-170)
 GIFT_COUNT = (1060, 555, 160, 50)  # "Select 0/2"; "Select" alone on a page that takes one card (maalc)
 UNREAD_LEVELS = 2  # an unread badge counts as +2: only +1 and +2 are seen (maalc rewards.UNREAD_LEVELS)
 GIFT_SCORES = {"main": 3, "other": 2, "owned": 0}
@@ -124,14 +124,15 @@ def read_page(image, lines, gift_reading):
     found = lines(image, GIFT_CARDS)
     if not any(labels.shows([t], "mounting") for t, _ in found):
         return None
-    centres = sorted(x + w - TAB_TO_CENTRE for t, (x, y, w, h) in found if labels.shows([t], "acquire"))
+    # a gift's effect may write the tag's word too (LLC's 获得): only a tag over the card's top edge is one
+    centres = sorted(x + w - TAB_TO_CENTRE for t, (x, y, w, h) in found if labels.shows([t], "acquire") and y < TAG_FOOT)
     if not centres:  # the tabs not read: the titles are centred on the cards
         centres = sorted(round(b[0] + b[2] / 2) for _, b in gift_reading.gifts)
     trials = book()["trials"]
     cards = []
     for x in centres:
         gift = next((g for g, b in gift_reading.gifts if abs(b[0] + b[2] / 2 - x) < 130), None)
-        owned = any(labels.shows([t], "owned") and b[1] < OWNED_FOOT and abs(b[0] + b[2] / 2 - x) < 130
+        owned = any(labels.shows([t], "owned") and b[1] < TAG_FOOT and abs(b[0] + b[2] / 2 - x) < 130
                     for t, b in found)
         level, name, line = trial_half(image, lines, x)
         trial, how = read_trial(name, line, trials)
