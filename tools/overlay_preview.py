@@ -8,8 +8,8 @@ as the recommended keywords. The "busiest" pictures put the options with the mos
 costs) on EventChoicesLitTop.png's three rows: their text on the game is not theirs, only the cards are; their
 "opened" twins have the top card opened in full, as a click on it does. The post-boss
 captures get each card's worth above it (trials.worth), the same keywords as the team's. The fuse page's recipe
-captures get the box of the gift their centre slot shows; "fuse-longest" puts the fusion gift with the longest effect
-in ShopFuseRecipe.png's centre, its text cut to the strip.
+captures get the brief box of the gift their centre slot shows, and their "opened" twins the box a click opens;
+"fuse-longest" puts the fusion gift with the longest effect in ShopFuseRecipe.png's centre.
 """
 
 import os
@@ -83,14 +83,15 @@ def main():
         image = vision.imread(screens / name)
         page = trials.read_page(image, ocr.lines, gifts.read_gifts(image, "choice", ocr.lines))
         draw(image, [], width, out / f"overlay-{Path(name).stem}-{width}.png", trials.worth(page, KEYWORDS))
-    for name in FUSE_CAPTURES:
-        image = vision.imread(screens / name)
-        reading = gifts.read_gifts(image, "fuse", ocr.lines)
-        draw(image, [], width, out / f"overlay-{Path(name).stem}-{width}.png", fuse=reading.gifts[0])
-    image = vision.imread(screens / FUSE_CAPTURES[0])
     longest = max(gifts.fusions(), key=lambda i: len(overlay.gift_effect(i)))
-    box = gifts.read_gifts(image, "fuse", ocr.lines).gifts[0][1]
-    draw(image, [], width, out / f"overlay-fuse-longest-{width}.png", fuse=(gifts.book()[longest], box))
+    for name in [*FUSE_CAPTURES, "longest"]:
+        image = vision.imread(screens / (FUSE_CAPTURES[0] if name == "longest" else name))
+        fuse = gifts.read_gifts(image, "fuse", ocr.lines).gifts[0]
+        if name == "longest":
+            fuse, name = (gifts.book()[longest], fuse[1]), "fuse-longest"
+        stem = Path(name).stem
+        draw(image, [], width, out / f"overlay-{stem}-{width}.png", fuse=fuse)
+        draw(image, [], width, out / f"overlay-{stem}-opened-{width}.png", opened=fuse[0]["id"], fuse=fuse)
 
 
 if __name__ == "__main__":

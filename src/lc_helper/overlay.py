@@ -6,8 +6,8 @@ illustration and the story box, left of the option list, each at its option's he
 the game's 1280x720 pixels. A card at a glance says the check's sins, then a block per outcome (passed, failed, by
 chance) with its gifts' pictures and its HP and SP; a click opens it in full, each gift's name and whole effect. The
 post-boss gift choice gets each card's worth above it, and the shop's fuse page the gift a recipe makes beside the
-wheel. The window takes clicks only on its cards: every other click goes through to the game, and none takes the
-game's focus.
+wheel, a click opening its whole effect. The window takes clicks only on its cards: every other click goes through to
+the game, and none takes the game's focus.
 """
 
 import ctypes
@@ -49,12 +49,14 @@ PICTURE_LINES = (2, 1)
 BLOCK_FILL, BLOCK_GAP, BLOCK_PAD = INK["raise"], 0.45, 0.35
 EDGE = 8  # game px: a full card taller than the cards' column keeps this far inside the game's picture
 CUT = 6  # game px: a card's corners cut off at 45 degrees, as the game's frames and maalc's are
-# The fuse page's box, in game pixels: left of the wheel, whose left material slot starts at x 187 (ShopFuseRecipe.png),
-# so that it covers no material slot (a 4- or 5-material recipe's, unseen, also sit on the wheel ※), the forecast row or
-# the owned gifts on the right; under the shop's top-left button (y 25-80), its middle at the centre slot's.
-FUSE_LEFT, FUSE_RIGHT, FUSE_TOP = EDGE, 178, 100
-# The fuse box's effect text, px at 1280x720: the largest at which the whole effect fits the strip's height, else the
-# last with the effect cut. Of the 61 fusion gifts, 41 fit whole at 13 px, 51 at 12, 57 at 11 (2026-11-19).
+# The fuse page's box, in game pixels, under the shop's top-left button (y 25-80) and above the party's portraits
+# (CARD_BOTTOM). Brief, it is left of the wheel, whose left material slot starts at x 187 (ShopFuseRecipe.png), so that
+# it covers no material slot (a 4- or 5-material recipe's, unseen, also sit on the wheel ※), its middle at the centre
+# slot's, no taller than FUSE_BRIEF: about the centre slot's frame (y 283-415). Opened, it runs over the wheel up to
+# FUSE_OPEN_RIGHT, short of the owned gifts' panel (x ~605).
+FUSE_LEFT, FUSE_RIGHT, FUSE_OPEN_RIGHT, FUSE_TOP, FUSE_BRIEF = EDGE, 178, 590, 100, 130
+# The fuse box's effect text, px at 1280x720: brief at the first, cut; opened, the largest at which the whole effect
+# fits, else the last with the effect cut.
 FUSE_SMALL = (13, 12, 11)
 SHOW_FOR_MS = 60_000  # a read off a page nothing watches stays this long; a watched page's hints go with the page
 SIN_SIDE = 1.35  # a check's sin icon, as a share of its line's text size
@@ -258,11 +260,10 @@ def gift_html(gid, how, side, small, first=True):
             "</table>")
 
 
-def fuse_html(gid, px, cut=None):
-    """The fuse box: the gift's text (gift_text), and where to read the rest of an effect cut to fit."""
-    rest = (f"<br><span style='color:{INK['muted']};font-size:{px}px'>全文見 LC Helper 視窗</span>"
-            if cut is not None else "")
-    return gift_text(gid, "", px, cut) + rest
+def fuse_html(gid, px, cut, rest):
+    """The fuse box: the gift's text (gift_text), and under an effect cut to fit, rest: where to read the rest."""
+    more = f"<br><span style='color:{INK['muted']};font-size:{px}px'>{rest}</span>" if cut is not None else ""
+    return gift_text(gid, "", px, cut) + more
 
 
 def full_html(label, font, small, side):
@@ -447,8 +448,9 @@ class Overlay(QWidget):
         self.items: list[Label] = []
         self.trials: list[trials.Worth] = []  # the post-boss cards' worth, shown instead of items
         self.fuse = None  # (gift, its picture's box): the gift the fuse page's recipe makes, shown instead of items
-        self.opened = None  # the text of the option whose card is open in full
-        self.hits: list[tuple[str, QRectF]] = []  # (option text, rect) of each card a click opens or closes, top first
+        # The card open in full: its option's text, or the fuse box's gift id.
+        self.opened: str | int | None = None
+        self.hits: list[tuple[str | int, QRectF]] = []  # (the opened key, rect) of each card a click opens or closes
         self.source = None
         self.follow = QTimer(self, interval=500, timeout=self.place)
         self.expire = QTimer(self, singleShot=True, timeout=self.hide_labels)
@@ -464,12 +466,12 @@ class Overlay(QWidget):
 
     def show_fuse(self, gift, box, source):
         """The gift the fuse page's recipe makes, its picture at box, beside the wheel until hide_labels: the worker
-        tells the page's leaving."""
+        tells the page's leaving. A box opened by a click stays open while its gift is the one shown."""
         self.show_cards([], [], source, 0, (gift, box))
 
     def show_cards(self, items, worths, source, hold_ms, fuse=None):
         self.items, self.trials, self.fuse, self.source = items, worths, fuse, source
-        if self.opened not in {label.option["text"] for label in items}:
+        if self.opened not in {label.option["text"] for label in items} | ({fuse[0]["id"]} if fuse else set()):
             self.opened = None
         if not self.showing() or not self.place():
             self.hide_labels()
@@ -592,7 +594,7 @@ class Overlay(QWidget):
 
     def set_mask(self):
         """Take clicks only where cards are drawn (with their pointers): every other click goes to the game. The
-        event cards are the ones a click opens or closes (self.hits)."""
+        event cards and the fuse box are the ones a click opens or closes (self.hits)."""
         if not self.showing() or self.width() <= 0:
             self.hits = []
             return
@@ -608,21 +610,23 @@ class Overlay(QWidget):
             region = region.united(line.toAlignedRect())
         for _, _, rect in self.trial_cards():
             region = region.united(rect.toAlignedRect())
+        self.hits = [(label.option["text"], rect) for label, rect in reversed(shown)]
         if fused := self.fuse_card():
             region = region.united(fused[1].toAlignedRect())
+            self.hits.append((self.fuse[0]["id"], fused[1]))
         self.setMask(region)
-        self.hits = [(label.option["text"], rect) for label, rect in reversed(shown)]
 
     def card_at(self, point):
-        """The text of the option whose card is under point (the open card first, as it lies on top), or None."""
+        """The opened key (Overlay.opened) of the card under point (the open card first, as it lies on top), or
+        None."""
         return next((text for text, rect in self.hits if rect.contains(point)), None)
 
     def mousePressEvent(self, e):
         """A click on a brief card opens it in full; on the open card, closes it; on another, opens that one."""
-        text = self.card_at(e.position()) if e.button() == Qt.LeftButton else None
-        if text is None:
+        key = self.card_at(e.position()) if e.button() == Qt.LeftButton else None
+        if key is None:
             return
-        self.opened = None if text == self.opened else text
+        self.opened = None if key == self.opened else key
         self.set_mask()
         self.update()
 
@@ -680,7 +684,8 @@ class Overlay(QWidget):
             p.restore()
         if fused := self.fuse_card():
             doc, rect = fused
-            self.plate(p, rect, INK["line-2"], False)
+            opened = self.opened == self.fuse[0]["id"]
+            self.plate(p, rect, INK["fg" if opened else "line-2"], opened, 250 if opened else 245)
             p.save()
             p.translate(rect.left() + pad, rect.top() + pad)
             doc.documentLayout().draw(p, context)
@@ -710,21 +715,29 @@ class Overlay(QWidget):
         return cards
 
     def fuse_card(self):
-        """The fuse box laid out left of the wheel, its middle at the centre slot's picture's if it can be, between
-        FUSE_TOP and the game's foot: (document, rect in overlay pixels), or None when there is none."""
+        """The fuse box laid out between FUSE_TOP and CARD_BOTTOM: (document, rect in overlay pixels), or None when
+        there is none. Brief, it is left of the wheel, its middle at the centre slot's picture's if it can be; opened
+        by a click, it runs out over the wheel from the brief box's top, moved up as far as it must to fit."""
         if self.fuse is None:
             return None
         (gift, box), sx, sy = self.fuse, self.width() / GAME_W, self.height() / GAME_H
         pad = PAD_PX * sy
         width = (FUSE_RIGHT - FUSE_LEFT) * sx
-        doc = self.fuse_document(gift["id"], width - 2 * pad, (GAME_H - EDGE - FUSE_TOP) * sy - 2 * pad)
+        doc = self.fuse_document(gift["id"], width - 2 * pad, FUSE_BRIEF * sy - 2 * pad, FUSE_SMALL[:1],
+                                 "點一下看全文")
         h = doc.size().height() + 2 * pad
-        top = min(max((box[1] + box[3] / 2) * sy - h / 2, FUSE_TOP * sy), (GAME_H - EDGE) * sy - h)
-        return doc, QRectF(FUSE_LEFT * sx, top, width, h)
+        top = min(max((box[1] + box[3] / 2) * sy - h / 2, FUSE_TOP * sy), CARD_BOTTOM * sy - h)
+        if self.opened != gift["id"]:
+            return doc, QRectF(FUSE_LEFT * sx, top, width, h)
+        width = (FUSE_OPEN_RIGHT - FUSE_LEFT) * sx
+        doc = self.fuse_document(gift["id"], width - 2 * pad, (CARD_BOTTOM - FUSE_TOP) * sy - 2 * pad, FUSE_SMALL,
+                                 "全文見 LC Helper 視窗")
+        h = doc.size().height() + 2 * pad
+        return doc, QRectF(FUSE_LEFT * sx, max(FUSE_TOP * sy, min(top, CARD_BOTTOM * sy - h)), width, h)
 
-    def fuse_document(self, gid, width, room):
-        """The fuse box's text width overlay pixels wide, no taller than room: its effect at the largest of FUSE_SMALL
-        that fits it whole, else at the last, cut to the most characters that fit."""
+    def fuse_document(self, gid, width, room, sizes, rest):
+        """The fuse box's text width overlay pixels wide, no taller than room: its effect at the largest of sizes
+        (px at 1280x720) that fits it whole, else at the last, cut to the most characters that fit, rest under it."""
         font, _ = self.fonts()
         sy = self.height() / GAME_H
 
@@ -733,14 +746,14 @@ class Overlay(QWidget):
             doc.setDocumentMargin(0)
             doc.setDefaultFont(font)
             doc.setTextWidth(width)
-            doc.setHtml(fuse_html(gid, max(8, round(px * sy)), cut))
+            doc.setHtml(fuse_html(gid, max(8, round(px * sy)), cut, rest))
             return doc
 
-        for px in FUSE_SMALL:
+        for px in sizes:
             if (doc := laid(px)).size().height() <= room:
                 return doc
         lo, hi = 0, len(gift_effect(gid))
         while lo < hi:
             mid = (lo + hi + 1) // 2
-            lo, hi = (mid, hi) if laid(FUSE_SMALL[-1], mid).size().height() <= room else (lo, mid - 1)
-        return laid(FUSE_SMALL[-1], lo)
+            lo, hi = (mid, hi) if laid(sizes[-1], mid).size().height() <= room else (lo, mid - 1)
+        return laid(sizes[-1], lo)
