@@ -425,3 +425,45 @@ def test_auto_read_tells_a_post_boss_choice_once_while_it_stays_and_its_going(sc
     started(game, trials=pages.append, page_left=lambda: left.append(1)).send("set_watch", True)
     wait_for(lambda: left)
     assert len(pages) == 1 and [c.trial for c in pages[0].cards] == ["Defense Level Up", "Defense Skill Up", "Take Less Damage", "Growth I"] and left == [1]
+
+
+def fused(readings):
+    return [(r.page, [g["en"] for g, _ in r.gifts]) for r in readings]
+
+
+def test_the_fuse_page_read_by_hand_is_watched_until_it_goes_and_its_centre_emptying_is_told(screen):
+    """Auto read off: F9's fuse page is watched as auto read would, so a material taken out (the centre empties) and
+    another recipe met are told, and the page's going is told once."""
+    readings, left = [], []
+    game = Counted([screen("ShopFuseRecipe.png"), screen("ShopFuseRecipe.png"), screen("ShopFuse.png"),
+                    screen("ShopFuseRecipeTwo.png"), screen("MirrorMap.png")])
+    started(game, gifts=readings.append, page_left=lambda: left.append(game.shots)).send("read_event")
+    wait_for(lambda: left)
+    assert fused(readings) == [("fuse", ["Cask Spirits"]), ("fuse", []), ("fuse", ["Reminiscence"])]
+    assert readings[0].source == "127.0.0.1:1"
+    assert left == [5], "told on the look that saw the map"
+    time.sleep(1.5)
+    assert left == [5] and game.shots == 5, "no more looks once it is told"
+
+
+def test_auto_read_tells_the_fuse_pages_gift_once_while_it_stays_its_centre_emptying_and_its_going(screen):
+    readings, left = [], []
+    game = Slides([screen("ShopFuseRecipe.png")] * 3 + [screen("ShopFuse.png"), screen("MirrorMap.png")])
+    started(game, gifts=readings.append, page_left=lambda: left.append(1)).send("set_watch", True)
+    wait_for(lambda: left)
+    assert fused(readings) == [("fuse", ["Cask Spirits"]), ("fuse", [])] and left == [1]
+
+
+def test_an_event_read_by_hand_after_the_fuse_page_lets_the_fuse_box_go_first(screen):
+    """The page_left told after the event would take the event's hints off the game with the fuse box."""
+    told = []
+    game = Still(screen("ShopFuseRecipe.png"))
+    w = started(game, gifts=lambda r: told.append("gifts"), event=lambda r: told.append("event"),
+                page_left=lambda: told.append("left"))
+    w.send("read_event")
+    wait_for(lambda: told)
+    game.image = screen("EventChoices.png")
+    w.send("read_event")
+    wait_for(lambda: "event" in told)
+    time.sleep(1.5)
+    assert told == ["gifts", "left", "event"]

@@ -456,3 +456,20 @@ def test_a_rule_parts_one_gift_from_the_next_in_the_gift_pane_and_the_search_res
     column = [image.pixelColor(round(row.center().x() * ratio), y).name()
               for y in range(round((row.bottom() - 2) * ratio), round((row.bottom() + 1) * ratio) + 1)]
     assert QColor(ui.GIFT_RULE).name() in column, column
+
+
+def test_the_fuse_pages_gift_is_listed_and_drawn_beside_the_wheel_until_its_centre_empties(tmp_path, monkeypatch, screen):
+    w = window(tmp_path, monkeypatch, overlay=True)
+    cask = replace(gifts.read_gifts(screen("ShopFuseRecipe.png"), "fuse", None), source="127.0.0.1:1")
+    w.on_gifts(cask)
+    assert w.gift_detail.toPlainText().startswith("合成會得到的飾品") and "桶裝烈酒" in w.gift_detail.toPlainText()
+    assert w.overlay.fuse[0]["id"] == 9180 and w.overlay.isVisible()
+    w.on_gifts(gifts.GiftReading("fuse", (), "127.0.0.1:1"))  # a material taken out: no recipe met
+    assert w.overlay.fuse is None and not w.overlay.isVisible()
+    assert "桶裝烈酒" in w.gift_detail.toPlainText() and "沒讀到" not in w.gift_detail.toPlainText()
+    w.on_gifts(cask)
+    w.bridge.page_left.emit()
+    assert w.overlay.fuse is None and not w.overlay.isVisible()
+    w.settings["overlay"] = False
+    w.on_gifts(cask)
+    assert w.overlay.fuse is None, "drawn on the game only with the hints on"

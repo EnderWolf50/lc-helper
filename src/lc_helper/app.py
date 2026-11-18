@@ -1320,8 +1320,8 @@ class Window(QWidget):
             self.overlay.hide_labels()
 
     def on_page_left(self):
-        """The Choices page read off the game went away: its hints leave the game, and the pane goes back to saying
-        how to fill it, unless it shows an event the user looked up."""
+        """The Choices page, post-boss choice or fuse page read off the game went away: its hints leave the game, and
+        the event pane goes back to saying how to fill it, unless it shows an event the user looked up."""
         self.overlay.hide_labels()
         self.last_trials = None
         if self.last_reading is not None:
@@ -1345,11 +1345,18 @@ class Window(QWidget):
             self.overlay.show_trials(trials.worth(page, self.settings["keywords"]), page.source)
 
     def on_gifts(self, reading):
-        """A gift screen read: its gifts in Chinese, with the effects once enhanced and their fusion recipes."""
-        heading = {"choice": "畫面上可以選的飾品", "get": "剛獲得的飾品"}.get(reading.page, "")
+        """A gift screen read: its gifts in Chinese, with the effects once enhanced and their fusion recipes. On the
+        shop's fuse page, the gift its recipe makes, also beside the wheel on the game with the overlay on, until the
+        centre empties (no recipe met: the pane keeps what it showed) or the page goes."""
+        heading = {"choice": "畫面上可以選的飾品", "get": "剛獲得的飾品", "fuse": "合成會得到的飾品"}.get(reading.page, "")
+        if reading.page == "fuse":
+            if self.settings["overlay"] and reading.gifts:
+                self.overlay.show_fuse(*reading.gifts[0], reading.source)
+            else:
+                self.overlay.hide_labels()
         if reading.gifts:
             self.show_gifts([g for g, _ in reading.gifts], heading)
-        else:
+        elif reading.page != "fuse":
             self.gift_detail.setHtml("<p style='color:#d9a441'>飾品畫面上沒讀到飾品名字</p>")
 
     def show_gifts(self, gift_list, heading=""):

@@ -15,7 +15,8 @@ from . import event_skip, events, gifts, ocr, trials, vision
 from .battle import AutoBattle, Fight, Phase, Plan, Status, Stopped
 
 WATCH_EVERY = 1.0  # s between looks for a new event page while auto read is on
-LOOK = (100, 150, 1120, 470)  # a gift screen's cards, trial halves and Select button: read again once it changes
+# a gift screen's cards, trial halves and Select button, the fuse page's wheel: read again once it changes
+LOOK = (100, 150, 1120, 470)
 SKIP_EVERY = 0.3  # s between looks while skipping an event's story (maalc taps every 0.15 s, reads every 0.45 s)
 # s without an event read before the OCR model is dropped (auto read off). tools/ocr_memory.py, 2026-11-13: a read of
 # the story box takes private memory from ~40 to ~975 MB, a release brings it back to 326-353 MB, and the next read
@@ -34,7 +35,7 @@ class Callbacks:
     targets: Callable[[list], None] = lambda targets: None
     battle: Callable[[Status], None] = lambda status: None
     event: Callable[[events.Reading], None] = lambda reading: None
-    page_left: Callable[[], None] = lambda: None  # the Choices page auto read or F9 read went away
+    page_left: Callable[[], None] = lambda: None  # the Choices page or held gift screen read went away
     fight: Callable[[Fight, str], None] = lambda fight, device: None  # a battle ended (and on which device)
     skip: Callable[[str], None] = lambda what: None  # what the story skipper did or waits for, when it changes
     gifts: Callable[["gifts.GiftReading"], None] = lambda reading: None  # the gifts a gift screen shows
@@ -66,11 +67,13 @@ class Worker(threading.Thread):
         self.last_skip, self.skip_said = 0.0, None
         self.last_watch = 0.0
         self.last_page = None  # thumbnails (story box, option list) of the last Choices page auto read showed
-        self.last_gifts = None  # (page, gift ids) of the last gift screen auto read showed
+        self.last_gifts = None  # (page, gift ids) of the gift screen told last
         self.left_choices = False  # a Choices page was shown and its leaving is not told yet
-        self.left_trials = False  # a post-boss gift choice's trials were shown and its leaving is not told yet
-        self.last_trials = None  # the cards of the post-boss gift choice auto read showed last
-        self.last_gift_look = None  # a thumbnail of the gift screen auto read read last
+        # The gift screen whose hints are on the game, its leaving not told yet: "choice" (a post-boss choice's trials)
+        # or "fuse" (the fuse page's gift); None for none.
+        self.held = None
+        self.last_trials = None  # the cards of the post-boss gift choice told last
+        self.last_gift_look = None  # a thumbnail of the gift screen read last
         self.choices_header = None  # the header OCR last read as a Choices page's, in grey (on_choices_page)
         self.alive = True
 
@@ -89,7 +92,7 @@ class Worker(threading.Thread):
 
     def run(self):
         while self.alive:
-            busy = self.battle is not None or ((self.watch or self.skip or self.left_choices or self.left_trials)
+            busy = self.battle is not None or ((self.watch or self.skip or self.left_choices or self.held)
                                                and self.device is not None)
             try:
                 name, args = self.commands.get(timeout=0.05 if busy else self.until_ocr_idle())
@@ -279,18 +282,15 @@ class Worker(threading.Thread):
 
     def do_read_event(self):
         """F9: the gifts on a gift screen (and after a boss, its trials), else the event page. An event found on a
-        Choices page, or trials, are watched until the page goes (watch_tick), as auto read does, so the window can
-        let them go then."""
+        Choices page, trials and the fuse page are watched until the page goes (watch_tick), as auto read does, so the
+        window can let them go then."""
         if not self.ready():
             return
         image = self.device.screenshot()
         page = gifts.gift_page(image, self.read_text)
+        self.held_gone(page)  # told before this read's hints, which it would take off the game
         if page:
-            reading, trial_page = self.read_gift_screen(image, page)
-            self.cb.gifts(reading)
-            if trial_page:
-                self.left_trials = True
-                self.cb.trials(trial_page)
+            self.watch_gifts(image, page, again=True)
         else:
             reading = self.read(image)
             self.left_choices = reading.event is not None and self.on_choices_page(image)
@@ -342,7 +342,7 @@ class Worker(threading.Thread):
         read go."""
         if self.skip:
             self.skip_tick()
-        if self.watch or self.left_choices or self.left_trials:
+        if self.watch or self.left_choices or self.held:
             self.watch_tick()
 
     def do_set_skip(self, on):
@@ -383,19 +383,23 @@ class Worker(threading.Thread):
         return on
 
     def watch_tick(self):
-        """A look at the screen once a second, while auto read is on or a Choices page or post-boss trials F9 read are
+        """A look at the screen once a second, while auto read is on or a Choices page or held gift screen F9 read is
         shown: that page going is told once. A Choices page is read again once its story box or option list differs
         from the last read (a scroll, a lit row), so the hints follow the options now on screen, F9's page too (the
         user, 2026-11-14); auto read also reads a new one, and off it, a gift screen (and its trials) once it looks
-        different (watch_gifts). A Choices page that stays as it was costs a look at its header and no OCR; F9's
-        trials, the gift choice's Refuse Gift read."""
+        different (watch_gifts), F9's held one too: a material taken out of the fuse page empties its centre. A
+        Choices page that stays as it was costs a look at its header and no OCR; a held gift screen, the reads that
+        tell its page."""
         now = time.monotonic()
         if now - self.last_watch < WATCH_EVERY:
             return
         self.last_watch = now
         image = self.device.screenshot()
-        if self.left_trials and not (self.watch or self.left_choices):  # F9's trials alone: is their page still up?
-            self.trials_gone(gifts.gift_page(image, self.read_text))
+        if self.held and not (self.watch or self.left_choices):  # F9's gift screen alone, while it stays
+            page = gifts.gift_page(image, self.read_text)
+            self.held_gone(page)
+            if self.held:
+                self.watch_gifts(image, page)
             return
         on_page = self.on_choices_page(image)
         if not on_page:
@@ -406,13 +410,13 @@ class Worker(threading.Thread):
             if not self.watch:
                 return
             page = gifts.gift_page(image, self.read_text)
-            self.trials_gone(page)
+            self.held_gone(page)
             if page:
                 self.watch_gifts(image, page)
             else:
                 self.last_gifts = self.last_gift_look = self.last_trials = None
             return
-        self.trials_gone(None)
+        self.held_gone(None)
         if not (self.watch or self.left_choices):
             return
         self.left_choices = True
@@ -423,26 +427,28 @@ class Worker(threading.Thread):
         self.last_page = page
         self.cb.event(replace(reading, watched=True))
 
-    def watch_gifts(self, image, page):
-        """Auto read on a gift screen: its gifts, and its trials after a boss, told when they differ from the last
-        told; not read again while the screen looks as it did."""
+    def watch_gifts(self, image, page, again=False):
+        """A gift screen's gifts, and its trials after a boss, told when they differ from the last told, or again (F9);
+        not read again while the screen looks as it did, unless again. A post-boss choice's trials and the fuse page
+        are held: their hints stay on the game until held_gone tells the page went. The fuse page's empty centre is
+        told too: its gift's box goes."""
         look = vision.thumb(vision.crop(image, LOOK))
-        if vision.same_screen(look, self.last_gift_look):
+        if not again and vision.same_screen(look, self.last_gift_look):
             return
         self.last_gift_look = look
         reading, trial_page = self.read_gift_screen(image, page)
         shown = (page, tuple(g["id"] for g, _ in reading.gifts))
-        if reading.gifts and shown != self.last_gifts:
+        if again or ((reading.gifts or page == "fuse") and shown != self.last_gifts):
             self.last_gifts = shown
             self.cb.gifts(reading)
-        if trial_page and trial_page.cards != self.last_trials:
-            self.last_trials = trial_page.cards
-            self.left_trials = True
+        if trial_page and (again or trial_page.cards != self.last_trials):
+            self.last_trials, self.held = trial_page.cards, "choice"
             self.cb.trials(trial_page)
+        if page == "fuse":
+            self.held = "fuse"
 
-    def trials_gone(self, page):
-        """The post-boss gift choice whose trials were shown is no longer on screen (page: the gift screen now up, or
-        None): told once."""
-        if self.left_trials and page != "choice":
-            self.left_trials, self.last_trials = False, None
+    def held_gone(self, page):
+        """The held gift screen is no longer on screen (page: the gift screen now up, or None): told once."""
+        if self.held and page != self.held:
+            self.held, self.last_trials = None, None
             self.cb.page_left()
