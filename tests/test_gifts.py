@@ -28,7 +28,9 @@ def test_gifts_are_found_by_chinese_or_english_name():
     assert gifts.by_name("Turn Start: When dealing") is None
 
 
-# The gifts on each of maalc's gift screens, left to right (the boss trial ids: maalc tests/test_trial_screens.py).
+# The gifts on each of maalc's gift screens, left to right (the boss trial ids: maalc tests/test_trial_screens.py). The
+# fuse page's centre slot by eye: a fixed recipe's gift on ShopFuseRecipe*.png, empty on ShopFuse*.png (no recipe met),
+# covered by the Fusion Recipes popup on ShopFusionRecipes.png.
 SHOWN = {
     "GiftChoice.png": ("choice", ["Eclipse of Scarlet Moths"]),
     "GiftChoiceNoCount.png": ("choice", ["Clasped Sculpture", "First-aid Kit"]),
@@ -36,6 +38,12 @@ SHOWN = {
     "BossGiftTrialsHard.png": ("choice", ["Melted Spring", "Talisman Bundle", "Rusted Muzzle", "Hellterfly's Dream"]),
     "GiftGet.png": ("get", ["Wound Clerid"]),
     "GiftGetOverMap.png": ("get", ["Rusty Commemorative Coin"]),
+    "ShopFuseRecipe.png": ("fuse", ["Cask Spirits"]),
+    "ShopFuseRecipeTwo.png": ("fuse", ["Reminiscence"]),
+    "ShopFuse.png": ("fuse", []),
+    "ShopFuseAvailable.png": ("fuse", []),
+    "ShopFuseLocked.png": ("fuse", []),
+    "ShopFusionRecipes.png": ("fuse", []),
 }
 
 
@@ -47,7 +55,9 @@ def test_the_gifts_on_screen_are_read(screen, name):
     assert (page, [g["en"] for g, _ in reading.gifts]) == SHOWN[name]
 
 
-@pytest.mark.parametrize("name", ["EventChoices.png", "BattleTurn.png", "MirrorMap.png", "Victory.png"])
+@pytest.mark.parametrize("name", ["EventChoices.png", "BattleTurn.png", "MirrorMap.png", "Victory.png", "Shop.png",
+                                  "ShopPurchase.png", "ShopHeal.png", "SuperShop.png", "ShopReplaceSkillAll.png",
+                                  "ShopIdSkillSearchAll.png"])
 def test_other_screens_are_no_gift_screen(screen, name):
     assert gifts.gift_page(screen(name), read) is None
 

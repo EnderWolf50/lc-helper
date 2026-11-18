@@ -304,3 +304,41 @@ def gear_hollow(image, box):
                         np.round(x + dx + r * np.cos(RING_ANGLES)).astype(int)]
             best = max(best, circles.mean(axis=1).var() / (circles.var(axis=1).mean() + 1))
     return bool(best > 0.5)
+
+
+# The shop's fuse page: its centre slot (maalc FUSE_CENTRE taps it at 365, 340) shows the gift a fixed recipe makes, its
+# picture centred at (367, 347) on ShopFuseRecipe.png and ShopFuseRecipeTwo.png. Each fusion gift's picture (the
+# package's data/gift_icons) squeezed to 78 px square, its alpha over 128 the mask, matched within 20 px of there: the
+# right gift scores 0.889 and 0.801, the next gift 0.34 at most; with no recipe met (ShopFuse.png, ShopFuseAvailable.png,
+# ShopFuseLocked.png) and under the Fusion Recipes popup (ShopFusionRecipes.png) the best gift scores 0.455. At 76 and
+# 80 px the second capture drops to 0.734 and 0.722, at 84 to 0.446 (2026-11-19).
+FUSE_PICTURE, FUSE_SIDE, FUSE_SLACK = (367, 347), 78, 20
+FUSE_MATCH, FUSE_LEAD = 0.6, 0.1  # the best's floor and its lead over the next: maalc gift_cells' ICON_MIN, ICON_MARGIN
+
+
+@cache
+def gift_template(gift_id):
+    """Gift gift_id's picture as the fuse page's centre shows it, FUSE_SIDE px square: (BGR, mask)."""
+    picture = cv2.imdecode(np.fromfile(str(package.path(f"data/gift_icons/{gift_id}.webp")), np.uint8),
+                           cv2.IMREAD_UNCHANGED)
+    picture = cv2.resize(picture, (FUSE_SIDE, FUSE_SIDE), interpolation=cv2.INTER_AREA)
+    mask = np.where(picture[..., 3:] > 128, 255, 0).astype(np.uint8).repeat(3, axis=2)
+    return np.ascontiguousarray(picture[..., :3]), mask
+
+
+def fused_gift(image, gift_ids) -> tuple[int, Box] | None:
+    """(id, picture box) of the gift among gift_ids that the fuse page's centre slot shows, or None: the best match
+    when it reaches FUSE_MATCH and leads the next by FUSE_LEAD (a tie is two lookalikes, not a gift)."""
+    x, y = FUSE_PICTURE[0] - FUSE_SIDE // 2 - FUSE_SLACK, FUSE_PICTURE[1] - FUSE_SIDE // 2 - FUSE_SLACK
+    area = crop(image, (x, y, FUSE_SIDE + 2 * FUSE_SLACK, FUSE_SIDE + 2 * FUSE_SLACK))
+    ranked = []
+    for gift_id in gift_ids:
+        picture, mask = gift_template(gift_id)
+        scores = cv2.matchTemplate(area, picture, cv2.TM_CCOEFF_NORMED, mask=mask)
+        _, best, _, at = cv2.minMaxLoc(np.nan_to_num(scores, nan=0.0, posinf=0.0, neginf=0.0))
+        ranked.append((best, gift_id, at))
+    ranked.sort(reverse=True)
+    if not ranked or ranked[0][0] < FUSE_MATCH or (len(ranked) > 1 and ranked[0][0] - ranked[1][0] < FUSE_LEAD):
+        return None
+    _, gift_id, (dx, dy) = ranked[0]
+    return gift_id, (x + dx, y + dy, FUSE_SIDE, FUSE_SIDE)

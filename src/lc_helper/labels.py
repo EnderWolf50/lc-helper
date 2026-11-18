@@ -19,6 +19,11 @@ WORDS = {
     "mounting": {"en": "mounting", "cn": "追加的苦难"},
     "acquire": {"en": "acquire", "cn": "获得"},
     "owned": {"en": "owned", "cn": "持有"},
+    # The shop's Fuse E.G.O Gift page: MirrorDungeonUI_3 ego_gift_combine_ui_title (合成E.G.O饰品). Both words are also
+    # in the titles of the page's own popups, Fusion Recipes (MainUIText ego_gift_combine_explain_title, 合成配方; English
+    # "Fusion Recipe" on ShopFusionRecipes.png) and the fusion guide (mirror_ego_gift_combine_guide_popup_title, 合成指南):
+    # one up reads as the fuse page whose centre it covers.
+    "fuse": {"en": "fus", "cn": "合成"},
     # a check's prompt: BattleUIText choice_personality (选择一位罪人来进行判定：)
     "check": {"en": "choose a character", "cn": "选择一位罪人"},
     # The event button's labels, each word the whole label. No LLC text was found for SKIP: the button may be a
