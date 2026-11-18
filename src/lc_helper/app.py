@@ -245,8 +245,6 @@ def status_text(status: Status):
     parts = [status.phase.value]
     if status.phase is not Phase.STOPPED and (g := guard_text(status.plan.guard)):
         parts.append(g)
-    elif status.phase is not Phase.STOPPED:
-        parts.append(PICK_TEXT[status.plan.pick])
     if status.turns:
         parts.append(f"已打 {status.turns} 回合")
     text = " · ".join(parts)
