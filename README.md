@@ -57,6 +57,15 @@ uv run python tools/exe_check.py             # 打包版自我測試（事件搜
 
 `lc-helper.exe --offline` 不找也不連模擬器或 PC 版，只查事件。設定存在 exe 旁邊的 `.local/`。
 
+發版（GitHub Release）：
+
+```powershell
+uv run --group build python tools/release.py 0.3.0 --notes notes.md             # 改版本、推 main、等 CI 過、打包、驗證、壓 zip、發 v0.3.0
+uv run --group build python tools/release.py 0.3.0 --notes notes.md --dry-run   # 只打包、驗證、壓 zip 到 dist/，不 commit、不推、不發
+```
+
+要在 main 上、沒有未提交的修改、和 origin/main 一致時跑。`pyproject.toml` 的版本不同時，它改版本與 `uv.lock`，commit 成「Version 0.3.0」並推上 main；那個 commit 的 test 跑過才打 tag。zip 不含打包版的 `.local`（打包的人自己的設定與戰鬥紀錄）。`notes.md` 是 Release 的說明文字。
+
 ## 檢查
 
 ```powershell
