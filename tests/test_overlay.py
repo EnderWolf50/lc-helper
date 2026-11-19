@@ -421,3 +421,81 @@ def test_a_gift_on_an_opened_card_leads_with_its_picture(qt):
     side = picture.width() / picture.devicePixelRatio()
     assert not picture.isNull() and abs(side - overlay.picture_side(font, small, 2)) <= 1, "a line and two small"
     o.close()
+
+
+# ShopFuseRecipe.png: Cask Spirits in the fuse page's centre slot, its picture's box as gifts.read_gifts finds it.
+CASK_SPIRITS = (328, 309, 78, 78)
+
+
+def last_line(gid):
+    return overlay.gift_effect(gid).split("\n")[-1]
+
+
+def test_the_fuse_box_sits_left_of_the_wheel_and_says_the_gift_at_a_glance(qt):
+    """Left of the left material slot (x 187 up), beside the centre slot and above the party's portraits, about the
+    centre slot's height; its clicks are its own, and the wheel's go to the game."""
+    o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720), window_of=lambda source: None)
+    o.resize(1280, 720)
+    o.show_fuse(gifts.book()[9180], CASK_SPIRITS, "127.0.0.1:16384")
+    doc, rect = o.fuse_card()
+    assert rect.left() >= 0 and rect.right() < 187 and rect.top() >= 100 and rect.bottom() <= overlay.CARD_BOTTOM
+    assert rect.top() < 347 < rect.bottom() and rect.height() <= 140, "beside the centre slot, about its height"
+    text = doc.toPlainText()
+    assert text.startswith("桶裝烈酒 呼吸 IV") and text.endswith("…\n點一下看全文") and last_line(9180) not in text
+    assert o.mask().contains(rect.center().toPoint())
+    for wheel in (QPoint(365, 340), QPoint(228, 352), QPoint(505, 352), QPoint(367, 214)):  # centre, materials
+        assert not o.mask().contains(wheel), wheel
+    o.hide_labels()
+    assert o.fuse is None and not o.isVisible()
+    o.close()
+
+
+def test_a_click_opens_the_fuse_box_over_the_wheel_with_the_whole_effect_and_another_closes_it(qt):
+    o = overlay.Overlay(locate=lambda source: (0, 0, 1280, 720), window_of=lambda source: None)
+    o.resize(1280, 720)
+    o.show_fuse(gifts.book()[9180], CASK_SPIRITS, "127.0.0.1:16384")
+    _, brief = o.fuse_card()
+    QTest.mouseMove(o, brief.center().toPoint())
+    assert o.cursor().shape() == Qt.PointingHandCursor
+    QTest.mouseClick(o, Qt.LeftButton, pos=brief.center().toPoint())
+    doc, full = o.fuse_card()
+    assert last_line(9180) in doc.toPlainText(), "its whole effect"
+    assert full.left() >= 0 and full.right() < 605 and full.top() >= 100 and full.bottom() <= overlay.CARD_BOTTOM
+    wheel = QPoint(365, round(full.center().y()))
+    assert full.width() > brief.width() and o.mask().contains(wheel), "over the wheel"
+    o.show_fuse(gifts.book()[9180], CASK_SPIRITS, "127.0.0.1:16384")  # the page read again: still open
+    assert o.fuse_card()[1] == full
+    QTest.mouseClick(o, Qt.LeftButton, pos=wheel)
+    assert o.fuse_card()[1] == brief and not o.mask().contains(wheel)
+    QTest.mouseClick(o, Qt.LeftButton, pos=brief.center().toPoint())
+    o.show_fuse(gifts.book()[9179], CASK_SPIRITS, "127.0.0.1:16384")  # another recipe
+    doc, rect = o.fuse_card()
+    assert doc.toPlainText().startswith("追憶") and doc.toPlainText().endswith("點一下看全文") and rect.right() < 187
+    o.close()
+
+
+@pytest.mark.parametrize("height", [720, 1440])
+def test_the_opened_fuse_box_holds_the_longest_effect_whole_beside_the_owned_gifts(qt, height):
+    o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
+    o.resize(height * 16 // 9, height)
+    longest = max(gifts.fusions(), key=lambda i: len(overlay.gift_effect(i)))
+    o.fuse, o.opened = (gifts.book()[longest], CASK_SPIRITS), longest
+    doc, rect = o.fuse_card()
+    sy = height / 720
+    assert rect.top() >= overlay.FUSE_TOP * sy - 1 and rect.bottom() <= overlay.CARD_BOTTOM * sy + 1
+    assert rect.right() < 605 * sy and last_line(longest) in doc.toPlainText()
+    o.close()
+
+
+def test_a_fuse_effect_too_long_even_opened_is_cut_and_says_where_the_rest_is(qt, monkeypatch):
+    o = overlay.Overlay(locate=lambda source: None, window_of=lambda source: None)
+    o.resize(1280, 720)
+    wave = gifts.book()[9176]
+    twice = dict(wave, id=1, desc_zh=wave["desc_zh"] * 2)
+    monkeypatch.setitem(gifts.book(), 1, twice)
+    o.fuse, o.opened = (twice, CASK_SPIRITS), 1
+    doc, rect = o.fuse_card()
+    assert rect.top() >= overlay.FUSE_TOP and rect.bottom() <= overlay.CARD_BOTTOM
+    assert doc.toPlainText().endswith("…\n全文見 LC Helper 視窗")
+    o.close()
+

@@ -1,9 +1,11 @@
 """E.G.O gifts: their effects looked up by name, and the gifts a screen shows.
 
-The data is the resource package's gift_text.json and gift_recipes.json (gamedata.gifts). Two screens are read, both
-by OCR in maalc's regions (agent/actions.py): the gift choice after a battle (its "Refuse Gift" button; the cards' titles) and the
+The data is the resource package's gift_text.json and gift_recipes.json (gamedata.gifts). Two screens are read by
+OCR in maalc's regions (agent/actions.py): the gift choice after a battle (its "Refuse Gift" button; the cards' titles) and the
 "E.G.O Gift GET!" window (its name plate). A line is a gift when it reads as a gift's whole English name, or as
-LLC's whole Simplified name (cn) on a client with LLC installed.
+LLC's whole Simplified name (cn) on a client with LLC installed. The shop's Fuse E.G.O Gift page is told by its title
+and read by its picture: a fixed recipe's materials in, the wheel's centre slot shows the gift it makes
+(vision.fused_gift).
 """
 
 import re
@@ -12,13 +14,14 @@ from functools import cache
 
 from rapidfuzz import fuzz, process
 
-from . import gamedata, labels
+from . import gamedata, labels, vision
 from .events import KEYWORDS, ROMAN, has_cjk, key_cn
 
 GIFT_CHOICE_HEADER = (870, 560, 160, 40)  # "Refuse Gift" (maalc GiftChoice node)
 GIFT_CARDS = (100, 150, 1080, 410)  # every card's text on the gift choice (maalc GIFT_CARDS)
 GIFT_GET_HEADER = (520, 160, 240, 40)  # "Gift GET" (maalc GiftGet node)
 GET_NAME = (320, 405, 180, 80)  # the GET! window's name plate (maalc GET_NAME)
+FUSE_TITLE = (440, 82, 400, 48)  # the shop page's title, "Fuse E.G.O Gift" at x 521-757, y 88-121 (ShopFuse*.png)
 NAME_MATCH = 88  # an OCR'd line against a whole name, 0-100 (maalc run_start.match_name takes 0.9)
 # The same against a Simplified name: a character weighs what several letters do. With one character misread, 1920 of
 # 2187 reads find their own gift at 75 and 153 at 88; with one dropped, 2050 of 2186 at 75. None finds another gift,
@@ -30,6 +33,12 @@ CN_NAME_MATCH = 75
 @cache
 def book():
     return {int(i): {"id": int(i), **g} for i, g in gamedata.gifts()["gifts"].items()}
+
+
+@cache
+def fusions():
+    """The ids of the gifts a fixed recipe makes (gift_recipes.json): the ones the fuse page's centre slot can show."""
+    return tuple(i for i, g in book().items() if "recipe" in g)
 
 
 def plain(text):
@@ -84,7 +93,8 @@ def label(g):
 
 @dataclass(frozen=True)
 class GiftReading:
-    """The gifts a screen shows: page "choice" (after a battle) or "get" (the GET! window), each with its box."""
+    """The gifts a screen shows, each with its box: page "choice" (after a battle), "get" (the GET! window) or "fuse"
+    (the shop's fuse page: the gift its centre slot shows, its picture's box; none when no recipe is met)."""
 
     page: str
     gifts: tuple  # ((gift, (x, y, w, h)), ...), left to right
@@ -92,12 +102,14 @@ class GiftReading:
 
 
 def gift_page(image, read):
-    """Which gift screen image is ("choice", "get"), or None, in English or LLC's Chinese. read(image, roi, only_rec)
-    gives OCR lines."""
+    """Which gift screen image is ("choice", "get", "fuse"), or None, in English or LLC's Chinese. read(image, roi,
+    only_rec) gives OCR lines."""
     if labels.shows(read(image, GIFT_CHOICE_HEADER, True), "refuse"):
         return "choice"
     if labels.shows(read(image, GIFT_GET_HEADER, True), "get"):
         return "get"
+    if labels.shows(read(image, FUSE_TITLE, True), "fuse"):
+        return "fuse"
     return None
 
 
@@ -114,4 +126,6 @@ def read_gifts(image, page, lines):
         g = by_name(whole) or next((by_name(t) for t, _ in rows if by_name(t)), None)
         if g:
             found.append((g, rows[0][1]))
+    elif page == "fuse" and (hit := vision.fused_gift(image, fusions())):
+        found.append((book()[hit[0]], hit[1]))
     return GiftReading(page, tuple(sorted(found, key=lambda f: f[1][0])))

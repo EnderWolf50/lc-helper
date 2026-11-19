@@ -150,9 +150,9 @@ def read(image, roi, only_rec):
 
 
 def gift_screen(image):
-    """image, a gift choice or E.G.O Gift GET! capture, as LLC shows it: the Refuse Gift button or the window's title,
-    each card's Acquire E.G.O Gift tag (LLC writes it as the GET! title, without the ！), and each gift's name (a
-    card's title, the GET! name plate) in Simplified. The cards' effect text stays English: no line of LLC's own
+    """image, a gift choice, E.G.O Gift GET! or fuse page capture, as LLC shows it: the Refuse Gift button or the
+    window's or page's title, each card's Acquire E.G.O Gift tag (LLC writes it as the GET! title, without the ！), and
+    each gift's name (a card's title, the GET! name plate) in Simplified. The cards' effect text stays English: no line of LLC's own
     effect text reads as a gift's name (measured on LLC 2026110501), and Chinese here would only be this helper's
     guess at the game's wrapping."""
     page = gifts.gift_page(image, read)
@@ -169,7 +169,15 @@ def gift_screen(image):
         jobs += [(box, [], 10) for box in plate]
         x, y, w, h = union(plate)
         jobs.append(line((x, y, w, plate[0][3]), shown[0][0]["cn"], x + max(w, 160)))
+    elif page == "fuse":
+        jobs += [line(box, LLC_FUSE_TITLES["recipe" in text.lower()], box[0] + box[2] + 20)
+                 for text, box in ocr.lines(image, gifts.FUSE_TITLE)]
     return draw(image, jobs)
+
+
+# The fuse page's title, and its Fusion Recipes popup's (MirrorDungeonUI_3 ego_gift_combine_ui_title, MainUIText
+# ego_gift_combine_explain_title).
+LLC_FUSE_TITLES = {False: "合成E.G.O饰品", True: "合成配方"}
 
 
 # LLC's text for the labels the story skipper reads (BattleUIText ab_event_next, choice_event_resume,
